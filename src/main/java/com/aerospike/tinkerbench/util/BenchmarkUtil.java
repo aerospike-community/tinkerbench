@@ -1,0 +1,340 @@
+package com.aerospike.tinkerbench.util;
+
+import org.apache.commons.configuration2.Configuration;
+import org.apache.commons.configuration2.MapConfiguration;
+import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
+import org.openjdk.jmh.annotations.Mode;
+import org.openjdk.jmh.results.RunResult;
+import org.openjdk.jmh.runner.Runner;
+import org.openjdk.jmh.runner.RunnerException;
+import org.openjdk.jmh.runner.options.ChainedOptionsBuilder;
+import org.openjdk.jmh.runner.options.Options;
+import org.openjdk.jmh.runner.options.OptionsBuilder;
+import org.openjdk.jmh.runner.options.TimeValue;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+import java.util.Set;
+
+public class BenchmarkUtil {
+
+    public static Configuration loadConfig(final Path path) {
+        System.out.println("Loading file " + path.getFileName());
+        try {
+            final Properties props = new Properties();
+            props.load(Files.newBufferedReader(path));
+
+            final HashMap<String, Object> configData = new HashMap<>();
+            props.keySet().forEach(it -> {
+                final String key = it.toString().toLowerCase();
+                final Object value = props.get(it.toString());
+                configData.put(key, value);
+            });
+
+            return new MapConfiguration(configData);
+        } catch (final IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private static Configuration config;
+
+    private static String readProperty(final String propertyName) {
+        if (config != null) {
+            return config.getString(propertyName.toLowerCase());
+        }
+
+        final String propertyFile = System.getProperty("config");
+        if (propertyFile == null || propertyFile.isEmpty()) {
+            return System.getProperty(propertyName);
+        }
+
+        try {
+            config = loadConfig(Path.of(propertyFile));
+            return config.getString(propertyName.toLowerCase());
+        } catch (final Exception e) {
+            throw new RuntimeException("Failed to load config file", e);
+        }
+    }
+
+    private static final String LOCALHOST = "localhost";
+    public static final int DEFAULT_PORT = 8182;
+
+    public static String getHost() {
+        final String host = readProperty("graph.server.host");
+        if (host == null) {
+            System.out.println("No 'graph.server.host' system property set. Defaulting to localhost.");
+            return LOCALHOST;
+        }
+        return host;
+    }
+
+    public static int getPort() {
+        try {
+            final String port = readProperty("graph.server.port");
+            if (port == null) {
+                System.out.println("No 'graph.server.port' system property set. Defaulting to " + DEFAULT_PORT + ".");
+                return DEFAULT_PORT;
+            }
+            return Integer.parseInt(port);
+        } catch (final NumberFormatException e) {
+            throw new RuntimeException(
+                    "Error, could not get port from system property 'graph.server.port'. Value provided: '" +
+                            readProperty("graph.server.port") + "'.");
+        }
+    }
+
+    public static int getMaxConnectionPoolSize() {
+        try {
+            final String maxConnectionPoolSize = readProperty("graph.client.maxConnectionPoolSize");
+            if (maxConnectionPoolSize == null) {
+                System.out.println("No 'graph.client.maxConnectionPoolSize' system property set. Defaulting to 8.");
+                return 8;
+            }
+            return Integer.parseInt(maxConnectionPoolSize);
+        } catch (final NumberFormatException e) {
+            throw new RuntimeException(
+                    "Error, could not get maxConnectionPoolSize from system property 'graph.client.maxConnectionPoolSize'. Value provided: '" +
+                            readProperty("graph.client.maxConnectionPoolSize") + "'.");
+        }
+    }
+
+    public static int getMaxInProcessPerConnection() {
+        try {
+            final String maxInProcessPerConnection = readProperty("graph.client.maxInProcessPerConnection");
+            if (maxInProcessPerConnection == null) {
+                System.out.println("No 'graph.client.maxInProcessPerConnection' system property set. Defaulting to 8.");
+                return 8;
+            }
+            return Integer.parseInt(maxInProcessPerConnection);
+        } catch (final NumberFormatException e) {
+            throw new RuntimeException(
+                    "Error, could not get maxInProcessPerConnection from system property 'graph.client.maxInProcessPerConnection'. Value provided: '" +
+                            readProperty("graph.client.maxInProcessPerConnection") + "'.");
+        }
+    }
+
+    public static boolean getSSL() {
+        try {
+            final String ssl = readProperty("graph.client.ssl");
+            if (ssl == null) {
+                System.out.println("No 'graph.client.ssl' system property set. Defaulting to false.");
+                return false;
+            }
+            return Boolean.parseBoolean(ssl);
+        } catch (final NumberFormatException e) {
+            throw new RuntimeException(
+                    "Error, could not get ssl from system property 'graph.client.ssl' 'true' or 'false' expected. Value provided: '" +
+                            readProperty("graph.client.ssl") + "'.");
+        }
+    }
+
+    public static int getMeasurementForks() {
+        try {
+            final String measurementForks = readProperty("benchmark.measurementForks");
+            if (measurementForks == null) {
+                System.out.println("No 'benchmark.measurementForks' system property set. Defaulting to 4 forks.");
+                return 4;
+            }
+            return Integer.parseInt(measurementForks);
+        } catch (final NumberFormatException e) {
+            throw new RuntimeException(
+                    "Error, could not get measurementForks from system property 'benchmark.measurementForks'. Value provided: '" +
+                            readProperty("benchmark.measurementForks") + "'.");
+        }
+    }
+
+    public static int getMeasurementIterations() {
+        try {
+            final String measurementIterations = readProperty("benchmark.measurementIterations");
+            if (measurementIterations == null) {
+                System.out.println("No 'benchmark.measurementIterations' system property set. Defaulting to 5 iterations.");
+                return 5;
+            }
+            return Integer.parseInt(measurementIterations);
+        } catch (final NumberFormatException e) {
+            throw new RuntimeException(
+                    "Error, could not get measurementIterations from system property 'benchmark.measurementIterations'. Value provided: '" +
+                            readProperty("benchmark.measurementIterations") + "'.");
+        }
+    }
+
+    public static int getMeasurementTime() {
+        try {
+            final String measurementTime = readProperty("benchmark.measurementTime");
+            if (measurementTime == null) {
+                System.out.println("No 'benchmark.measurementTime' system property set. Defaulting to 5 seconds.");
+                return 5;
+            }
+            return Integer.parseInt(measurementTime);
+        } catch (final NumberFormatException e) {
+            throw new RuntimeException(
+                    "Error, could not get measurementTime from system property 'benchmark.measurementTime'. Value provided: '" +
+                            readProperty("benchmark.measurementTime") + "'.");
+        }
+    }
+
+    public static int getMeasurementTimeout() {
+        try {
+            final String measurementTimeout = readProperty("benchmark.measurementTimeout");
+            if (measurementTimeout == null) {
+                System.out.println("No 'benchmark.measurementTimeout' system property set. Defaulting to 5 seconds.");
+                return 5;
+            }
+            return Integer.parseInt(measurementTimeout);
+        } catch (final NumberFormatException e) {
+            throw new RuntimeException(
+                    "Error, could not get measurementTimeout from system property 'benchmark.measurementTimeout'. Value provided: '" +
+                            readProperty("benchmark.measurementTimeout") + "'.");
+        }
+    }
+
+    public static int getMeasurementThreads() {
+        try {
+            final String measurementThreads = readProperty("benchmark.measurementThreads");
+            if (measurementThreads == null) {
+                System.out.println("No 'benchmark.measurementThreads' system property set. Defaulting to 4 threads.");
+                return 4;
+            }
+            return Integer.parseInt(measurementThreads);
+        } catch (final NumberFormatException e) {
+            throw new RuntimeException(
+                    "Error, could not get measurementThreads from system property 'benchmark.measurementThreads'. Value provided: '" +
+                            readProperty("benchmark.measurementThreads") + "'.");
+        }
+    }
+
+    public static Mode getMode() {
+        final String mode = readProperty("benchmark.mode");
+        final Mode benchmarkMode;
+        if (mode == null) {
+            benchmarkMode = Mode.AverageTime;
+        } else if ("all".equalsIgnoreCase(mode)) {
+            System.out.println("Setting mode to 'All'.");
+            benchmarkMode = Mode.All;
+        } else if ("throughput".equalsIgnoreCase(mode)) {
+            System.out.println("Setting mode to 'Throughput'.");
+            benchmarkMode = Mode.Throughput;
+        } else if ("average".equalsIgnoreCase(mode)) {
+            System.out.println("Setting mode to 'Average'.");
+            benchmarkMode = Mode.AverageTime;
+        } else if ("sample".equals(mode)) {
+            System.out.println("Setting mode to 'Sample'.");
+            benchmarkMode = Mode.SampleTime;
+        } else {
+            throw new RuntimeException("Error, could not get mode from system property 'benchmark.mode'. " +
+                    "Valid values are: 'all', 'throughput', 'average'. Value provided: '" + mode + "'.");
+        }
+        return benchmarkMode;
+    }
+
+    public static int getBenchmarkIdBufferSize() {
+        try {
+            final String idBufferSize = readProperty("benchmark.idBufferSize");
+            if (idBufferSize == null) {
+                System.out.println("No 'benchmark.idBufferSize' system property set. Defaulting to 5000.");
+                return 5000;
+            }
+            return Integer.parseInt(idBufferSize);
+        } catch (final NumberFormatException e) {
+            throw new RuntimeException(
+                    "Error, could not get short read limit from system property 'benchmark.idBufferSize'. Value provided: '" +
+                            readProperty("benchmark.idBufferSize") + "'.");
+        }
+    }
+
+    public static void printUsage() {
+        System.out.println("""
+                Usage: java -jar <jarfile> <benchmark name options='BenchmarkStitching', 'BenchmarkShortRead'>
+                \t-Dgraph.server.host=<graph service host default=localhost>
+                \t-Dgraph.server.port=<graph service port default=8182>
+                \t-Dgraph.client.maxConnectionPoolSize=<graph client maxConnectionPoolSize default=8>
+                \t-Dgraph.client.maxInProcessPerConnection=<graph client maxInProcessPerConnection default=8>
+                \t-Dgraph.client.ssl=<graph client ssl enable default=false>
+                \t-Dbenchmark.measurementForks=<benchmark measurementForks default=4>
+                \t-Dbenchmark.measurementIterations=<benchmark measurementIterations default=5>
+                \t-Dbenchmark.measurementTime=<benchmark measurementTime default=5 unit=seconds>
+                \t-Dbenchmark.measurementTimeout=<benchmark measurementTimeout default=5 unit=seconds>
+                \t-Dbenchmark.measurementThreads=<benchmark measurementThreads default=4>
+                \t-Dbenchmark.mode=<benchmark mode default=AverageTime, options='all', 'throughput', 'average', 'sample'>
+                \t-benchmark.idBufferSize=<how many ids to buffer for each type of label default=5000>
+                """);
+    }
+
+    public static void collectBenchmarkLabelIdMapping(final GraphTraversalSource g,
+                                                      final Set<String> labels,
+                                                      final Map<String, List<Object>> labelToId) {
+        for (final String label : labels) {
+            final List<Object> ids = g.V().hasLabel(label).id().limit(BenchmarkUtil.getBenchmarkIdBufferSize()).toList();
+            labelToId.put(label, ids);
+        }
+    }
+
+    public static void collectBenchmarkPropertyLabelMapping(final GraphTraversalSource g,
+                                                              final Set<String> properties,
+                                                              final String label,
+                                                              final Map<String, List<Object>> propertyToId) {
+        final List<Map<Object, Object>> dataMap = g.V().hasLabel(label).valueMap().limit(BenchmarkUtil.getBenchmarkIdBufferSize()).toList();
+        for (final Map<Object, Object> data: dataMap) {
+            for (final String property: properties) {
+                propertyToId.computeIfAbsent(property, k -> new ArrayList<>());
+                if (data.get(property) instanceof List) {
+                    final List<Object> propertyList = (List<Object>) data.get(property);
+                    propertyToId.get(property).add(propertyList.get(0));
+                } else {
+                    propertyToId.get(property).add(data.get(property));
+                }
+            }
+        }
+    }
+
+    public static void runBenchmark(final Class<?> clazz) throws RunnerException {
+        final List<String> args = new ArrayList<>();
+        args.add("-Dgraph.server.host=" + getHost());
+        args.add("-Dgraph.server.port=" + getPort());
+        args.add("-Dgraph.client.maxConnectionPoolSize=" + getMaxConnectionPoolSize());
+        args.add("-Dgraph.client.maxInProcessPerConnection=" + getMaxInProcessPerConnection());
+        args.add("-Dgraph.client.ssl=" + getSSL());
+        args.add("-Dbenchmark.idBufferSize=" + getBenchmarkIdBufferSize());
+        if (System.getProperty("config") != null) {
+            args.add("-Dconfig=" + System.getProperty("config"));
+        }
+        final String[] argsArray = args.toArray(new String[0]);
+        final ChainedOptionsBuilder optBuilder = new OptionsBuilder()
+                .include(clazz.getSimpleName())
+                .detectJvmArgs()
+                .threads(getMeasurementThreads())
+                .forks(getMeasurementForks())
+                .mode(getMode())
+                .measurementIterations(getMeasurementIterations())
+                .measurementTime(TimeValue.seconds(getMeasurementTime()))
+                .timeout(TimeValue.seconds(getMeasurementTimeout()))
+                .jvmArgs(argsArray);
+        Options opt = optBuilder.build();
+        Collection<RunResult> runResult = new Runner(opt).run();
+        final List<Map<String, Object>> root = new ArrayList<>();
+        runResult.forEach(result -> {
+            Map<String, Object> obj = new HashMap<>();
+            obj.put("name", result.getPrimaryResult().getLabel());
+            obj.put("unit", result.getPrimaryResult().getScoreUnit());
+            obj.put("value", result.getPrimaryResult().getScore());
+            obj.put("range", result.getPrimaryResult().getScoreError());
+            obj.put("extra", "\n\t" + result.getPrimaryResult().getStatistics());
+            root.add(obj);
+        });
+        root.forEach(resultMap -> {
+            System.out.println("result: ");
+            resultMap.forEach((k, v) -> {
+                System.out.printf("\t %s:  %s", k, v);
+                System.out.println();
+            });
+        });
+    }
+}
