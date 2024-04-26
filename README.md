@@ -12,9 +12,9 @@ The identity benchmark is composed of two components, `BenchmarkStitching` and `
 
 1. Using `graph-synth` (see https://github.com/aerospike/graph-synth/tree/benchmark-schema-compat), load the graph with the identity schema
 
-   Here is an example of how to do this for a data on localhost. Note you will need to configure the scale-factor. This may take some trial and error to get right.
+   Note you will need to configure the scale-factor. This may take some trial and error to get right. For reference, scale factor of 10000 creates a graph with 10k GoldenEntities 
 
-   For reference, scale factor of 10000 creates a graph with 
+   Here is an example of how to run graph-synth for the identity schema:
 
    `mvn clean install -DskipTests`
 
