@@ -11,9 +11,13 @@ The identity benchmark is composed of two components, `BenchmarkStitching` and `
 ### Steps to use the Identity Benchmark
 
 1. Using `graph-synth` (see https://github.com/aerospike/graph-synth/tree/benchmark-schema-compat), load the graph with the identity schema
+
    Here is an example of how to do this for a data on localhost. Note you will need to configure the scale-factor. This may take some trial and error to get right.
+
    For reference, scale factor of 10000 creates a graph with 
+
    `mvn clean install -DskipTests`
+
    `java -jar target/GraphSynth-1.1.0-SNAPSHOT.jar   --input-uri=file:$(pwd)/conf/schema/benchmark2024.yaml   --output-uri=ws://localhost:8182/g --scale-factor=10 --clear`
 2. Run the stitching, see `./scripts/run-stitching.sh` and `./conf/stitch.properties` to run and configure the stitching benchmark
 3. Run the short read, see `./scripts/run-shortread.sh` and `./conf/shortread.properties` to run and configure the short read benchmark
