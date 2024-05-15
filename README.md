@@ -18,9 +18,9 @@ The identity benchmark is composed of two components, `BenchmarkStitching` and `
 
    `mvn clean install -DskipTests`
 
-   `java -jar target/GraphSynth-1.1.0-SNAPSHOT.jar   --input-uri=file:$(pwd)/conf/schema/benchmark2024.yaml   --output-uri=ws://localhost:8182/g --scale-factor=10 --clear`
-2. Run the stitching, see `./scripts/run-stitching.sh` and `./conf/stitch.properties` to run and configure the stitching benchmark
-3. Run the short read, see `./scripts/run-shortread.sh` and `./conf/shortread.properties` to run and configure the short read benchmark
+   `java -jar ./graph-synth/target/GraphSynth-1.1.0-SNAPSHOT.jar   --input-uri=file:$(pwd)/conf/schema/benchmark2024.yaml   --output-uri=ws://localhost:8182/g --scale-factor=10 --clear`
+2. Run the stitching, see `./scripts/run_stitch.sh` and `./conf/stitch.properties` to run and configure the stitching benchmark
+3. Run the short read, see `./scripts/run_shortread.sh` and `./conf/shortread.properties` to run and configure the short read benchmark
 
 ### Requirements to run the Identity Benchmark
 

@@ -38,7 +38,7 @@ public class BenchmarkShortRead extends BenchmarkIdentitySchema {
     @Benchmark
     public void getAllSignalsProvidedByAPartner(final Blackhole blackhole) {
         blackhole.consume(g.V(getGoldenEntity()).out().where(
-                        __.in().has("PartnerIdentity", "PartnerName", "")).toList());
+                        __.in().has("PartnerIdentity", "PartnerName", getRandomPartnerName())).toList());
     }
 
     @Benchmark

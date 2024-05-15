@@ -12,6 +12,7 @@ import org.openjdk.jmh.runner.options.Options;
 import org.openjdk.jmh.runner.options.OptionsBuilder;
 import org.openjdk.jmh.runner.options.TimeValue;
 
+import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -22,6 +23,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 public class BenchmarkUtil {
 
@@ -313,6 +315,7 @@ public class BenchmarkUtil {
                 .threads(getMeasurementThreads())
                 .forks(getMeasurementForks())
                 .mode(getMode())
+                .timeUnit(TimeUnit.MILLISECONDS)
                 .measurementIterations(getMeasurementIterations())
                 .measurementTime(TimeValue.seconds(getMeasurementTime()))
                 .timeout(TimeValue.seconds(getMeasurementTimeout()))
@@ -336,5 +339,11 @@ public class BenchmarkUtil {
                 System.out.println();
             });
         });
+        try (final FileWriter file = new FileWriter(String.format("benchmark-result-%s.json", System.currentTimeMillis()))) {
+            System.out.println("Writing json file");
+            file.write(root.toString());
+        } catch (final Exception e) {
+            e.printStackTrace();
+        }
     }
 }
