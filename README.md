@@ -1,8 +1,9 @@
 # Tinkerbench
 
-Tinkerbench is tool for running and managing benchmarks on TinkerPop based graph databases.
+Tinkerbench is tool for running and managing benchmarks on TinkerPop based graph databases.  
 
-Currently, there is one support benchmark, which is the identity benchmark.
+Currently supported benchmarks:
+  - Identity Graph
 
 ## Identity Benchmark
 
