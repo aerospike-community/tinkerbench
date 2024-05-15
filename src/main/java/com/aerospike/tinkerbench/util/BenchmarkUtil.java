@@ -2,6 +2,8 @@ package com.aerospike.tinkerbench.util;
 
 import org.apache.commons.configuration2.Configuration;
 import org.apache.commons.configuration2.MapConfiguration;
+import org.apache.tinkerpop.gremlin.driver.Cluster;
+import org.apache.tinkerpop.gremlin.driver.remote.DriverRemoteConnection;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
 import org.openjdk.jmh.annotations.Mode;
 import org.openjdk.jmh.results.RunResult;
@@ -24,6 +26,8 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+
+import static org.apache.tinkerpop.gremlin.process.traversal.AnonymousTraversalSource.traversal;
 
 public class BenchmarkUtil {
 
@@ -268,6 +272,44 @@ public class BenchmarkUtil {
                 \t-Dbenchmark.mode=<benchmark mode default=AverageTime, options='all', 'throughput', 'average', 'sample'>
                 \t-benchmark.idBufferSize=<how many ids to buffer for each type of label default=5000>
                 """);
+    }
+
+    public static void printSummary() {
+        System.out.println("Creating the GraphTraversalSource.");
+        final Cluster cluster = Cluster.build().addContactPoint(getHost())
+                .port(getPort())
+                .maxConnectionPoolSize(getMaxConnectionPoolSize())
+                .maxInProcessPerConnection(getMaxInProcessPerConnection())
+                .enableSsl(getSSL()).create();
+        final GraphTraversalSource g = traversal().withRemote(DriverRemoteConnection.using(cluster));
+        final Object summary = g.call("summary").with("pretty").next();
+        System.out.println("Graph summary: " + summary);
+    }
+
+    public static void createIndexes() {
+        System.out.println("Creating the GraphTraversalSource.");
+        final Cluster cluster = Cluster.build().addContactPoint(getHost())
+                .port(getPort())
+                .maxConnectionPoolSize(getMaxConnectionPoolSize())
+                .maxInProcessPerConnection(getMaxInProcessPerConnection())
+                .enableSsl(getSSL()).create();
+        final GraphTraversalSource g = traversal().withRemote(DriverRemoteConnection.using(cluster));
+        try {
+            Object outputCreatePhone = g.call("aerospike.graph.admin.index.create").
+                    with("element_type", "vertex").
+                    with("property_key", "phone_number_hash").next();
+            System.out.println("Create phone index: " + outputCreatePhone);
+        } catch (final Exception e) {
+            System.out.println("Failed to create phone index: " + e.getMessage());
+        }
+        try {
+            Object outputCreateEmail = g.call("aerospike.graph.admin.index.create").
+                    with("element_type", "vertex").
+                    with("property_key", "email_hash").next();
+            System.out.println("Create email index: " + outputCreateEmail);
+        } catch (final Exception e) {
+            System.out.println("Failed to create email index: " + e.getMessage());
+        }
     }
 
     public static void collectBenchmarkLabelIdMapping(final GraphTraversalSource g,

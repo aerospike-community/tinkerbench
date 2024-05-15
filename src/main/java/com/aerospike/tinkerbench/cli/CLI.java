@@ -26,6 +26,12 @@ public class CLI {
                 (args[0].equals("-h") || args[0].equals("--help"))) {
             BenchmarkUtil.printUsage();
             System.exit(0);
+        } else if (args.length == 1 && args[0].equals("--summary")) {
+            BenchmarkUtil.printSummary();
+            System.exit(0);
+        } else if (args.length == 1 && args[0].equals("--create-indexes")) {
+            BenchmarkUtil.createIndexes();
+            System.exit(0);
         }
         System.out.println(
                         "                                                                                                                                         \n" +
