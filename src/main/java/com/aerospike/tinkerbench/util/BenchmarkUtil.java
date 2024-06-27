@@ -73,13 +73,17 @@ public class BenchmarkUtil {
     private static final String LOCALHOST = "localhost";
     public static final int DEFAULT_PORT = 8182;
 
-    public static String getHost() {
-        final String host = readProperty("graph.server.host");
-        if (host == null) {
+    public static String[] getHost() {
+        final String hosts = readProperty("graph.server.host");
+        if (hosts == null) {
             System.out.println("No 'graph.server.host' system property set. Defaulting to localhost.");
-            return LOCALHOST;
+            return new String[] { LOCALHOST };
         }
-        return host;
+        final String[] hostsArray = hosts.split(",");
+        for (int i = 0; i < hostsArray.length; i++) {
+            hostsArray[i] = hostsArray[i].trim();
+        }
+        return hostsArray;
     }
 
     public static int getPort() {
@@ -276,7 +280,7 @@ public class BenchmarkUtil {
 
     public static void printSummary() {
         System.out.println("Creating the GraphTraversalSource.");
-        final Cluster cluster = Cluster.build().addContactPoint(getHost())
+        final Cluster cluster = Cluster.build().addContactPoints(getHost())
                 .port(getPort())
                 .maxConnectionPoolSize(getMaxConnectionPoolSize())
                 .maxInProcessPerConnection(getMaxInProcessPerConnection())
@@ -288,7 +292,7 @@ public class BenchmarkUtil {
 
     public static void createIndexes() {
         System.out.println("Creating the GraphTraversalSource.");
-        final Cluster cluster = Cluster.build().addContactPoint(getHost())
+        final Cluster cluster = Cluster.build().addContactPoints(getHost())
                 .port(getPort())
                 .maxConnectionPoolSize(getMaxConnectionPoolSize())
                 .maxInProcessPerConnection(getMaxInProcessPerConnection())

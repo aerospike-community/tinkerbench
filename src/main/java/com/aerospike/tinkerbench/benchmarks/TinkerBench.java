@@ -19,7 +19,7 @@ public abstract class TinkerBench {
     protected GraphTraversalSource g = null;
 
     private static final Cluster.Builder BUILDER = Cluster.build()
-            .addContactPoint(getHost())
+            .addContactPoints(getHost())
             .port(getPort())
             .maxConnectionPoolSize(getMaxConnectionPoolSize())
             .maxInProcessPerConnection(getMaxInProcessPerConnection())
