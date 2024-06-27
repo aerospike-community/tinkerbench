@@ -8,7 +8,7 @@ Currently supported benchmarks:
 
 ## Load Benchmark
 
-The load benchmark is a simple benchmark that does the following:
+The load benchmark is a simple benchmark that does the following setup / benchmark process.
 
 ### Setup
 - Clear the graph
@@ -17,6 +17,11 @@ The load benchmark is a simple benchmark that does the following:
 ### Benchmark
 - Run many mergeV's with seed size * seed multiplier
 - Run many edge inserts that attach vertices
+
+### Steps to use the Load Benchmark
+- Run `./scrips/build-docker.sh` to build the docker image
+- Run `./scripts/run_docker.sh` to run the docker image
+- Edit `./scripts/run_docker.sh` to change the environment variables and configure the benchmark
 
 ## Identity Benchmark
 
