@@ -4,6 +4,19 @@ Tinkerbench is tool for running and managing benchmarks on TinkerPop based graph
 
 Currently supported benchmarks:
   - Identity Graph
+  - Load benchmark
+
+## Load Benchmark
+
+The load benchmark is a simple benchmark that does the following:
+
+### Setup
+- Clear the graph
+- Load a graph with seed size
+
+### Benchmark
+- Run many mergeV's with seed size * seed multiplier
+- Run many edge inserts that attach vertices
 
 ## Identity Benchmark
 

@@ -5,6 +5,7 @@ import org.apache.commons.configuration2.MapConfiguration;
 import org.apache.tinkerpop.gremlin.driver.Cluster;
 import org.apache.tinkerpop.gremlin.driver.remote.DriverRemoteConnection;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
+import org.apache.tinkerpop.gremlin.structure.T;
 import org.openjdk.jmh.annotations.Mode;
 import org.openjdk.jmh.results.RunResult;
 import org.openjdk.jmh.runner.Runner;
@@ -53,6 +54,11 @@ public class BenchmarkUtil {
     private static Configuration config;
 
     private static String readProperty(final String propertyName) {
+        // Let system properties override config file.
+        if (System.getenv(propertyName) != null) {
+            return System.getenv(propertyName);
+        }
+
         if (config != null) {
             return config.getString(propertyName.toLowerCase());
         }
@@ -255,8 +261,38 @@ public class BenchmarkUtil {
             return Integer.parseInt(idBufferSize);
         } catch (final NumberFormatException e) {
             throw new RuntimeException(
-                    "Error, could not get short read limit from system property 'benchmark.idBufferSize'. Value provided: '" +
+                    "Error, could not get integer read limit from system property 'benchmark.idBufferSize'. Value provided: '" +
                             readProperty("benchmark.idBufferSize") + "'.");
+        }
+    }
+
+    public static int getBenchmarkSeedSize() {
+        try {
+            final String idBufferSize = readProperty("benchmark.seedSize");
+            if (idBufferSize == null) {
+                System.out.println("No 'benchmark.seedSize' system property set. Defaulting to 50000.");
+                return 50000;
+            }
+            return Integer.parseInt(idBufferSize);
+        } catch (final NumberFormatException e) {
+            throw new RuntimeException(
+                    "Error, could not get integer read limit from system property 'benchmark.seedSize'. Value provided: '" +
+                            readProperty("benchmark.seedSize") + "'.");
+        }
+    }
+
+    public static int getBenchmarkSeedRuntimeMultiplier() {
+        try {
+            final String idBufferSize = readProperty("benchmark.seedSize.multiplier");
+            if (idBufferSize == null) {
+                System.out.println("No 'benchmark.seedSize.multiplier' system property set. Defaulting to 4.");
+                return 4;
+            }
+            return Integer.parseInt(idBufferSize);
+        } catch (final NumberFormatException e) {
+            throw new RuntimeException(
+                    "Error, could not get integer read limit from system property 'benchmark.seedSize.multiplier'. Value provided: '" +
+                            readProperty("benchmark.seedSize") + "'.");
         }
     }
 
@@ -323,6 +359,17 @@ public class BenchmarkUtil {
             final List<Object> ids = g.V().hasLabel(label).id().limit(BenchmarkUtil.getBenchmarkIdBufferSize()).toList();
             labelToId.put(label, ids);
         }
+    }
+
+    public static void seedGraph(final GraphTraversalSource g, final int seedSize) {
+        System.out.println("Seeding the graph with " + seedSize + " vertices.");
+        for (int i = 0; i < seedSize; i++) {
+            g.addV("vertex_label").
+                    property(T.id, i).
+                    property("property_key", "property_value").
+                    next();
+        }
+        System.out.println("Completed seeding the graph.");
     }
 
     public static void collectBenchmarkPropertyLabelMapping(final GraphTraversalSource g,
