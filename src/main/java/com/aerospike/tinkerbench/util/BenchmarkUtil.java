@@ -370,13 +370,24 @@ public class BenchmarkUtil {
         for (int i = 0; i < Runtime.getRuntime().availableProcessors(); i++) {
             final int finalI = i;
             service.submit(() -> {
+                System.out.println("Thread " + finalI + " seeding the graph.");
                 for (int j = 0; j < seedCountPerThread; j++) {
                     g.addV("vertex_label").
                             property(T.id, finalI * seedCountPerThread + j).
                             property("property_key", "property_value").
                             next();
                 }
+                System.out.println("Thread " + finalI + " completed seeding the graph.");
             });
+        }
+        try {
+            service.shutdown();
+            if (!service.awaitTermination(1, TimeUnit.HOURS)) {
+                throw new RuntimeException("Never completed seeding the graph.");
+            }
+        } catch (final InterruptedException e) {
+            // Should never happen.
+            throw new RuntimeException(e);
         }
         System.out.println("Completed seeding the graph.");
     }
