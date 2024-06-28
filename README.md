@@ -1,31 +1,34 @@
 # Tinkerbench
 
-Tinkerbench is tool for running and managing benchmarks on TinkerPop based graph databases.  
+Tinkerbench is tool for running and managing benchmarks on TinkerPop based graph databases.
+It is built on the JMH benchmarking framework. https://github.com/openjdk/jmh and customised for running benchmarks on any tinkerpop based Graph database.
 
 Currently supported benchmarks:
-  - Identity Graph
-  - Load benchmark
+- Identity Graph
+- Load benchmark
 
 ## Load Benchmark
 
 Requirements: To run this benchmark you must have Aerospike Graph Service running and connected to Aerospike.
-
-Instructions for using Aerolab to start up Aerospike Graph Service and Aerospike using Aerolab are at the bottom of the page.
+If you already have AGS setup and connected to Aerospike database proceed with the steps below. If not, you can use Aerolab to quickly setup Aerospike Graph.
+Instructions for using Aerolab to start up Aerospike Graph Service and Aerospike are at the bottom of the page.
 
 The load benchmark is a simple benchmark that does the following setup / benchmark process.
 
 ### Setup
-- Clear the graph
-- Load a graph with seed size
+The load benchmark does the following steps
+1. Clears the graph (g.V().drop())
+2. Writes `benchmark.seedSize` number of vertices with ids `1-benchmark.seedSize`
 
 ### Benchmark
-- Run many mergeV's with seed size * seed multiplier
-- Run many edge inserts that attach vertices
+- Get or create vertices with a random ID between `1-benchmark.seedSize*benchmark.seedSize.multiplier`
+- Create edges between randomly chosen vertices
 
 ### Steps to use the Load Benchmark
-- Run `./scrips/build-docker.sh` to build the docker image
-- Run `./scripts/run_docker.sh` to run the docker image
-- Edit `./scripts/run_docker.sh` to change the environment variables and configure the benchmark
+- Run `./scripts/build-docker.sh` to build the docker image
+- Edit `./scripts/run_docker.sh` and ensure all the parameters are correct
+   - Most importantly the graph.server.host and graph.server.port. These refer to the accessible IP address and port of the AGS instance.
+- Run the script. `./scripts/run_docker.sh`
 
 ## Identity Benchmark
 
@@ -36,7 +39,7 @@ The identity benchmark is composed of two components, `BenchmarkStitching` and `
 1. Before loading the graph, create secondary indexes on the required properties. To do this, run ./scripts/run_create_indexes.sh
 2. Using `graph-synth` (see https://github.com/aerospike/graph-synth/tree/benchmark-schema-compat), load the graph with the identity schema
 
-   Note you will need to configure the scale-factor. This may take some trial and error to get right. For reference, scale factor of 10000 creates a graph with 10k GoldenEntities 
+   Note you will need to configure the scale-factor. This may take some trial and error to get right. For reference, scale factor of 10000 creates a graph with 10k GoldenEntities
 
    Here is an example of how to run graph-synth for the identity schema:
 
@@ -109,7 +112,7 @@ aerolab cluster destroy -n <name>
 ### SSH into a node
 
 ```
-ssh -i aerolab-graph_us-west-1 
+ssh -i aerolab-graph_us-west-1
 ```
 
 ### Verifying Aerospike Graph Service is running
