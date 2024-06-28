@@ -60,4 +60,10 @@ public class BenchmarkLoad extends TinkerBench {
         final Vertex v2 = getOrCreateVertex(RANDOM.nextInt(SEED_COUNT * SEED_COUNT_MULTIPLIER));
         g.addE("edge_label").from(v1).to(v2).property("property_key", "property_value").iterate();
     }
+
+    @Benchmark
+    public void benchmarkTraversal() {
+        final Vertex v1 = getOrCreateVertex(RANDOM.nextInt(SEED_COUNT));
+        g.V(v1).both().both().both().both().toList();
+    }
 }

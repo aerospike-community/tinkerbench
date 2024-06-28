@@ -5,6 +5,7 @@ import org.apache.commons.configuration2.MapConfiguration;
 import org.apache.tinkerpop.gremlin.driver.Cluster;
 import org.apache.tinkerpop.gremlin.driver.remote.DriverRemoteConnection;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
+import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__;
 import org.apache.tinkerpop.gremlin.structure.T;
 import org.openjdk.jmh.annotations.Mode;
 import org.openjdk.jmh.results.RunResult;
@@ -25,9 +26,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
 import static org.apache.tinkerpop.gremlin.process.traversal.AnonymousTraversalSource.traversal;
@@ -367,18 +370,40 @@ public class BenchmarkUtil {
         System.out.println("Seeding the graph with " + seedSize + " vertices.");
         final ExecutorService service = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
         final int seedCountPerThread = seedSize / Runtime.getRuntime().availableProcessors();
+        final List<Future<?>> futureList = new ArrayList<>();
         for (int i = 0; i < Runtime.getRuntime().availableProcessors(); i++) {
             final int finalI = i;
-            service.submit(() -> {
-                System.out.println("Thread " + finalI + " seeding the graph.");
+            futureList.add(service.submit(() -> {
+                System.out.println("Thread " + finalI + " vertex seeding the graph.");
                 for (int j = 0; j < seedCountPerThread; j++) {
                     g.addV("vertex_label").
                             property(T.id, finalI * seedCountPerThread + j).
                             property("property_key", "property_value").
                             next();
                 }
-                System.out.println("Thread " + finalI + " completed seeding the graph.");
-            });
+                System.out.println("Thread " + finalI + " completed vertex seeding the graph.");
+            }));
+        }
+        for (final Future<?> future : futureList) {
+            try {
+                future.get();
+            } catch (final Exception e) {
+                throw new RuntimeException(e);
+            }
+        }
+        // add some edges to this
+        for (int i = 0; i < Runtime.getRuntime().availableProcessors(); i++) {
+            final int finalI = i;
+            futureList.add(service.submit(() -> {
+                System.out.println("Thread " + finalI + " edge seeding the graph.");
+                final Random random = new Random();
+                for (int j = 0; j < seedCountPerThread; j++) {
+                    g.addE("edge_label").from(__.V(random.nextInt(seedSize))).to(__.V(random.nextInt(seedSize))).
+                            property("property_key", "property_value").
+                            next();
+                }
+                System.out.println("Thread " + finalI + " completed edge seeding the graph.");
+            }));
         }
         try {
             service.shutdown();
