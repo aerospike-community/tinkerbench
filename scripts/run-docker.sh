@@ -14,7 +14,7 @@
 # benchmark.seedSize.multiplier -           multiplier of the seed size for the number of ids to be used in the benchmark.
 # benchmark.mode -                          Allowable values all, throughput, average, sample. Refer to https://javadoc.io/doc/org.openjdk.jmh/jmh-core/latest/org/openjdk/jmh/annotations/Mode.html for details on the mode#
 docker run -t -i \
-    -e graph.server.host=34.16.164.102 \
+    -e graph.server.host=172.17.0.1 \
     -e graph.server.port=8182 \
     -e graph.client.maxConnectionPoolSize=16 \
     -e graph.client.maxInProcessPerConnection=2 \

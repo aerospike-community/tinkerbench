@@ -26,6 +26,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 import static org.apache.tinkerpop.gremlin.process.traversal.AnonymousTraversalSource.traversal;
@@ -363,11 +365,18 @@ public class BenchmarkUtil {
 
     public static void seedGraph(final GraphTraversalSource g, final int seedSize) {
         System.out.println("Seeding the graph with " + seedSize + " vertices.");
-        for (int i = 0; i < seedSize; i++) {
-            g.addV("vertex_label").
-                    property(T.id, i).
-                    property("property_key", "property_value").
-                    next();
+        final ExecutorService service = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
+        final int seedCountPerThread = seedSize / Runtime.getRuntime().availableProcessors();
+        for (int i = 0; i < Runtime.getRuntime().availableProcessors(); i++) {
+            final int finalI = i;
+            service.submit(() -> {
+                for (int j = 0; j < seedCountPerThread; j++) {
+                    g.addV("vertex_label").
+                            property(T.id, finalI * seedCountPerThread + j).
+                            property("property_key", "property_value").
+                            next();
+                }
+            });
         }
         System.out.println("Completed seeding the graph.");
     }
