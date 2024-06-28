@@ -3,7 +3,7 @@
 Tinkerbench is tool for running and managing benchmarks on TinkerPop based graph databases.
 It is built on the JMH benchmarking framework. https://github.com/openjdk/jmh and customised for running benchmarks on any tinkerpop based Graph database.
 
-Currently supported benchmarks:
+Currently supported benchmarks are:
 - Load benchmark
 - Identity Graph
 
