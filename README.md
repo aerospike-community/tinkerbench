@@ -23,6 +23,7 @@ The load benchmark does the following steps
 ### Benchmark
 - Get or create vertices with a random ID between `1-benchmark.seedSize*benchmark.seedSize.multiplier`
 - Create edges between randomly chosen vertices
+- Pick a random vertex and do a 3 hop traversal
 
 ### Steps to use the Load Benchmark
 - Run `./scripts/build-docker.sh` to build the docker image
