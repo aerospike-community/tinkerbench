@@ -4,8 +4,8 @@ Tinkerbench is tool for running and managing benchmarks on TinkerPop based graph
 It is built on the JMH benchmarking framework. https://github.com/openjdk/jmh and customised for running benchmarks on any tinkerpop based Graph database.
 
 Currently supported benchmarks are:
-- Load benchmark
-- Identity Graph
+- Simple benchmark
+- Identity Graph benchmark
 
 ## Load Benchmark
 
@@ -13,10 +13,9 @@ Requirements: To run this benchmark you must have Aerospike Graph Service runnin
 If you already have AGS setup and connected to Aerospike database proceed with the steps below. If not, you can use Aerolab to quickly setup Aerospike Graph.
 Instructions for using Aerolab to start up Aerospike Graph Service and Aerospike are at the bottom of the page.
 
-The load benchmark is a simple benchmark that does the following setup / benchmark process.
+The Simple benchmark does the following setup / benchmark process.
 
 ### Setup
-The load benchmark does the following steps
 1. Clears the graph (g.V().drop())
 2. Writes `benchmark.seedSize` number of vertices with ids `1-benchmark.seedSize`
 
@@ -25,7 +24,7 @@ The load benchmark does the following steps
 - Create edges between randomly chosen vertices
 - Pick a random vertex and do a 3 hop traversal
 
-### Steps to use the Load Benchmark
+### Steps to use the Simple Benchmark
 - Run `./scripts/build-docker.sh` to build the docker image
 - Edit `./scripts/run_docker.sh` and ensure all the parameters are correct
    - Most importantly the graph.server.host and graph.server.port. These refer to the accessible IP address and port of the AGS instance.
