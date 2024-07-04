@@ -127,6 +127,21 @@ public class BenchmarkUtil {
         }
     }
 
+    public static int getMinConnectionPoolSize() {
+        try {
+            final String minConnectionPoolSize = readProperty("graph.client.minConnectionPoolSize");
+            if (minConnectionPoolSize == null) {
+                System.out.println("No 'graph.client.minConnectionPoolSize' system property set. Defaulting to 8.");
+                return 8;
+            }
+            return Integer.parseInt(minConnectionPoolSize);
+        } catch (final NumberFormatException e) {
+            throw new RuntimeException(
+                    "Error, could not get minConnectionPoolSize from system property 'graph.client.maxConnectionPoolSize'. Value provided: '" +
+                            readProperty("graph.client.maxConnectionPoolSize") + "'.");
+        }
+    }
+
     public static int getMaxInProcessPerConnection() {
         try {
             final String maxInProcessPerConnection = readProperty("graph.client.maxInProcessPerConnection");

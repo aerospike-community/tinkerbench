@@ -11,6 +11,7 @@ import static com.aerospike.tinkerbench.util.BenchmarkUtil.getHost;
 import static com.aerospike.tinkerbench.util.BenchmarkUtil.getMaxConnectionPoolSize;
 import static com.aerospike.tinkerbench.util.BenchmarkUtil.getMaxInProcessPerConnection;
 import static com.aerospike.tinkerbench.util.BenchmarkUtil.getMaxSimultaneousUsagePerConnection;
+import static com.aerospike.tinkerbench.util.BenchmarkUtil.getMinConnectionPoolSize;
 import static com.aerospike.tinkerbench.util.BenchmarkUtil.getMinSimultaneousUsagePerConnection;
 import static com.aerospike.tinkerbench.util.BenchmarkUtil.getPort;
 import static com.aerospike.tinkerbench.util.BenchmarkUtil.getSSL;
@@ -27,6 +28,7 @@ public abstract class TinkerBench {
             .maxInProcessPerConnection(getMaxInProcessPerConnection())
             .maxSimultaneousUsagePerConnection(getMaxSimultaneousUsagePerConnection())
             .minSimultaneousUsagePerConnection(getMinSimultaneousUsagePerConnection())
+            .minConnectionPoolSize(getMinConnectionPoolSize())
             .enableSsl(getSSL());
 
     @Setup
