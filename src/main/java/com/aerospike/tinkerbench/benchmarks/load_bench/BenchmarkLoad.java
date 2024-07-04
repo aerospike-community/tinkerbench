@@ -63,7 +63,7 @@ public class BenchmarkLoad extends TinkerBench {
 
     @Benchmark
     public void benchmarkGetVertex() {
-        final Vertex v1 = getOrCreateVertex(RANDOM.nextInt(SEED_COUNT));
+        final int v1 = RANDOM.nextInt(SEED_COUNT);
         g.V(v1).next();
     }
 

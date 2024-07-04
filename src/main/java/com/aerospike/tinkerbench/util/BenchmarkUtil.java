@@ -142,6 +142,21 @@ public class BenchmarkUtil {
         }
     }
 
+    public static int getMaxSimultaneousUsagePerConnection() {
+        try {
+            final String maxSimultaneousUsagePerConnection = readProperty("graph.client.maxInProcessPerConnection");
+            if (maxSimultaneousUsagePerConnection == null) {
+                System.out.println("No 'graph.client.maxSimultaneousUsagePerConnection' system property set. Defaulting to 8.");
+                return 8;
+            }
+            return Integer.parseInt(maxSimultaneousUsagePerConnection);
+        } catch (final NumberFormatException e) {
+            throw new RuntimeException(
+                    "Error, could not get maxSimultaneousUsagePerConnection from system property 'graph.client.maxSimultaneousUsagePerConnection'. Value provided: '" +
+                            readProperty("graph.client.maxSimultaneousUsagePerConnection") + "'.");
+        }
+    }
+
     public static boolean getSSL() {
         try {
             final String ssl = readProperty("graph.client.ssl");
