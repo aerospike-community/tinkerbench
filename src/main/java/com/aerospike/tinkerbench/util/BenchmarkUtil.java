@@ -144,12 +144,27 @@ public class BenchmarkUtil {
 
     public static int getMaxSimultaneousUsagePerConnection() {
         try {
-            final String maxSimultaneousUsagePerConnection = readProperty("graph.client.maxInProcessPerConnection");
+            final String maxSimultaneousUsagePerConnection = readProperty("graph.client.maxSimultaneousUsagePerConnection");
             if (maxSimultaneousUsagePerConnection == null) {
                 System.out.println("No 'graph.client.maxSimultaneousUsagePerConnection' system property set. Defaulting to 8.");
                 return 8;
             }
             return Integer.parseInt(maxSimultaneousUsagePerConnection);
+        } catch (final NumberFormatException e) {
+            throw new RuntimeException(
+                    "Error, could not get maxSimultaneousUsagePerConnection from system property 'graph.client.maxSimultaneousUsagePerConnection'. Value provided: '" +
+                            readProperty("graph.client.maxSimultaneousUsagePerConnection") + "'.");
+        }
+    }
+
+    public static int getMinSimultaneousUsagePerConnection() {
+        try {
+            final String minSimultaneousUsagePerConnection = readProperty("graph.client.minSimultaneousUsagePerConnection");
+            if (minSimultaneousUsagePerConnection == null) {
+                System.out.println("No 'graph.client.minSimultaneousUsagePerConnection' system property set. Defaulting to 8.");
+                return 8;
+            }
+            return Integer.parseInt(minSimultaneousUsagePerConnection);
         } catch (final NumberFormatException e) {
             throw new RuntimeException(
                     "Error, could not get maxSimultaneousUsagePerConnection from system property 'graph.client.maxSimultaneousUsagePerConnection'. Value provided: '" +
