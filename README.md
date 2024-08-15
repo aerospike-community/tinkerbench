@@ -7,7 +7,7 @@ Currently supported benchmarks are:
 - Simple benchmark
 - Identity Graph benchmark
 
-## Load Benchmark
+## Simple Benchmark
 
 Requirements: To run this benchmark you must have Aerospike Graph Service running and connected to Aerospike.
 If you already have AGS setup and connected to Aerospike database proceed with the steps below. If not, you can use Aerolab to quickly setup Aerospike Graph.
