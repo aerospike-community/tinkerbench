@@ -38,7 +38,7 @@ public class BenchmarkShortRead extends BenchmarkIdentitySchema {
                         repeat(__.out()).
                         until(__.not(
                                 __.hasLabel("Partner","Household"))).
-                        dedup()
+                        dedup().toList()
         );
     }
 
@@ -59,7 +59,7 @@ public class BenchmarkShortRead extends BenchmarkIdentitySchema {
         blackhole.consume(
                 g.V(getGoldenEntity()).
                         out("HAS_PARTNER").
-                        has("type", getRandomPartnerName()).out()
+                        has("type", getRandomPartnerName()).out().toList()
         );
     }
 
