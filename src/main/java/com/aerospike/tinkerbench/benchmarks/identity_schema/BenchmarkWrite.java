@@ -30,9 +30,15 @@ public class BenchmarkWrite extends BenchmarkIdentitySchema {
     public void SW2_addNewPartnerToExistingDevice(final Blackhole blackhole) {
         // SW2: Given existing device and new partner/id/cookie,
         //      Create partner subgraph, link partner to golden entity attached to device.
-        final Object deviceId = getDeviceId();
+        final Object goldenEntity = getGoldenEntity();
+        final List<Object> deviceIds = g.V(goldenEntity).out("HAS_DEVICE").limit(1).id().toList();
+        if (deviceIds.isEmpty()) {
+            return;
+        }
+        final Object deviceId = deviceIds.get(0);
         final String partnerName = getRandomPartnerName();
-        blackhole.consume(g.addV("Partner").property("type", partnerName).as("partner").
+        blackhole.consume(g.V(deviceId).as("device").
+                addV("Partner").property("type", partnerName).as("partner").
                 addV("Cookie").
                 property("domain_hash", "FOO").property("expiration_ts", 1).
                 property("last_updated_ts", 1).property("size", 1).
@@ -42,9 +48,9 @@ public class BenchmarkWrite extends BenchmarkIdentitySchema {
                 property("last_updated_ts", 1).
                 as("ip").
                 addE("PROVIDED_COOKIE").from("partner").to("cookie").
-                addE("PROVIDED_IP").from("partner").to("ip").
-                addE("PROVIDED_COOKIE").from("partner").to(__.V(deviceId)).
-                addE("HAS_PARTNER").from(__.V(deviceId).in("HAS_DEVICE").limit(1)).to("partner").
+                addE("PROVIDED_IP_ADDRESS").from("partner").to("ip").
+                addE("PROVIDED_DEVICE").from("partner").to("device").
+                V(deviceId).in("HAS_DEVICE").limit(1).addE("HAS_PARTNER").to("partner").
                 toList());
     }
 
