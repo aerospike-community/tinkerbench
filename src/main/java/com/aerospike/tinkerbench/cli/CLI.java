@@ -20,7 +20,7 @@ import java.util.Map;
 import java.util.Set;
 
 public class CLI {
-    private static final Set<Class> benchmarks = Set.of(BenchmarkShortRead.class, BenchmarkStitching.class, BenchmarkLoad.class);
+    private static final Set<Class> benchmarks = Set.of(BenchmarkShortRead.class, BenchmarkStitching.class, BenchmarkWrite.class, BenchmarkLoad.class);
 
     public static void main(final String[] args) throws RunnerException, IOException {
         if (args.length == 0 || args.length == 1 &&
