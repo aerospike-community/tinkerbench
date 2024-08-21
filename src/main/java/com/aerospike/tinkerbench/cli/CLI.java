@@ -3,6 +3,7 @@ package com.aerospike.tinkerbench.cli;
 import com.aerospike.tinkerbench.benchmarks.TinkerBench;
 import com.aerospike.tinkerbench.benchmarks.identity_schema.BenchmarkShortRead;
 import com.aerospike.tinkerbench.benchmarks.identity_schema.BenchmarkStitching;
+import com.aerospike.tinkerbench.benchmarks.identity_schema.BenchmarkWrite;
 import com.aerospike.tinkerbench.benchmarks.load_bench.BenchmarkLoad;
 import com.aerospike.tinkerbench.util.BenchmarkUtil;
 import org.openjdk.jmh.results.RunResult;
