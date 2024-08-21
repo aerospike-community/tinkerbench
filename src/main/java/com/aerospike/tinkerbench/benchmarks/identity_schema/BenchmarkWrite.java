@@ -9,6 +9,7 @@ import org.openjdk.jmh.annotations.Warmup;
 import org.openjdk.jmh.infra.Blackhole;
 
 import java.util.concurrent.TimeUnit;
+import java.util.List;
 
 @OutputTimeUnit(TimeUnit.SECONDS)
 @State(Scope.Benchmark)
