@@ -22,7 +22,7 @@ public abstract class BenchmarkIdentitySchema extends TinkerBench {
     protected static final String PHONE_NUMBER_PROPERTY_KEY = "phone_number_hash";
     protected static final String EMAIL_PROPERTY_KEY = "email_hash";
 
-    protected static final String PARTNER_IDENTITY_LABEL = "PartnerIdentity";
+    protected static final String PARTNER_IDENTITY_LABEL = "Partner";
     protected static final String GOLDEN_ENTITY_LABEL = "GoldenEntity";
 
     protected static final Set<String> SIGNAL_LABELS = Set.of(
