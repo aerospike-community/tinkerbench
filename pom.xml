@@ -12,7 +12,7 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <tinkerpop.version>3.7.1</tinkerpop.version>
+        <tinkerpop.version>3.7.2</tinkerpop.version>
         <junit.version>4.13.1</junit.version>
     </properties>
 
