@@ -107,6 +107,24 @@ public class BenchmarkUtil {
                             readProperty("graph.client.maxConnectionPoolSize") + "'.");
         }
     }
+// Create a function that retrieves graph.client user and graph.client.password from the properties file
+    public static String getUser() {
+        final String user = readProperty("graph.client.user");
+        if (user == null) {
+            System.out.println("No 'graph.client.user' system property set. Defaulting to null.");
+            return null;
+        }
+        return user;
+    }
+
+    public static String getPassword() {
+        final String password = readProperty("graph.client.password");
+        if (password == null) {
+            System.out.println("No 'graph.client.password' system property set. Defaulting to null.");
+            return null;
+        }
+        return password;
+    }
 
     public static int getMaxInProcessPerConnection() {
         try {
