@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
@@ -500,10 +501,15 @@ public class BenchmarkUtil {
 
     public static void runBenchmark(final Class<?> clazz) throws RunnerException {
         final List<String> args = new ArrayList<>();
-        args.add("-Dgraph.server.host=" + getHost());
+        args.add("-Dgraph.server.host=" + Arrays.toString(getHost()));
         args.add("-Dgraph.server.port=" + getPort());
+        args.add("-Dgraph.client.user=" + getUser());
+        args.add("-Dgraph.client.password=" + getPassword());
         args.add("-Dgraph.client.maxConnectionPoolSize=" + getMaxConnectionPoolSize());
         args.add("-Dgraph.client.maxInProcessPerConnection=" + getMaxInProcessPerConnection());
+        args.add("-Dgraph.client.minConnectionPoolSize=" + getMinConnectionPoolSize());
+        args.add("-Dgraph.client.maxSimultaneousUsagePerConnection=" + getMaxSimultaneousUsagePerConnection());
+        args.add("-Dgraph.client.minSimultaneousUsagePerConnection=" + getMinSimultaneousUsagePerConnection());
         args.add("-Dgraph.client.ssl=" + getSSL());
         args.add("-Dbenchmark.idBufferSize=" + getBenchmarkIdBufferSize());
         if (System.getProperty("config") != null) {
