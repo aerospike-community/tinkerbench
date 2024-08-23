@@ -2,7 +2,11 @@ package com.aerospike.tinkerbench.util;
 
 import org.apache.commons.configuration2.Configuration;
 import org.apache.commons.configuration2.MapConfiguration;
+import org.apache.tinkerpop.gremlin.driver.Cluster;
+import org.apache.tinkerpop.gremlin.driver.remote.DriverRemoteConnection;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
+import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__;
+import org.apache.tinkerpop.gremlin.structure.T;
 import org.openjdk.jmh.annotations.Mode;
 import org.openjdk.jmh.results.RunResult;
 import org.openjdk.jmh.runner.Runner;
@@ -22,8 +26,14 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Random;
 import java.util.Set;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+
+import static org.apache.tinkerpop.gremlin.process.traversal.AnonymousTraversalSource.traversal;
 
 public class BenchmarkUtil {
 
@@ -49,6 +59,11 @@ public class BenchmarkUtil {
     private static Configuration config;
 
     private static String readProperty(final String propertyName) {
+        // Let system properties override config file.
+        if (System.getenv(propertyName) != null) {
+            return System.getenv(propertyName);
+        }
+
         if (config != null) {
             return config.getString(propertyName.toLowerCase());
         }
@@ -69,13 +84,17 @@ public class BenchmarkUtil {
     private static final String LOCALHOST = "localhost";
     public static final int DEFAULT_PORT = 8182;
 
-    public static String getHost() {
-        final String host = readProperty("graph.server.host");
-        if (host == null) {
+    public static String[] getHost() {
+        final String hosts = readProperty("graph.server.host");
+        if (hosts == null) {
             System.out.println("No 'graph.server.host' system property set. Defaulting to localhost.");
-            return LOCALHOST;
+            return new String[] { LOCALHOST };
         }
-        return host;
+        final String[] hostsArray = hosts.split(",");
+        for (int i = 0; i < hostsArray.length; i++) {
+            hostsArray[i] = hostsArray[i].trim();
+        }
+        return hostsArray;
     }
 
     public static int getPort() {
@@ -126,6 +145,21 @@ public class BenchmarkUtil {
         return password;
     }
 
+    public static int getMinConnectionPoolSize() {
+        try {
+            final String minConnectionPoolSize = readProperty("graph.client.minConnectionPoolSize");
+            if (minConnectionPoolSize == null) {
+                System.out.println("No 'graph.client.minConnectionPoolSize' system property set. Defaulting to 8.");
+                return 8;
+            }
+            return Integer.parseInt(minConnectionPoolSize);
+        } catch (final NumberFormatException e) {
+            throw new RuntimeException(
+                    "Error, could not get minConnectionPoolSize from system property 'graph.client.maxConnectionPoolSize'. Value provided: '" +
+                            readProperty("graph.client.maxConnectionPoolSize") + "'.");
+        }
+    }
+
     public static int getMaxInProcessPerConnection() {
         try {
             final String maxInProcessPerConnection = readProperty("graph.client.maxInProcessPerConnection");
@@ -138,6 +172,36 @@ public class BenchmarkUtil {
             throw new RuntimeException(
                     "Error, could not get maxInProcessPerConnection from system property 'graph.client.maxInProcessPerConnection'. Value provided: '" +
                             readProperty("graph.client.maxInProcessPerConnection") + "'.");
+        }
+    }
+
+    public static int getMaxSimultaneousUsagePerConnection() {
+        try {
+            final String maxSimultaneousUsagePerConnection = readProperty("graph.client.maxSimultaneousUsagePerConnection");
+            if (maxSimultaneousUsagePerConnection == null) {
+                System.out.println("No 'graph.client.maxSimultaneousUsagePerConnection' system property set. Defaulting to 8.");
+                return 8;
+            }
+            return Integer.parseInt(maxSimultaneousUsagePerConnection);
+        } catch (final NumberFormatException e) {
+            throw new RuntimeException(
+                    "Error, could not get maxSimultaneousUsagePerConnection from system property 'graph.client.maxSimultaneousUsagePerConnection'. Value provided: '" +
+                            readProperty("graph.client.maxSimultaneousUsagePerConnection") + "'.");
+        }
+    }
+
+    public static int getMinSimultaneousUsagePerConnection() {
+        try {
+            final String minSimultaneousUsagePerConnection = readProperty("graph.client.minSimultaneousUsagePerConnection");
+            if (minSimultaneousUsagePerConnection == null) {
+                System.out.println("No 'graph.client.minSimultaneousUsagePerConnection' system property set. Defaulting to 8.");
+                return 8;
+            }
+            return Integer.parseInt(minSimultaneousUsagePerConnection);
+        } catch (final NumberFormatException e) {
+            throw new RuntimeException(
+                    "Error, could not get maxSimultaneousUsagePerConnection from system property 'graph.client.maxSimultaneousUsagePerConnection'. Value provided: '" +
+                            readProperty("graph.client.maxSimultaneousUsagePerConnection") + "'.");
         }
     }
 
@@ -265,8 +329,38 @@ public class BenchmarkUtil {
             return Integer.parseInt(idBufferSize);
         } catch (final NumberFormatException e) {
             throw new RuntimeException(
-                    "Error, could not get short read limit from system property 'benchmark.idBufferSize'. Value provided: '" +
+                    "Error, could not get integer read limit from system property 'benchmark.idBufferSize'. Value provided: '" +
                             readProperty("benchmark.idBufferSize") + "'.");
+        }
+    }
+
+    public static int getBenchmarkSeedSize() {
+        try {
+            final String idBufferSize = readProperty("benchmark.seedSize");
+            if (idBufferSize == null) {
+                System.out.println("No 'benchmark.seedSize' system property set. Defaulting to 50000.");
+                return 50000;
+            }
+            return Integer.parseInt(idBufferSize);
+        } catch (final NumberFormatException e) {
+            throw new RuntimeException(
+                    "Error, could not get integer read limit from system property 'benchmark.seedSize'. Value provided: '" +
+                            readProperty("benchmark.seedSize") + "'.");
+        }
+    }
+
+    public static int getBenchmarkSeedRuntimeMultiplier() {
+        try {
+            final String idBufferSize = readProperty("benchmark.seedSize.multiplier");
+            if (idBufferSize == null) {
+                System.out.println("No 'benchmark.seedSize.multiplier' system property set. Defaulting to 4.");
+                return 4;
+            }
+            return Integer.parseInt(idBufferSize);
+        } catch (final NumberFormatException e) {
+            throw new RuntimeException(
+                    "Error, could not get integer read limit from system property 'benchmark.seedSize.multiplier'. Value provided: '" +
+                            readProperty("benchmark.seedSize") + "'.");
         }
     }
 
@@ -288,6 +382,44 @@ public class BenchmarkUtil {
                 """);
     }
 
+    public static void printSummary() {
+        System.out.println("Creating the GraphTraversalSource.");
+        final Cluster cluster = Cluster.build().addContactPoints(getHost())
+                .port(getPort())
+                .maxConnectionPoolSize(getMaxConnectionPoolSize())
+                .maxInProcessPerConnection(getMaxInProcessPerConnection())
+                .enableSsl(getSSL()).create();
+        final GraphTraversalSource g = traversal().withRemote(DriverRemoteConnection.using(cluster));
+        final Object summary = g.call("summary").with("pretty").next();
+        System.out.println("Graph summary: " + summary);
+    }
+
+    public static void createIndexes() {
+        System.out.println("Creating the GraphTraversalSource.");
+        final Cluster cluster = Cluster.build().addContactPoints(getHost())
+                .port(getPort())
+                .maxConnectionPoolSize(getMaxConnectionPoolSize())
+                .maxInProcessPerConnection(getMaxInProcessPerConnection())
+                .enableSsl(getSSL()).create();
+        final GraphTraversalSource g = traversal().withRemote(DriverRemoteConnection.using(cluster));
+        try {
+            Object outputCreatePhone = g.call("aerospike.graph.admin.index.create").
+                    with("element_type", "vertex").
+                    with("property_key", "phone_number_hash").next();
+            System.out.println("Create phone index: " + outputCreatePhone);
+        } catch (final Exception e) {
+            System.out.println("Failed to create phone index: " + e.getMessage());
+        }
+        try {
+            Object outputCreateEmail = g.call("aerospike.graph.admin.index.create").
+                    with("element_type", "vertex").
+                    with("property_key", "email_hash").next();
+            System.out.println("Create email index: " + outputCreateEmail);
+        } catch (final Exception e) {
+            System.out.println("Failed to create email index: " + e.getMessage());
+        }
+    }
+
     public static void collectBenchmarkLabelIdMapping(final GraphTraversalSource g,
                                                       final Set<String> labels,
                                                       final Map<String, List<Object>> labelToId) {
@@ -295,6 +427,57 @@ public class BenchmarkUtil {
             final List<Object> ids = g.V().hasLabel(label).id().limit(BenchmarkUtil.getBenchmarkIdBufferSize()).toList();
             labelToId.put(label, ids);
         }
+    }
+
+    public static void seedGraph(final GraphTraversalSource g, final int seedSize) {
+        System.out.println("Seeding the graph with " + seedSize + " vertices.");
+        final ExecutorService service = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
+        final int seedCountPerThread = seedSize / Runtime.getRuntime().availableProcessors();
+        final List<Future<?>> futureList = new ArrayList<>();
+        for (int i = 0; i < Runtime.getRuntime().availableProcessors(); i++) {
+            final int finalI = i;
+            futureList.add(service.submit(() -> {
+                System.out.println("Thread " + finalI + " vertex seeding the graph.");
+                for (int j = 0; j < seedCountPerThread; j++) {
+                    g.addV("vertex_label").
+                            property(T.id, finalI * seedCountPerThread + j).
+                            property("property_key", "property_value").
+                            next();
+                }
+                System.out.println("Thread " + finalI + " completed vertex seeding the graph.");
+            }));
+        }
+        for (final Future<?> future : futureList) {
+            try {
+                future.get();
+            } catch (final Exception e) {
+                throw new RuntimeException(e);
+            }
+        }
+        // add some edges to this
+        for (int i = 0; i < Runtime.getRuntime().availableProcessors(); i++) {
+            final int finalI = i;
+            futureList.add(service.submit(() -> {
+                System.out.println("Thread " + finalI + " edge seeding the graph.");
+                final Random random = new Random();
+                for (int j = 0; j < seedCountPerThread; j++) {
+                    g.addE("edge_label").from(__.V(random.nextInt(seedSize))).to(__.V(random.nextInt(seedSize))).
+                            property("property_key", "property_value").
+                            next();
+                }
+                System.out.println("Thread " + finalI + " completed edge seeding the graph.");
+            }));
+        }
+        try {
+            service.shutdown();
+            if (!service.awaitTermination(1, TimeUnit.HOURS)) {
+                throw new RuntimeException("Never completed seeding the graph.");
+            }
+        } catch (final InterruptedException e) {
+            // Should never happen.
+            throw new RuntimeException(e);
+        }
+        System.out.println("Completed seeding the graph.");
     }
 
     public static void collectBenchmarkPropertyLabelMapping(final GraphTraversalSource g,

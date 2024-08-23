@@ -8,12 +8,11 @@ import org.openjdk.jmh.annotations.Setup;
 import org.openjdk.jmh.annotations.TearDown;
 import org.openjdk.jmh.infra.BenchmarkParams;
 
-import static com.aerospike.tinkerbench.util.BenchmarkUtil.getHost;
-import static com.aerospike.tinkerbench.util.BenchmarkUtil.getMaxConnectionPoolSize;
-import static com.aerospike.tinkerbench.util.BenchmarkUtil.getMaxInProcessPerConnection;
-import static com.aerospike.tinkerbench.util.BenchmarkUtil.getPort;
-import static com.aerospike.tinkerbench.util.BenchmarkUtil.getSSL;
+import static com.aerospike.tinkerbench.util.BenchmarkUtil.*;
 import static org.apache.tinkerpop.gremlin.process.traversal.AnonymousTraversalSource.traversal;
+import static com.aerospike.tinkerbench.util.BenchmarkUtil.getMaxSimultaneousUsagePerConnection;
+import static com.aerospike.tinkerbench.util.BenchmarkUtil.getMinConnectionPoolSize;
+import static com.aerospike.tinkerbench.util.BenchmarkUtil.getMinSimultaneousUsagePerConnection;
 
 public abstract class TinkerBench {
     private Cluster cluster = null;
@@ -21,10 +20,13 @@ public abstract class TinkerBench {
     private static final Cluster.Builder BUILDER;
     static {
         BUILDER = Cluster.build()
-                .addContactPoint(getHost())
+                .addContactPoints(getHost())
                 .port(getPort())
                 .maxConnectionPoolSize(getMaxConnectionPoolSize())
                 .maxInProcessPerConnection(getMaxInProcessPerConnection())
+                .maxSimultaneousUsagePerConnection(getMaxSimultaneousUsagePerConnection())
+                .minSimultaneousUsagePerConnection(getMinSimultaneousUsagePerConnection())
+                .minConnectionPoolSize(getMinConnectionPoolSize())
                 .enableSsl(getSSL());
         String username = BenchmarkUtil.getUser();
         String password = BenchmarkUtil.getPassword();
