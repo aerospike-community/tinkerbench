@@ -22,7 +22,7 @@ public abstract class BenchmarkIdentitySchema extends TinkerBench {
     protected static final String PHONE_NUMBER_PROPERTY_KEY = "phone_number_hash";
     protected static final String EMAIL_PROPERTY_KEY = "email_hash";
 
-    protected static final String PARTNER_IDENTITY_LABEL = "PartnerIdentity";
+    protected static final String PARTNER_IDENTITY_LABEL = "Partner";
     protected static final String GOLDEN_ENTITY_LABEL = "GoldenEntity";
 
     protected static final Set<String> SIGNAL_LABELS = Set.of(
@@ -38,10 +38,10 @@ public abstract class BenchmarkIdentitySchema extends TinkerBench {
     protected final Map<String, List<Object>> signalToID = new HashMap<>();
     protected final Map<String, List<Object>> entityIdentityToId = new HashMap<>();
     protected static final Random RANDOM = new Random();
-    protected static final List<String> PARTNER_NAMES = List.of("Qualtrics", "DataAxle", "Moneris", "CriticalMention", "Clutch",
-            "Datarade", "Adobe", "Tableau", "CleverTab", "Marketo");
+    protected static final List<String> PARTNER_NAMES = List.of("TDID", "Tapad", "UID2", "Lotame", "RampID", "ID5", "Epsilon", "Qualtrics", "DataAxle", "Moneris", "CriticalMention", "Clutch", "Datarade", "Adobe", "Tableau", "CleverTab", "Marketo");
 
     protected static String getRandomPartnerName() {
+        // TODO: Update Partner names
         return PARTNER_NAMES.get(RANDOM.nextInt(PARTNER_NAMES.size()));
     }
 
