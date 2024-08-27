@@ -3,15 +3,15 @@
 Tinkerbench is tool for running and managing benchmarks on TinkerPop based graph databases.
 It is built on the JMH benchmarking framework. https://github.com/openjdk/jmh and customised for running benchmarks on any tinkerpop based Graph database.
 
+**Prerequisites**: To run this benchmark you must have Aerospike Graph Service running and connected to Aerospike.
+If you already have AGS setup and connected to Aerospike database proceed with the steps below. If not, you can use Aerolab to quickly setup Aerospike Graph.
+Instructions for using Aerolab to start up Aerospike Graph Service and Aerospike are at the [bottom of the page](###Starting Aerospike Graph Service and Aerospike with Aerolab).
+
 Currently supported benchmarks are:
 - Simple benchmark
 - Identity Graph benchmark
 
 ## Simple Benchmark
-
-Requirements: To run this benchmark you must have Aerospike Graph Service running and connected to Aerospike.
-If you already have AGS setup and connected to Aerospike database proceed with the steps below. If not, you can use Aerolab to quickly setup Aerospike Graph.
-Instructions for using Aerolab to start up Aerospike Graph Service and Aerospike are at the bottom of the page.
 
 The Simple benchmark does the following setup / benchmark process.
 
