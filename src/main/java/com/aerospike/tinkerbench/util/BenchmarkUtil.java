@@ -448,6 +448,16 @@ public class BenchmarkUtil {
                 System.out.println("Thread " + finalI + " completed vertex seeding the graph.");
             }));
         }
+
+        // Add remaining ids since the division may not be even.
+        final int remaining = seedSize % Runtime.getRuntime().availableProcessors();
+        for (int i = 0; i < remaining; i++) {
+            g.addV("vertex_label").
+                    property(T.id, seedSize - remaining + i).
+                    property("property_key", "property_value").
+                    next();
+        }
+
         for (final Future<?> future : futureList) {
             try {
                 future.get();
