@@ -27,7 +27,7 @@ public class BenchmarkShortRead extends BenchmarkIdentitySchema {
         );
     }
 
-    @Benchmark
+    //@Benchmark
     public void SR2_listAllSignalsLinkedGivenInputDevice(final Blackhole blackhole) {
         // SR2: List All signals Linked to a Device:
         //      Identifies all tracking identifiers (cookies, device fingerprints) associated with a device,
@@ -42,7 +42,7 @@ public class BenchmarkShortRead extends BenchmarkIdentitySchema {
         );
     }
 
-    @Benchmark
+    //@Benchmark
     public void SR3_listAllSignalsLinkedGivenInputGoldenEntity(final Blackhole blackhole) {
         // SR3: List All signals Linked to a Golden Entity:
         //      Identifies all tracking identifiers (cookies, device fingerprints) associated with a Golden Entity,
@@ -53,7 +53,7 @@ public class BenchmarkShortRead extends BenchmarkIdentitySchema {
         );
     }
 
-    @Benchmark
+    //@Benchmark
     public void SR4_listAllSignalsLinkedGivenInputGoldenEntityAndPartnerType(final Blackhole blackhole) {
         // SR4: Start with GoldenEntity and get all signals that have been provided by a specific partner
         blackhole.consume(
@@ -63,7 +63,7 @@ public class BenchmarkShortRead extends BenchmarkIdentitySchema {
         );
     }
 
-    @Benchmark
+    //@Benchmark
     public void SR5_listAllPartnerTypesGivenInputGoldenEntity(final Blackhole blackhole) {
         // SR5: GoldenEntity is known information: lookup by GoldenEntity id all Partner ids and Names
         blackhole.consume(
