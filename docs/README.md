@@ -35,6 +35,7 @@ There are two benchmarks available in Tinkerbench out of the box.
 ### **Contributing**
 
 Contributions are welcome and encouraged! If you'd like to contribute to Tinkerbench, please submit a pull request or file an issue on the repository.
+Please ensure that no proprietary information is included in your contributions.
 
 ### **License**
 
