@@ -27,7 +27,8 @@ To use Tinkerpop with Aerospike Graph, you need to have Aerospike Graph Service 
     git clone https://github.com/your-org/tinkerbench.git
     cd tinkerbench
 
-There are two benchmarks available in Tinkerbench out of the box.
+### **Running Benchmarks**
+There are two benchmarks available in Tinkerbench out of the box. 
 - [Simple benchmark](simple_bm.md)
 - [Identity Graph benchmark](identity_bm.md)
 

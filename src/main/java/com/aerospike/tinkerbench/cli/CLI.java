@@ -4,7 +4,7 @@ import com.aerospike.tinkerbench.benchmarks.TinkerBench;
 import com.aerospike.tinkerbench.benchmarks.identity_schema.BenchmarkShortRead;
 import com.aerospike.tinkerbench.benchmarks.identity_schema.BenchmarkStitching;
 import com.aerospike.tinkerbench.benchmarks.identity_schema.BenchmarkWrite;
-import com.aerospike.tinkerbench.benchmarks.load_bench.BenchmarkLoad;
+import com.aerospike.tinkerbench.benchmarks.simple_bench.BenchmarkSimple;
 import com.aerospike.tinkerbench.util.BenchmarkUtil;
 import org.openjdk.jmh.results.RunResult;
 import org.openjdk.jmh.runner.Runner;
@@ -21,7 +21,7 @@ import java.util.Map;
 import java.util.Set;
 
 public class CLI {
-    private static final Set<Class> benchmarks = Set.of(BenchmarkShortRead.class, BenchmarkStitching.class, BenchmarkWrite.class, BenchmarkLoad.class);
+    private static final Set<Class> benchmarks = Set.of(BenchmarkShortRead.class, BenchmarkStitching.class, BenchmarkWrite.class, BenchmarkSimple.class);
 
     public static void main(final String[] args) throws RunnerException, IOException {
         if (args.length == 0 || args.length == 1 &&

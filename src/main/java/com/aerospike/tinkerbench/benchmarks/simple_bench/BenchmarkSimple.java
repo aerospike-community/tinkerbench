@@ -1,16 +1,11 @@
-package com.aerospike.tinkerbench.benchmarks.load_bench;
+package com.aerospike.tinkerbench.benchmarks.simple_bench;
 
 import com.aerospike.tinkerbench.benchmarks.TinkerBench;
 import com.aerospike.tinkerbench.util.BenchmarkUtil;
 import org.apache.tinkerpop.gremlin.process.traversal.Merge;
 import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
-import org.openjdk.jmh.annotations.Benchmark;
-import org.openjdk.jmh.annotations.OutputTimeUnit;
-import org.openjdk.jmh.annotations.Scope;
-import org.openjdk.jmh.annotations.Setup;
-import org.openjdk.jmh.annotations.State;
-import org.openjdk.jmh.annotations.Warmup;
+import org.openjdk.jmh.annotations.*;
 import org.openjdk.jmh.infra.BenchmarkParams;
 
 import java.util.Map;
@@ -20,7 +15,7 @@ import java.util.concurrent.TimeUnit;
 @OutputTimeUnit(TimeUnit.SECONDS)
 @State(Scope.Benchmark)
 @Warmup(iterations = 0)
-public class BenchmarkLoad extends TinkerBench {
+public class BenchmarkSimple extends TinkerBench {
 
     public static final int SEED_COUNT = BenchmarkUtil.getBenchmarkSeedSize();
     public static final int SEED_COUNT_MULTIPLIER = BenchmarkUtil.getBenchmarkSeedRuntimeMultiplier();
@@ -29,6 +24,7 @@ public class BenchmarkLoad extends TinkerBench {
     @Setup
     public void setupForBenchmark(final BenchmarkParams benchmarkParams) {
         System.out.println("Performing initial seeding for benchmark.");
+        System.out.println("Dropping existing dataset.");
         g.V().drop().iterate();
         BenchmarkUtil.seedGraph(g, SEED_COUNT);
         System.out.println("Completed initial seeding for benchmark.");
