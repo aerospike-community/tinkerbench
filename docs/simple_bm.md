@@ -3,10 +3,10 @@
 
 
 ### Steps to use the Simple Benchmark
-- **Build**__  `mvn clean install` to build the project
-- **_Configure_**   `./conf/simple.properties` and ensure all the parameters are correct
+- _Build_  `mvn clean install` to build the project
+- _Configure_   `./conf/simple.properties` and ensure all the parameters are correct
   - **Most importantly** Ensure that  `graph.server.host` and `graph.server.port` refer to the accessible IP address and port of the AGS instance.
-- **Run**__  `./scripts/run_simple.sh`
+- _Run_  `./scripts/run_simple.sh`
 
 ### What Simple Benchmark does 
 The Simple benchmark does the following setup / benchmark process.
