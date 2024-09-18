@@ -37,4 +37,4 @@ Contributions are welcome and encouraged! If you'd like to contribute to Tinkerb
 
 ### **License**
 
-Tinkerbench is released under the MIT license. See [LICENSE](LICENSE.md) for more information.
+Tinkerbench is released under the MIT license. See [LICENSE](LICENSE) for more information.
