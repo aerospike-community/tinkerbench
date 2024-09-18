@@ -11,9 +11,9 @@ It is a framework to help you:
 
 Although Tinkerbench is designed to be flexible and extensible, it is currently tested only with Aerospike Graph as the graph database. As such, the instructions and examples are specific to Aerospike Graph.
 
-**Getting Started**
+### **Getting Started**
 
-**Prerequisites**
+#### **Prerequisites**
 * A TinkerPop based graph database for the benchmark to connect to. 
 To use Tinkerpop with Aerospike Graph, you need to have Aerospike Graph Service (AGS) setup and running.
    If you already have AGS setup and connected to Aerospike database proceed with the steps below.
@@ -21,7 +21,7 @@ To use Tinkerpop with Aerospike Graph, you need to have Aerospike Graph Service 
 * Java 17
 * Maven
 
-**Installation**
+#### **Installation**
 1. Clone the repository
    ```bash
     git clone https://github.com/your-org/tinkerbench.git
@@ -31,8 +31,10 @@ There are two benchmarks available in Tinkerbench out of the box.
 - [Simple benchmark](simple_bm.md)
 - [Identity Graph benchmark](identity_bm.md)
 
-**Contributing**
+### **Contributing**
+
 Contributions are welcome and encouraged! If you'd like to contribute to Tinkerbench, please submit a pull request or file an issue on the repository.
 
-**License**
+### **License**
+
 Tinkerbench is released under the MIT license. See [LICENSE](LICENSE.md) for more information.

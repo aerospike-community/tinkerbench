@@ -1,6 +1,14 @@
 
 ## Simple Benchmark
 
+
+### Steps to use the Simple Benchmark
+- Build  `mvn clean install` to build the project
+- Configure   `./conf/simple.properties` and ensure all the parameters are correct
+  - **Most importantly** Ensure that  graph.server.host and graph.server.port refer to the accessible IP address and port of the AGS instance.
+- Run  `./scripts/run_simple.sh`
+
+### What Simple Benchmark does 
 The Simple benchmark does the following setup / benchmark process.
 
 ### Setup
@@ -12,8 +20,3 @@ The Simple benchmark does the following setup / benchmark process.
 - Create edges between randomly chosen vertices
 - Pick a random vertex and do a 3 hop traversal
 
-### Steps to use the Simple Benchmark
-- Run `./scripts/build-docker.sh` to build the docker image
-- Edit `./scripts/run_docker.sh` and ensure all the parameters are correct
-    - Most importantly the graph.server.host and graph.server.port. These refer to the accessible IP address and port of the AGS instance.
-- Run the script. `./scripts/run_docker.sh`
