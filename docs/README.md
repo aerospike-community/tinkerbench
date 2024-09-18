@@ -6,7 +6,7 @@ It is a framework to help you:
 
 * **Construct your own Benchmarks**: Create benchmarks to mimic your application workload and test the performance of your graph database.
 
-* **Execute your Benchmarks** Configure and run your benchmarks to mimic your application workloads. Analyze performance data and optimize your queries and configurations. 
+* **Execute your Benchmarks**: Configure and run your benchmarks to mimic your application workloads. Analyze performance data and optimize your queries and configurations. 
 
 
 Although Tinkerbench is designed to be flexible and extensible, it is currently tested only with Aerospike Graph as the graph database. As such, the instructions and examples are specific to Aerospike Graph.
