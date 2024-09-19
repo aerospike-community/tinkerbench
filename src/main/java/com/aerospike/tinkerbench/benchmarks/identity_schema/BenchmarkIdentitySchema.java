@@ -61,7 +61,7 @@ public abstract class BenchmarkIdentitySchema extends TinkerBench {
     }
 
     protected Object getDeviceId() {
-        final List<Object> deviceIds = new ArrayList<>(signalToID.get(DEVICE_LABEL));
+        final List<Object> deviceIds = new ArrayList<>(signalToID.get(ACCOUNT_LABEL));
         return deviceIds.get(RANDOM.nextInt(deviceIds.size()));
     }
 

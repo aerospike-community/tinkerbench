@@ -20,14 +20,14 @@ public class BenchmarkShortRead extends BenchmarkIdentitySchema {
         // SR1: Find all Devices Used by a User using a device :
         //      Retrieve devices associated with a given user, which is a fundamental query for cross-device targeting.
         blackhole.consume(
-                g.V(getDeviceId()).
-                        in("HAS_DEVICE").
-                        repeat(__.out()).
-                        until(__.hasLabel("Device")).toList()
+                g.V(getDeviceId()).as("account").
+                        in("OWNS_ACCOUNT").as("consumer").
+                        out("HAS_CONTACT").as("contact").
+                        toList()
         );
     }
 
-    @Benchmark
+  /*  @Benchmark
     public void SR2_listAllSignalsLinkedGivenInputDevice(final Blackhole blackhole) {
         // SR2: List All signals Linked to a Device:
         //      Identifies all tracking identifiers (cookies, device fingerprints) associated with a device,
@@ -71,5 +71,5 @@ public class BenchmarkShortRead extends BenchmarkIdentitySchema {
                 out("HAS_PARTNER").
                 elementMap("type").toList()
         );
-    }
+    }*/
 }
