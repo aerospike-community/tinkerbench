@@ -1,4 +1,4 @@
-**# Starting Aerospike Graph Service and Aerospike with Aerolab
+ **Starting Aerospike Graph Service and Aerospike with Aerolab****
 
 Aerolab can be downloaded from https://github.com/aerospike/aerolab.
 
