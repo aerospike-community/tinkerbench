@@ -25,8 +25,8 @@ public class BenchmarkSimple extends TinkerBench {
     public void setupForBenchmark(final BenchmarkParams benchmarkParams) {
         System.out.println("Performing initial seeding for benchmark.");
         System.out.println("Dropping existing dataset.");
-        g.V().drop().iterate();
-        BenchmarkUtil.seedGraph(g, SEED_COUNT);
+        getRandomGraphTraversalSource().V().drop().iterate();
+        BenchmarkUtil.seedGraph(getRandomGraphTraversalSource(), SEED_COUNT);
         System.out.println("Completed initial seeding for benchmark.");
     }
 
@@ -38,12 +38,12 @@ public class BenchmarkSimple extends TinkerBench {
 
     private Vertex getOrCreateVertex(final int seed) {
         try {
-            return g.mergeV(Map.of(T.id, seed)).
+            return getRandomGraphTraversalSource().mergeV(Map.of(T.id, seed)).
                     option(Merge.onCreate,
                             Map.of(T.label, "vertex_label", "property_key", "property_value")).next();
         } catch (final Exception e) {
             if (e.getMessage().contains("Vertex with id already exists")) {
-                return g.V(seed).next();
+                return getRandomGraphTraversalSource().V(seed).next();
             } else {
                 throw e;
             }
@@ -54,18 +54,18 @@ public class BenchmarkSimple extends TinkerBench {
     public void benchmarkGetOrCreateEdge() {
         final Vertex v1 = getOrCreateVertex(RANDOM.nextInt(SEED_COUNT * SEED_COUNT_MULTIPLIER));
         final Vertex v2 = getOrCreateVertex(RANDOM.nextInt(SEED_COUNT * SEED_COUNT_MULTIPLIER));
-        g.addE("edge_label").from(v1).to(v2).property("property_key", "property_value").iterate();
+        getRandomGraphTraversalSource().addE("edge_label").from(v1).to(v2).property("property_key", "property_value").iterate();
     }
 
     @Benchmark
     public void benchmarkGetVertex() {
         final int v1 = RANDOM.nextInt(SEED_COUNT);
-        g.V(v1).next();
+        getRandomGraphTraversalSource().V(v1).next();
     }
 
     @Benchmark
     public void benchmarkTraversal() {
         final Vertex v1 = getOrCreateVertex(RANDOM.nextInt(SEED_COUNT));
-        g.V(v1).both().both().both().both().toList();
+        getRandomGraphTraversalSource().V(v1).both().both().both().both().toList();
     }
 }

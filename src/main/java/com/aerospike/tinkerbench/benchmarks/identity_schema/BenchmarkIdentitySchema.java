@@ -48,15 +48,15 @@ public abstract class BenchmarkIdentitySchema extends TinkerBench {
     @Setup
     public void setupIdentitySchemaMappings(final BenchmarkParams benchmarkParams) {
         System.out.println("Creating signal id mapping.");
-        BenchmarkUtil.collectBenchmarkLabelIdMapping(g, SIGNAL_LABELS, signalToID);
+        BenchmarkUtil.collectBenchmarkLabelIdMapping(getRandomGraphTraversalSource(), SIGNAL_LABELS, signalToID);
         System.out.println("Completed signal id mapping creation.");
 
         System.out.println("Creating property key mapping.");
-        BenchmarkUtil.collectBenchmarkPropertyLabelMapping(g, PROPERTY_KEYS, GOLDEN_ENTITY_LABEL, signalToID);
+        BenchmarkUtil.collectBenchmarkPropertyLabelMapping(getRandomGraphTraversalSource(), PROPERTY_KEYS, GOLDEN_ENTITY_LABEL, signalToID);
         System.out.println("completed property key mapping creation.");
 
         System.out.println("Creating entity and identity id mapping.");
-        BenchmarkUtil.collectBenchmarkLabelIdMapping(g, ENTITY_IDENTITY_LABELS, entityIdentityToId);
+        BenchmarkUtil.collectBenchmarkLabelIdMapping(getRandomGraphTraversalSource(), ENTITY_IDENTITY_LABELS, entityIdentityToId);
         System.out.println("Completed entity and identity mapping creation.");
     }
 

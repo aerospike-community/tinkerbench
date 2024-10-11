@@ -22,7 +22,7 @@ public class BenchmarkWrite extends BenchmarkIdentitySchema {
         //      Retrieve devices associated with a given user, which is a fundamental query for cross-device targeting.
         final Object goldenEntity1 = getGoldenEntity();
         final Object goldenEntity2 = getGoldenEntity();
-        blackhole.consume(g.V(goldenEntity1).out("HAS_HOUSEHOLD").limit(1).
+        blackhole.consume(getRandomGraphTraversalSource().V(goldenEntity1).out("HAS_HOUSEHOLD").limit(1).
                 addE("HAS_HOUSEHOLD").from(__.V(goldenEntity2)).
                 toList());
     }
@@ -32,13 +32,13 @@ public class BenchmarkWrite extends BenchmarkIdentitySchema {
         // SW2: Given existing device and new partner/id/cookie,
         //      Create partner subgraph, link partner to golden entity attached to device.
         final Object goldenEntity = getGoldenEntity();
-        final List<Object> deviceIds = g.V(goldenEntity).out("HAS_DEVICE").limit(1).id().toList();
+        final List<Object> deviceIds = getRandomGraphTraversalSource().V(goldenEntity).out("HAS_DEVICE").limit(1).id().toList();
         if (deviceIds.isEmpty()) {
             return;
         }
         final Object deviceId = deviceIds.get(0);
         final String partnerName = getRandomPartnerName();
-        blackhole.consume(g.V(deviceId).as("device").
+        blackhole.consume(getRandomGraphTraversalSource().V(deviceId).as("device").
                 addV("Partner").property("type", partnerName).as("partner").
                 addV("Cookie").
                 property("domain_hash", "FOO").property("expiration_ts", 1).
@@ -59,7 +59,7 @@ public class BenchmarkWrite extends BenchmarkIdentitySchema {
     public void SW3_updateTimestampOfEntirePartnerSubgraph(final Blackhole blackhole) {
         // SW3: Partner vertex, update entire partner subgraph last_updated_ts.
         final Object partnerId = getPartnerIdentity();
-        blackhole.consume(g.V(partnerId).out().property("last_update_ts", RANDOM.nextLong()).toList());
+        blackhole.consume(getRandomGraphTraversalSource().V(partnerId).out().property("last_update_ts", RANDOM.nextLong()).toList());
     }
 
     private String getSaltString() {
@@ -78,7 +78,7 @@ public class BenchmarkWrite extends BenchmarkIdentitySchema {
         // SW4: Golden Entity vertex, update it's last updated timestamp.
         final Object goldenEntityId = getGoldenEntity();
         final String randomString = getSaltString();
-        blackhole.consume(g.V(goldenEntityId).
+        blackhole.consume(getRandomGraphTraversalSource().V(goldenEntityId).
                         property("date_of_birth_day", RANDOM.nextInt(31)).
                         property("date_of_birth_month", RANDOM.nextInt(12)).
                         property("date_of_birth_year", RANDOM.nextInt(2024)).
@@ -97,7 +97,7 @@ public class BenchmarkWrite extends BenchmarkIdentitySchema {
     public void SW5_updateScorePropertyOfPartnerOfTypeGivenGoldenEntity(final Blackhole blackhole) {
         // SW5: Partner vertex, update it's score property based on golden entity.
         final Object goldenEntityId = getGoldenEntity();
-        blackhole.consume(g.V(goldenEntityId).outE("HAS_PARTNER").
+        blackhole.consume(getRandomGraphTraversalSource().V(goldenEntityId).outE("HAS_PARTNER").
                 where(__.otherV().values("type").is(getRandomPartnerName())).
                 property("score", RANDOM.nextInt(100)).toList());
     }

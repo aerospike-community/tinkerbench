@@ -124,7 +124,7 @@ public class BenchmarkStitching extends BenchmarkIdentitySchema {
         final GraphTraversal traversal;
 
         // Start traversal with GoldenEntity labelled as 'golden'
-        traversal = g.V().has(GOLDEN_ENTITY_LABEL, EMAIL_PROPERTY_KEY, partnerData.partnerEmail).as("golden_email");
+        traversal = getRandomGraphTraversalSource().V().has(GOLDEN_ENTITY_LABEL, EMAIL_PROPERTY_KEY, partnerData.partnerEmail).as("golden_email");
         traversal.V().has(GOLDEN_ENTITY_LABEL, PHONE_NUMBER_PROPERTY_KEY, partnerData.partnerPhone).as("golden_phone");
 
         // Loop through devices, keeping track of how many we add.
@@ -190,9 +190,9 @@ public class BenchmarkStitching extends BenchmarkIdentitySchema {
 
         // Start traversal with GoldenEntity labelled as 'golden'
         if (partnerData.partnerEmail != null) {
-            traversal = g.V().has(GOLDEN_ENTITY_LABEL, EMAIL_PROPERTY_KEY, partnerData.partnerEmail).as("golden");
+            traversal = getRandomGraphTraversalSource().V().has(GOLDEN_ENTITY_LABEL, EMAIL_PROPERTY_KEY, partnerData.partnerEmail).as("golden");
         } else if (partnerData.partnerPhone != null) {
-            traversal = g.V().has(GOLDEN_ENTITY_LABEL, PHONE_NUMBER_PROPERTY_KEY, partnerData.partnerPhone).as("golden");
+            traversal = getRandomGraphTraversalSource().V().has(GOLDEN_ENTITY_LABEL, PHONE_NUMBER_PROPERTY_KEY, partnerData.partnerPhone).as("golden");
         } else {
             throw new IllegalStateException("Partner must have either email or phone number.");
         }

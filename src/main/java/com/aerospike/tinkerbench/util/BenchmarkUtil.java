@@ -176,6 +176,22 @@ public class BenchmarkUtil {
         }
     }
 
+    public static int getClientCount() {
+        try {
+            final String clientCount = readProperty("graph.client.clientCount");
+            System.out.println("Client count: " + clientCount);
+            if (clientCount == null) {
+                System.out.println("No 'graph.client.clientCount' system property set. Defaulting to 1.");
+                return 1;
+            }
+            return Integer.parseInt(clientCount);
+        } catch (final NumberFormatException e) {
+            throw new RuntimeException(
+                    "Error, could not get clientCount from system property 'graph.client.clientCount'. Value provided: '" +
+                            readProperty("graph.client.clientCount") + "'.");
+        }
+    }
+
     public static int getMaxSimultaneousUsagePerConnection() {
         try {
             final String maxSimultaneousUsagePerConnection = readProperty("graph.client.maxSimultaneousUsagePerConnection");

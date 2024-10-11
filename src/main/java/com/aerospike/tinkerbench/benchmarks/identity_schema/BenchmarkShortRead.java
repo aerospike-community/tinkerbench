@@ -20,7 +20,7 @@ public class BenchmarkShortRead extends BenchmarkIdentitySchema {
         // SR1: Find all Devices Used by a User using a device :
         //      Retrieve devices associated with a given user, which is a fundamental query for cross-device targeting.
         blackhole.consume(
-                g.V(getDeviceId()).
+                getRandomGraphTraversalSource().V(getDeviceId()).
                         in("HAS_DEVICE").
                         repeat(__.out()).
                         until(__.hasLabel("Device")).toList()
@@ -33,7 +33,7 @@ public class BenchmarkShortRead extends BenchmarkIdentitySchema {
         //      Identifies all tracking identifiers (cookies, device fingerprints) associated with a device,
         //      critical for user identification across partners.
         blackhole.consume(
-                g.V(getDeviceId()).
+                getRandomGraphTraversalSource().V(getDeviceId()).
                         in("HAS_DEVICE","PROVIDED_DEVICE").
                         repeat(__.out()).
                         until(__.not(
@@ -48,7 +48,7 @@ public class BenchmarkShortRead extends BenchmarkIdentitySchema {
         //      Identifies all tracking identifiers (cookies, device fingerprints) associated with a Golden Entity,
         //      critical for user identification across partners.
         blackhole.consume(
-                g.V(getGoldenEntity()).
+                getRandomGraphTraversalSource().V(getGoldenEntity()).
                         out("HAS_PARTNER").out().toList()
         );
     }
@@ -57,7 +57,7 @@ public class BenchmarkShortRead extends BenchmarkIdentitySchema {
     public void SR4_listAllSignalsLinkedGivenInputGoldenEntityAndPartnerType(final Blackhole blackhole) {
         // SR4: Start with GoldenEntity and get all signals that have been provided by a specific partner
         blackhole.consume(
-                g.V(getGoldenEntity()).
+                getRandomGraphTraversalSource().V(getGoldenEntity()).
                         out("HAS_PARTNER").
                         has("type", getRandomPartnerName()).out().toList()
         );
@@ -67,7 +67,7 @@ public class BenchmarkShortRead extends BenchmarkIdentitySchema {
     public void SR5_listAllPartnerTypesGivenInputGoldenEntity(final Blackhole blackhole) {
         // SR5: GoldenEntity is known information: lookup by GoldenEntity id all Partner ids and Names
         blackhole.consume(
-                g.V(getGoldenEntity()).
+                getRandomGraphTraversalSource().V(getGoldenEntity()).
                 out("HAS_PARTNER").
                 elementMap("type").toList()
         );
