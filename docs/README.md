@@ -24,7 +24,7 @@ To use Tinkerpop with Aerospike Graph, you need to have Aerospike Graph Service 
 #### **Installation**
 1. Clone the repository
    ```bash
-    git clone https://github.com/your-org/tinkerbench.git
+    git clone https://github.com/aerospike-community/tinkerbench.git
     cd tinkerbench
 
 ### **Running Benchmarks**
