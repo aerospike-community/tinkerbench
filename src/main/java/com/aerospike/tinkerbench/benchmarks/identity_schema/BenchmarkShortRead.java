@@ -49,7 +49,7 @@ public class BenchmarkShortRead extends BenchmarkIdentitySchema {
                                         // GoldenEntity must go to Partners and signals. If on Partner, go out again.
                                         __.out().choose(__.hasLabel("Partner"), __.out())
                                     // Filter out Household.
-                                )).not(__.hasLabel("Household"))
+                                )).not(__.hasLabel("Household")).toList()
         );
     }
 
