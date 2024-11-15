@@ -17,13 +17,18 @@ public class BenchmarkShortRead extends BenchmarkIdentitySchema {
 
     @Benchmark
     public void SR1_findAllDevicesGivenInputDevice(final Blackhole blackhole) {
-        // SR1: Find all Devices Used by a User using a device :
+        // SR1: Find all Devices Used by a User using a device:
         //      Retrieve devices associated with a given user, which is a fundamental query for cross-device targeting.
-        blackhole.consume(
-                g.V(getDeviceId()).
-                        in("HAS_DEVICE").
-                        repeat(__.out()).
-                        until(__.hasLabel("Device")).toList()
+        blackhole.consume(g.V(getDeviceId()).
+                // Go in from Device to Partner or GoldenEntity.
+                in("HAS_DEVICE", "PROVIDED_DEVICE").
+                // Go out from Partner to Device or in from Partner to GoldenEntity.
+                // Go in from GoldenEntity to Partner or out from GoldenEntity to Device.
+                both("HAS_PARTNER", "HAS_DEVICE", "PROVIDED_DEVICE").
+                // If on Partner or GoldenEntity, go out to Device, else no-op.
+                choose(__.hasLabel("Partner", "GoldenEntity"), __.out("PROVIDED_DEVICE", "HAS_DEVICE")).
+                // Remove duplicates.
+                dedup().toList()
         );
     }
 
@@ -33,12 +38,18 @@ public class BenchmarkShortRead extends BenchmarkIdentitySchema {
         //      Identifies all tracking identifiers (cookies, device fingerprints) associated with a device,
         //      critical for user identification across partners.
         blackhole.consume(
-                g.V(getDeviceId()).
-                        in("HAS_DEVICE","PROVIDED_DEVICE").
-                        repeat(__.out()).
-                        until(__.not(
-                                __.hasLabel("Partner","Household"))).
-                        dedup().toList()
+                g.V(getDeviceId()).in("HAS_DEVICE", "PROVIDED_DEVICE").
+                        choose(
+                                __.hasLabel("GoldenEntity"),
+                                // GoldenEntity must go to Partners and signals. If on Partner, go out again.
+                                __.out().choose(__.hasLabel("Partner"), __.out()),
+                                // Partner must go to signals and GoldenEntity. If on GoldenEntity, must go back to Partner and then to signals.
+                                __.both().choose(
+                                        __.hasLabel("GoldenEntity"),
+                                        // GoldenEntity must go to Partners and signals. If on Partner, go out again.
+                                        __.out().choose(__.hasLabel("Partner"), __.out())
+                                    // Filter out Household.
+                                )).not(__.hasLabel("Household")).toList()
         );
     }
 
@@ -49,7 +60,12 @@ public class BenchmarkShortRead extends BenchmarkIdentitySchema {
         //      critical for user identification across partners.
         blackhole.consume(
                 g.V(getGoldenEntity()).
-                        out("HAS_PARTNER").out().toList()
+                        // Go in and out from GoldenEntity to Partner / signals.
+                        both().
+                        // If on partner, go out to partner's signals, else no-op.
+                        choose(__.hasLabel("Partner"), __.out()).
+                        // Remove duplicates.
+                        dedup().toList()
         );
     }
 
@@ -58,8 +74,12 @@ public class BenchmarkShortRead extends BenchmarkIdentitySchema {
         // SR4: Start with GoldenEntity and get all signals that have been provided by a specific partner
         blackhole.consume(
                 g.V(getGoldenEntity()).
+                        // Go out to all Partners.
                         out("HAS_PARTNER").
-                        has("type", getRandomPartnerName()).out().toList()
+                        // Filter Partner on a random partner name.
+                        has("type", getRandomPartnerName()).
+                        // Get all signals for the Partner.
+                        out().toList()
         );
     }
 
@@ -68,7 +88,9 @@ public class BenchmarkShortRead extends BenchmarkIdentitySchema {
         // SR5: GoldenEntity is known information: lookup by GoldenEntity id all Partner ids and Names
         blackhole.consume(
                 g.V(getGoldenEntity()).
+                // Go out to all partners.
                 out("HAS_PARTNER").
+                // Return the Partner type.
                 elementMap("type").toList()
         );
     }
