@@ -60,6 +60,11 @@ public abstract class BenchmarkIdentitySchema extends TinkerBench {
         System.out.println("Completed entity and identity mapping creation.");
     }
 
+    protected int getRandomQueryId(int totalQueries) {
+        return RANDOM.nextInt(totalQueries);
+    }
+
+
     protected Object getDeviceId() {
         final List<Object> deviceIds = new ArrayList<>(signalToID.get(DEVICE_LABEL));
         return deviceIds.get(RANDOM.nextInt(deviceIds.size()));

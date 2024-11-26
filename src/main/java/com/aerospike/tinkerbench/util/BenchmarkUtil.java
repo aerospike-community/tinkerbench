@@ -365,6 +365,15 @@ public class BenchmarkUtil {
         }
     }
 
+    public static String getParamQueryID() {
+        final String queryID = readProperty("benchmark.param.queryID");
+        if (queryID == null) {
+            System.out.println("No 'benchmark.param.queryID' property set. Defaulting to null.");
+            return null;
+        }
+        return queryID;
+    }
+
     public static void printUsage() {
         System.out.println("""
                 Usage: java -jar <jarfile> <benchmark name options='BenchmarkStitching', 'BenchmarkShortRead'>
@@ -537,6 +546,12 @@ public class BenchmarkUtil {
                 .measurementTime(TimeValue.seconds(getMeasurementTime()))
                 .timeout(TimeValue.seconds(getMeasurementTimeout()))
                 .jvmArgs(argsArray);
+
+        String queryID = getParamQueryID();
+        if (queryID != null) {
+            optBuilder.param("queryID", queryID);
+        }
+
         Options opt = optBuilder.build();
         Collection<RunResult> runResult = new Runner(opt).run();
         final List<Map<String, Object>> root = new ArrayList<>();
