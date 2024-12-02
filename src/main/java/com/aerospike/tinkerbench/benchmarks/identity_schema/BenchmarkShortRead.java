@@ -25,8 +25,10 @@ public class BenchmarkShortRead extends BenchmarkIdentitySchema {
                 // Go out from Partner to Device or in from Partner to GoldenEntity.
                 // Go in from GoldenEntity to Partner or out from GoldenEntity to Device.
                 both("HAS_PARTNER", "HAS_DEVICE", "PROVIDED_DEVICE").
-                // If on Partner or GoldenEntity, go out to Device, else no-op.
-                choose(__.hasLabel("Partner", "GoldenEntity"), __.out("PROVIDED_DEVICE", "HAS_DEVICE")).
+                // If on Partner, go out to Device, if on a GoldenEntity, go out to Device / Partner, else no-op.
+                choose(__.hasLabel("Partner", "GoldenEntity"), __.out("PROVIDED_DEVICE", "HAS_DEVICE", "HAS_PARTNER")).
+                // If on Partner, go out to Device, else no-op.
+                choose(__.hasLabel("Partner"), __.out("PROVIDED_DEVICE")).
                 // Remove duplicates.
                 dedup().toList()
         );
