@@ -569,7 +569,7 @@ public class BenchmarkUtil {
         });
         final long timestamp = System.currentTimeMillis();
         final String stringifiedFileName = String.format("benchmark-result-%s.json", timestamp);
-        final String jsonFileName = String.format("benchmark-result-CI-%s.json", timestamp);
+        final String jsonFileName = String.format("benchmark-ci-result-%s.json", timestamp);
         try (final FileWriter file = new FileWriter(stringifiedFileName)) {
             System.out.println("Writing json file: " + stringifiedFileName);
             file.write(root.toString());
