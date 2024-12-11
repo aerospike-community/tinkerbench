@@ -7,6 +7,8 @@ import org.apache.tinkerpop.gremlin.driver.remote.DriverRemoteConnection;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__;
 import org.apache.tinkerpop.gremlin.structure.T;
+import org.json.JSONArray;
+import org.json.JSONObject;
 import org.openjdk.jmh.annotations.Mode;
 import org.openjdk.jmh.results.RunResult;
 import org.openjdk.jmh.runner.Runner;
@@ -539,6 +541,7 @@ public class BenchmarkUtil {
                 .jvmArgs(argsArray);
         Options opt = optBuilder.build();
         Collection<RunResult> runResult = new Runner(opt).run();
+        final JSONArray jsonRoot = new JSONArray();
         final List<Map<String, Object>> root = new ArrayList<>();
         runResult.forEach(result -> {
             Map<String, Object> obj = new HashMap<>();
@@ -548,6 +551,14 @@ public class BenchmarkUtil {
             obj.put("range", result.getPrimaryResult().getScoreError());
             obj.put("extra", "\n\t" + result.getPrimaryResult().getStatistics());
             root.add(obj);
+
+            JSONObject json = new JSONObject();
+            json.put("name", result.getPrimaryResult().getLabel());
+            json.put("unit", result.getPrimaryResult().getScoreUnit());
+            json.put("value", result.getPrimaryResult().getScore());
+            json.put("range", result.getPrimaryResult().getScoreError());
+            json.put("extra", result.getPrimaryResult().getStatistics());
+            jsonRoot.put(json);
         });
         root.forEach(resultMap -> {
             System.out.println("result: ");
@@ -556,9 +567,18 @@ public class BenchmarkUtil {
                 System.out.println();
             });
         });
-        try (final FileWriter file = new FileWriter(String.format("benchmark-result-%s.json", System.currentTimeMillis()))) {
-            System.out.println("Writing json file");
+        final long timestamp = System.currentTimeMillis();
+        final String stringifiedFileName = String.format("benchmark-result-%s.json", timestamp);
+        final String jsonFileName = String.format("benchmark-result-CI-%s.json", timestamp);
+        try (final FileWriter file = new FileWriter(stringifiedFileName)) {
+            System.out.println("Writing json file: " + stringifiedFileName);
             file.write(root.toString());
+        } catch (final Exception e) {
+            e.printStackTrace();
+        }
+
+        try (final FileWriter file = new FileWriter(jsonFileName)) {
+            file.write(jsonRoot.toString());
         } catch (final Exception e) {
             e.printStackTrace();
         }
