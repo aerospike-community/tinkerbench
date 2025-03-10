@@ -16,7 +16,7 @@ import java.util.concurrent.TimeUnit;
 public class BenchmarkShortRead extends BenchmarkIdentitySchema {
 
     @Benchmark
-    public void SR1_findAllDevicesGivenInputDevice(final Blackhole blackhole) {
+    public void SR5_findAllDevicesGivenInputDevice(final Blackhole blackhole) {
         // SR1: Find all Devices Used by a User using a device:
         //      Retrieve devices associated with a given user, which is a fundamental query for cross-device targeting.
         blackhole.consume(g.V(getDeviceId()).
@@ -35,7 +35,7 @@ public class BenchmarkShortRead extends BenchmarkIdentitySchema {
     }
 
     @Benchmark
-    public void SR2_listAllSignalsLinkedGivenInputDevice(final Blackhole blackhole) {
+    public void SR4_listAllSignalsLinkedGivenInputDevice(final Blackhole blackhole) {
         // SR2: List All signals Linked to a Device:
         //      Identifies all tracking identifiers (cookies, device fingerprints) associated with a device,
         //      critical for user identification across partners.
@@ -72,7 +72,7 @@ public class BenchmarkShortRead extends BenchmarkIdentitySchema {
     }
 
     @Benchmark
-    public void SR4_listAllSignalsLinkedGivenInputGoldenEntityAndPartnerType(final Blackhole blackhole) {
+    public void SR2_listAllSignalsLinkedGivenInputGoldenEntityAndPartnerType(final Blackhole blackhole) {
         // SR4: Start with GoldenEntity and get all signals that have been provided by a specific partner
         blackhole.consume(
                 g.V(getGoldenEntity()).
@@ -86,7 +86,7 @@ public class BenchmarkShortRead extends BenchmarkIdentitySchema {
     }
 
     @Benchmark
-    public void SR5_listAllPartnerTypesGivenInputGoldenEntity(final Blackhole blackhole) {
+    public void SR1_listAllPartnerTypesGivenInputGoldenEntity(final Blackhole blackhole) {
         // SR5: GoldenEntity is known information: lookup by GoldenEntity id all Partner ids and Names
         blackhole.consume(
                 g.V(getGoldenEntity()).
