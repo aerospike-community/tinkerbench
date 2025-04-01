@@ -43,6 +43,7 @@ Datasets for multiple scale factors are available [here](https://console.cloud.g
 
    c. Run the benchmark 
    Execute the following script to run the benchmark:
+
    For Short Reads
    ```bash   
    ./scripts/run_shortreads.sh
