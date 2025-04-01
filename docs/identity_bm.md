@@ -15,15 +15,19 @@ Before loading the graph data, you need to create secondary indexes on the requi
 ./scripts/run_create_indexes.sh
 ```
 2. **Load the Data**
-	You will need Graph Synth, available at [GraphSynth GitHub](https://github.com/aerospike/graph-synth/tree/main) Repository, to generate the required dataset.
-   - Refer to the Graph Synth repository for detailed instructions and additional options.
-   - Ensure you have access to the released JAR file from the Graph Synth repository before running the data generation command.
+Bulk load the identity benchmark dataset using the [appropriate method](https://aerospike.com/docs/graph/data-loading). 
+Datasets for multiple scale factors are available [here](https://console.cloud.google.com/storage/browser/identity-benchmark)
 
-To stream data directly into Aerospike Graph, you can use the following command:
-```bash
-java -jar ./graph-synth/target/GraphSynth-1.1.0-SNAPSHOT.jar --input-uri=file:$(pwd)/conf/schema/benchmark2024.yaml --output-uri=ws://localhost:8182/g --scale-factor=100000 --clear
-```
-**Note**: If Graph Synth is running on a different system, replace localhost with the AGS endpoint.
+| Dataset Name	| Bulk Load Method |
+| ------------ 	| ---------------- |
+| SF1000  	| Standalone	   |
+| SF10000 	| Standalone	   |
+| SF100000   	| Standalone	   |
+| SF1M   	| Standalone	   |
+| SF10M   	| Distributed	   |
+| SF100M   	| Distributed	   |
+| SF1B   	| Distributed	   |
+
 
 3. **Running the Benchmark**
 
