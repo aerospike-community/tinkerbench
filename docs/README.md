@@ -15,9 +15,9 @@ Although Tinkerbench is designed to be flexible and extensible, it is currently 
 
 #### **Prerequisites**
 * A TinkerPop based graph database for the benchmark to connect to. 
-To use Tinkerpop with Aerospike Graph, you need to have Aerospike Graph Service (AGS) setup and running.
-   If you already have AGS setup and connected to Aerospike database proceed with the steps below.
-   If not, you can use Aerolab to quickly [setup Aerospike Graph](setup_aerospike_graph.md).
+To use Tinkerpop with Aerospike Graph, you need to have Aerospike Graph Service (AGS) setup and running. If you already have AGS setup and connected to Aerospike database proceed with the steps below. If not you can:
+1. Use [Aerospike Graph Quickstart](https://github.com/aerospike/aerospike-graph) to spin up AGS and Aerospike database
+2. Use Aerolab to quickly [setup Aerospike Graph](setup_aerospike_graph.md).
 * Java 17
 * Maven
 
