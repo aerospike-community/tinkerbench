@@ -11,6 +11,14 @@ public class QueryTest implements QueryRunnable {
         this.provider = provider;
     }
 
+    @Override
+    public String Name() { return "queryTest"; }
+
+    @Override
+    public QueryTypes QueryType() {
+        return QueryTypes.Test;
+    }
+
     /**
      * @return
      */
@@ -46,7 +54,7 @@ public class QueryTest implements QueryRunnable {
         System.out.println("Running QueryTest");
         System.out.println(provider);
         try {
-            Thread.sleep(5000);
+            Thread.sleep(1);
         } catch (InterruptedException e) {
             System.out.println("QueryTest Exception " + e.getMessage());
             throw e;

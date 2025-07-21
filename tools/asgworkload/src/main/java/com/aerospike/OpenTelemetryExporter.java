@@ -1,0 +1,500 @@
+package com.aerospike;
+
+import io.opentelemetry.api.common.AttributeKey;
+import io.opentelemetry.api.common.Attributes;
+import io.opentelemetry.api.common.AttributesBuilder;
+import io.opentelemetry.api.metrics.*;
+import io.opentelemetry.exporter.prometheus.PrometheusHttpServer;
+import io.opentelemetry.sdk.OpenTelemetrySdk;
+import io.opentelemetry.sdk.metrics.SdkMeterProvider;
+import io.opentelemetry.sdk.resources.Resource;
+import sun.misc.Signal;
+import sun.misc.SignalHandler;
+
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+import java.util.Objects;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+
+import static io.opentelemetry.semconv.ServiceAttributes.SERVICE_NAME;
+
+public final class OpenTelemetryExporter implements com.aerospike.OpenTelemetry {
+
+    private final String SCOPE_NAME = "com.aerospike.workload";
+    private final String METRIC_NAME = "aerospike.workload.ags";
+    private static final double NS_TO_MS = 1000000D;
+    private static final double NS_TO_US = 1000D;
+
+    private final int prometheusPort;
+    private String workloadName;
+    private String dbConnectionState;
+    private final int closeWaitMS;
+
+    private final Attributes[] hbAttributes;
+    private final OpenTelemetrySdk openTelemetrySdk;
+    private final LongGauge openTelemetryInfoGauge;
+    private final LongCounter openTelemetryExceptionCounter;
+    private final LongCounter openTelemetryTransactionCounter;
+    private final LongCounter openTelemetryErrorCounter;
+    private final DoubleHistogram openTelemetryLatencyMSHistogram;
+    private final DoubleHistogram openTelemetryLatencyUSHistogram;
+
+    private final AtomicInteger hbCnt = new AtomicInteger();
+    private final long startTimeMillis;
+    private final LocalDateTime startLocalDateTime;
+    private long endTimeMillis;
+    private LocalDateTime endLocalDateTime;
+    private final boolean debug;
+    private final AtomicBoolean closed = new AtomicBoolean(false);
+    private final AtomicBoolean aborted = new AtomicBoolean(false);
+
+    //If a signal is sent, this will help ensure proper shutdown of OpenTel
+    //I know it is a proprietary API but this is the way I know, need to replace with a "better" modern approach
+    // maybe Runtime.getRuntime().addShutdownHook
+    private static class OTelSignalHandler implements SignalHandler {
+
+        final OpenTelemetryExporter exporter;
+        boolean handlerRunning = false;
+        final SignalHandler oldHandler;
+
+        public OTelSignalHandler(OpenTelemetryExporter exporter) {
+            this.exporter = exporter;
+
+            // First register with SIG_DFL, just to get the old handler.
+            Signal sigInt = new Signal("INT");
+            oldHandler = Signal.handle(sigInt, SignalHandler.SIG_DFL );
+        }
+
+        @Override
+        public void handle(Signal sig) {
+            if(this.handlerRunning) {return;}
+            this.handlerRunning = true;
+            this.exporter.printMsg("Received signal: " + sig.getName());
+            Main.abortRun.set(true);
+            try {
+                this.exporter.setDBConnectionStateAbort("SIG" + sig.getName());
+            }
+            catch (Exception ignored) {
+            }
+            this.oldHandler.handle(sig);
+        }
+    }
+
+    public OpenTelemetryExporter(int prometheusPort,
+                                 AGSWorkloadArgs args,
+                                 int closeWaitMS,
+                                 StringBuilder otherInfo) {
+
+        this.debug = args.debug;
+        this.startTimeMillis = System.currentTimeMillis();
+        this.startLocalDateTime = LocalDateTime.ofInstant(Instant.ofEpochMilli(this.startTimeMillis),
+                                    ZoneId.systemDefault());
+        this.prometheusPort = prometheusPort;
+        this.dbConnectionState = "Initializing";
+        this.closeWaitMS = closeWaitMS;
+
+        if(this.debug) {
+            this.printDebug("Creating OpenTelemetryExporter");
+        }
+
+        this.openTelemetrySdk = this.initOpenTelemetry();
+        Meter openTelemetryMeter = this.openTelemetrySdk.getMeter(SCOPE_NAME);
+
+        if(this.debug) {
+            this.printDebug("Creating Metrics");
+        }
+
+        this.openTelemetryInfoGauge =
+                openTelemetryMeter
+                        .gaugeBuilder(METRIC_NAME + ".stateinfo")
+                        .setDescription("Aerospike Workload Config/State Information")
+                        .ofLongs()
+                        .build();
+
+        this.openTelemetryExceptionCounter =
+                openTelemetryMeter
+                    .counterBuilder(METRIC_NAME + ".exception")
+                        .setDescription("Aerospike Workload Exception")
+                        .build();
+
+        this.openTelemetryErrorCounter =
+                openTelemetryMeter
+                        .counterBuilder(METRIC_NAME + ".related.errors")
+                        .setDescription("Aerospike Workload Related Errors")
+                        .build();
+
+        this.openTelemetryLatencyMSHistogram =
+                openTelemetryMeter
+                        .histogramBuilder(METRIC_NAME + ".lng.latency")
+                        .setDescription("Aerospike Workload Latencies (ms)")
+                        .setUnit("ms")
+                        .build();
+
+        this.openTelemetryLatencyUSHistogram =
+                openTelemetryMeter
+                        .histogramBuilder(METRIC_NAME + ".latency")
+                        .setDescription("Aerospike Workload Latencies (us)")
+                        .setUnit("microsecond")
+                        .build();
+
+        this.openTelemetryTransactionCounter =
+                openTelemetryMeter
+                        .counterBuilder(METRIC_NAME + ".transaction")
+                        .setDescription("Aerospike Workload Transaction")
+                        .build();
+
+        if(this.debug) {
+            this.printDebug("SDK and Metrics Completed");
+            this.printDebug("Register to Counters");
+        }
+
+        if(this.debug) {
+            this.printDebug("Updating Gauge");
+        }
+
+        this.hbAttributes = new Attributes[] {
+                Attributes.of(
+                        AttributeKey.stringKey("workload"), workloadName == null ? "Workload" : workloadName
+                ),
+                //There are attributes commonly used for all events
+                Attributes.of(
+                        AttributeKey.stringKey("otherInfo"), otherInfo == null ? null : otherInfo.toString(),
+                        AttributeKey.longKey("startTimeMillis"), this.startTimeMillis,
+                        AttributeKey.stringKey("startDateTime"), this.startLocalDateTime.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME),
+                        AttributeKey.stringKey("AGSHost"), args.agsHosts[0]
+                        ),
+                Attributes.of(
+                        AttributeKey.stringKey("commandlineargs"), String.join(" ", args.getArguments(true)),
+                        AttributeKey.stringKey("appversion"), args.getVersions(true)[0]
+                ),
+                Attributes.of(
+                        AttributeKey.longKey("CallsPerSecond"), (long) args.callsPerSecond,
+                        AttributeKey.longKey("schedulars"), (long) args.schedulars,
+                        AttributeKey.longKey("workers"), (long) args.workers,
+                        AttributeKey.stringKey("duration"), args.duration.toString()
+                )};
+
+        this.updateInfoGauge(true);
+
+        if(this.debug) {
+            this.printDebug("Creating Signal Handler...");
+        }
+
+        OTelSignalHandler handler = new OTelSignalHandler(this);
+        Signal.handle(new Signal("TERM"), handler); // Catch SIGTERM
+        Signal.handle(new Signal("INT"), handler);  // Catch SIGINT (Ctrl+C)
+    }
+
+    private OpenTelemetrySdk initOpenTelemetry() {
+        // Include required service.name resource attribute on all spans and metrics
+        if(this.debug) {
+            this.printDebug("Creating SDK");
+        }
+        Resource resource =
+                Resource.getDefault()
+                        .merge(Resource.builder().put(SERVICE_NAME, "PrometheusExporterAerospikeWL").build());
+
+        return OpenTelemetrySdk.builder()
+                /*.setTracerProvider(
+                        SdkTracerProvider.builder()
+                                .setResource(resource)
+                                .addSpanProcessor(SimpleSpanProcessor.create(LoggingSpanExporter.create()))
+                                .build())*/
+                .setMeterProvider(
+                        SdkMeterProvider.builder()
+                                .setResource(resource)
+                                .registerMetricReader(
+                                        PrometheusHttpServer.builder().setPort(prometheusPort).build())
+                                .build())
+                .buildAndRegisterGlobal();
+    }
+
+    private final DateTimeFormatter debugDateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSS");
+    private final AtomicInteger debugCnt = new AtomicInteger(0);
+    private void printDebug(String msg, boolean limited) {
+
+        if(limited) {
+            if(debugCnt.incrementAndGet() <= 1) {
+                printDebug("LIMIT1 " + msg);
+            }
+            else if(debugCnt.compareAndSet(100, 1)){
+                printDebug("LIMIT100 " + msg);
+            }
+        }
+        else {
+            printDebug(msg);
+        }
+    }
+    private void printDebug(String msg) {
+        LocalDateTime now = LocalDateTime.now();
+        String formattedDateTime = now.format(debugDateFormatter);
+
+        System.out.printf("%s DEBUG OTEL %s%n", formattedDateTime, msg);
+    }
+    private void printMsg(String msg) {
+        LocalDateTime now = LocalDateTime.now();
+        String formattedDateTime = now.format(debugDateFormatter);
+
+        System.out.printf("%s %s%n", formattedDateTime, msg);
+    }
+
+    private void updateInfoGauge(boolean initial) {
+        this.updateInfoGauge(initial, false);
+    }
+
+    private void updateInfoGauge(boolean initial, boolean force) {
+
+        if(!force && this.closed.get()) { return; }
+
+        AttributesBuilder attributes = Attributes.builder();
+
+        attributes.putAll(this.hbAttributes[0]);
+        attributes.put("hbCount", this.hbCnt.incrementAndGet());
+
+        if(initial) {
+            attributes.put("type", "static");
+            for (Attributes attrItem : this.hbAttributes) {
+                attributes.putAll(attrItem);
+            }
+        }
+        if(this.dbConnectionState != null) {
+            attributes.put("DBConnState", this.dbConnectionState);
+        }
+        if(this.endTimeMillis != 0) {
+            attributes.put("endTimeMillis", this.endTimeMillis);
+            attributes.put("endLocalDateTime", this.endLocalDateTime.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
+            attributes.put("runDurationMillis", this.endTimeMillis - this.startTimeMillis);
+        }
+
+        this.openTelemetryInfoGauge.set(System.currentTimeMillis(), attributes.build());
+
+        if(this.debug) {
+            this.printDebug(String.format("Info Gauge %d", hbCnt.get()));
+        }
+    }
+
+    @Override
+    public void addException(Exception exception) {
+        if(this.closed.get()) { return; }
+
+        String exceptionType = exception.getClass().getName().replaceFirst("com\\.aerospike\\.client\\.AerospikeException\\$", "");
+        exceptionType = exceptionType.replaceFirst("com\\.aerospike\\.client\\.", "");
+
+        String exception_subtype = null;
+        String message = exception.getMessage();
+
+        this.addException(exceptionType, exception_subtype, message);
+    }
+
+    @Override
+    public void addException(String exceptionType, String exception_subtype, String message) {
+
+        if(this.closed.get()) { return; }
+
+        //Ignore Cluser Closed exceptions when the app is terminating
+        if((Main.terminateRun.get() || Main.abortRun.get()) && Objects.equals(message, "Cluster has been closed")) {
+            return;
+        }
+
+        AttributesBuilder attributes = Attributes.builder();
+        attributes.putAll(this.hbAttributes[0]);
+        attributes.putAll(Attributes.of(
+                AttributeKey.stringKey("exception_type"), exceptionType,
+                AttributeKey.stringKey("exception"), message,
+                AttributeKey.longKey("startTimeMillis"), this.startTimeMillis
+        ));
+
+        if(exception_subtype != null) {
+            attributes.put("exception_subtype", exception_subtype);
+
+            AttributesBuilder attributesMRTErr = Attributes.builder();
+            attributesMRTErr.putAll(this.hbAttributes[0]);
+            attributesMRTErr.putAll(Attributes.of(
+                    AttributeKey.stringKey("error_type"), exception_subtype,
+                    AttributeKey.longKey("startTimeMillis"), this.startTimeMillis,
+                    AttributeKey.booleanKey("retry"), exception_subtype.contains("retry")
+            ));
+
+            this.openTelemetryErrorCounter.add(1,
+                    attributesMRTErr.build());
+        }
+
+        this.openTelemetryExceptionCounter.add(1, attributes.build());
+
+        if(this.debug) {
+            this.printDebug("Exception Counter Add " + exceptionType);
+        }
+    }
+
+    @Override
+    public void recordElapsedTime(String type, long elapsedNanos) {
+        if(this.closed.get()) { return; }
+
+        if(type == null)
+            type = "";
+
+        AttributesBuilder attributes = Attributes.builder();
+        attributes.putAll(this.hbAttributes[0]);
+        if(!type.isEmpty())
+            attributes.put("type", type.toLowerCase());
+        attributes.put("startTimeMillis", this.startTimeMillis);
+
+        final Attributes attrsBuilt = attributes.build();
+
+        this.openTelemetryLatencyMSHistogram.record((double) elapsedNanos / NS_TO_MS, attrsBuilt);
+        this.openTelemetryLatencyUSHistogram.record((double) elapsedNanos / NS_TO_US, attrsBuilt);
+        this.openTelemetryTransactionCounter.add(1, attrsBuilt);
+
+        if(this.debug) {
+            this.printDebug("Elapsed Time Record  " + workloadName + " " + type, true);
+        }
+    }
+
+    @Override
+    public void recordElapsedTime(long elapsedNanos) {
+        this.recordElapsedTime("", elapsedNanos);
+    }
+
+    @Override
+    public void incrTransCounter(String type) {
+
+        if(this.closed.get()) { return; }
+
+        if(type == null)
+            type = "";
+
+        AttributesBuilder attributes = Attributes.builder();
+        attributes.putAll(this.hbAttributes[0]);
+        attributes.put("startTimeMillis", this.startTimeMillis);
+        if(!type.isEmpty())
+            attributes.put("type", type.toLowerCase());
+
+        this.openTelemetryTransactionCounter.add(1, attributes.build());
+
+        if (this.debug) {
+            this.printDebug("Transaction Counter Add " + workloadName + " " + type, true);
+        }
+    }
+
+    @Override
+    public void incrTransCounter() {
+        incrTransCounter("");
+    }
+
+    @Override
+    public void setWorkloadName(String workloadName) {
+        if(this.closed.get() | this.aborted.get()) { return; }
+
+        this.workloadName = workloadName;
+        if(this.debug) {
+            this.printDebug("Workload Name  " + workloadName, false);
+        }
+        this.hbAttributes[0] = Attributes.of(
+                AttributeKey.stringKey("workload"), this.workloadName
+        );
+        this.updateInfoGauge(false);
+    }
+
+    @Override
+    public void setDBConnectionState(String dbConnectionState){
+        if(this.closed.get() | this.aborted.get()) { return; }
+
+        this.dbConnectionState = dbConnectionState;
+        if(this.debug) {
+            this.printDebug("DB Status Change  " + dbConnectionState, false);
+        }
+        this.updateInfoGauge(false);
+    }
+
+    private void setDBConnectionStateAbort(String state) {
+        if(this.closed.get() | this.aborted.get()) { return; }
+
+        this.closed.set(true);
+        this.aborted.set(true);
+        this.endTimeMillis = System.currentTimeMillis();
+        this.endLocalDateTime = LocalDateTime.now();
+        this.dbConnectionState = state;
+
+        this.printMsg(String.format("OpenTelemetry Disabled at %s", this.endLocalDateTime.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)));
+        try {
+            if (this.debug) {
+                this.printDebug("DB Status Change  " + state, false);
+            }
+            this.printMsg("Sending OpenTelemetry LUpdating Metrics in Abort Mode...");
+            this.updateInfoGauge(false, true);
+            this.printMsg("OpenTelemetry Waiting to complete... Ctrl-C to cancel OpenTelemetry update...");
+            Thread.sleep(this.closeWaitMS + 1000); //need to wait for PROM to re-scrap...
+            this.internalClose();
+        }
+        catch (Exception ignored) {}
+        this.printMsg("Closed OpenTelemetry Exporter");
+    }
+
+    private void setDBConnectionStateClosed() {
+       try {
+            if (openTelemetryInfoGauge != null && !this.aborted.get()) {
+                this.endTimeMillis = System.currentTimeMillis();
+                this.endLocalDateTime = LocalDateTime.now();
+                this.printMsg(String.format("OpenTelemetry Disabled at %s", this.endLocalDateTime.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)));
+                this.printMsg("Sending OpenTelemetry Last Updated Metrics...");
+                this.updateInfoGauge(false);
+                Thread.sleep(this.closeWaitMS + 1000); //need to wait for PROM to re-scrap...
+            }
+        }
+       catch (Exception ignored) {}
+       finally {
+            closed.set(true);
+        }
+    }
+
+    private void internalClose() {
+
+        if(openTelemetrySdk != null) {
+            if (this.debug) {
+                this.printDebug("openTelemetrySdk close....");
+            }
+            this.openTelemetrySdk.close();
+        }
+    }
+
+    @Override
+    public boolean getClosed() { return this.closed.get(); }
+
+    @Override
+    public void close() {
+
+        if(this.closed.get()) { return; }
+
+        this.printMsg("Closing OpenTelemetry Exporter...");
+
+        this.setDBConnectionStateClosed();
+
+        this.internalClose();
+
+        this.printMsg("Closed OpenTelemetry Exporter");
+    }
+
+    public String printConfiguration() {
+        return String.format("Open Telemetry Enabled at %s\n\tPrometheus Exporter using Port %d\n\tClose wait interval %d ms\n\tScope Name: '%s'\n\tMetric Prefix Name: '%s'",
+                this.startLocalDateTime.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME),
+                this.prometheusPort,
+                this.closeWaitMS,
+                SCOPE_NAME,
+                METRIC_NAME);
+    }
+
+    @Override
+    public String toString() {
+        return String.format("OpenTelemetryExporter{prometheusport:%d, state:%s, Gauge:%s, transactioncounter:%s, exceptioncounter:%s, latancyhistogram:%s closed:%s}",
+                                this.prometheusPort,
+                                this.dbConnectionState,
+                                this.openTelemetryInfoGauge,
+                                this.openTelemetryTransactionCounter,
+                                this.openTelemetryExceptionCounter,
+                                this.openTelemetryLatencyUSHistogram,
+                                this.closed.get());
+    }
+}

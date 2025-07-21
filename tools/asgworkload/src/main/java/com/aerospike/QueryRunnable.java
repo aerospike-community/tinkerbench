@@ -12,6 +12,10 @@ public interface QueryRunnable extends Callable<Boolean> {
 
     public void setWorkloadProvider(WorkloadProvider provider);
 
+    public String Name();
+
+    public QueryTypes QueryType();
+
     /*
     Returns the description of the query.
      */

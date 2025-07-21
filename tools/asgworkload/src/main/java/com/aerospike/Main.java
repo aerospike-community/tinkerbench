@@ -2,22 +2,33 @@ package com.aerospike;
 
 import picocli.CommandLine;
 
+import java.util.concurrent.atomic.AtomicBoolean;
+
 import static org.apache.tinkerpop.gremlin.process.traversal.AnonymousTraversalSource.traversal;
 
 public class Main extends  AGSWorkloadArgs {
 
+    public static final AtomicBoolean abortRun = new AtomicBoolean(false);
+    public static final AtomicBoolean terminateRun = new AtomicBoolean(false);
+
     public Integer call() {
         PrintArguments(false);
 
-        try(WorkloadProvider workload = new WorkloadProvider(schedulars,
+        try(OpenTelemetry openTel = OpenTelemetryHelper.Create(promPort,
+                                                                (AGSWorkloadArgs) this,
+                                                                promCloseWaitSecs,
+                                                                null);
+                WorkloadProvider workload = new WorkloadProvider(schedulars,
                                                                 workers,
                                                                 duration,
                                                                 callsPerSecond,
-                                                                shutdownTimeout)) {
-
+                                                                shutdownTimeout,
+                                                                openTel)) {
             workload.setQuery(new QueryTest())
                     .Start()
                     .awaitTermination();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
         }
         return  0;
     }

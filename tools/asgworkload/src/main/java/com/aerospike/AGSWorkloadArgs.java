@@ -1,6 +1,5 @@
 package com.aerospike;
 
-import org.apache.tinkerpop.shaded.kryo.NotNull;
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
@@ -50,7 +49,7 @@ public abstract class AGSWorkloadArgs  implements Callable<Integer> {
             defaultValue = "PT30S")
     Duration duration;
 
-    @Option(names = {"-c", "--calls"},
+    @Option(names = {"-c", "--callsPerSec"},
             description = "The number of calls per seconds. Default is ${DEFAULT-VALUE}",
             defaultValue = "100")
     int callsPerSecond;
@@ -70,7 +69,7 @@ public abstract class AGSWorkloadArgs  implements Callable<Integer> {
             defaultValue = "0")
     int parallelize;
 
-    @Option(names = {"-qhp","--QueryHopPaths"},
+    @Option(names = {"-qhp","--queryHopPaths"},
             description = "The Number of possible query hop paths. 0 to disable. Default is ${DEFAULT-VALUE}",
             defaultValue = "0")
     int nbrHopPaths;
@@ -80,15 +79,28 @@ public abstract class AGSWorkloadArgs  implements Callable<Integer> {
             defaultValue = "PT15S")
     Duration shutdownTimeout;
 
-    @Option(names = {"-vsf","--VertexScaleFactor"},
+    @Option(names = {"-vsf","--vertexScaleFactor"},
             description = "Scaling factor used in generating the Vertex's id. Default is ${DEFAULT-VALUE}",
             defaultValue = "1")
     Long vertexScaleFactor;
 
-    @Option(names = {"--VertexIdFormat"},
+    @Option(names = {"--vertexIdFormat"},
             description = "The Vertex's id format where a random value based on Vertex Scale Factor. Default is ${DEFAULT-VALUE}",
             defaultValue = "A%019d")
     String vertexIdFmt;
+
+    @Option(names = {"-prom", "--prometheusPort"},
+            description = "Prometheus OpenTel End Point port. If -1, OpenTel metrics are disabled. Default is ${DEFAULT-VALUE}",
+            defaultValue = "19090")
+    int promPort;
+
+    @Option(names = {"-promWait", "--prometheusCloseWaitSecs"},
+            description = "Open Telemetry wait interval, in seconds, upon application exit. This interval ensure all values are picked by the Prometheus server. This should match the 'scrape_interval' in the PROM ymal file. Can be zero to disable wait. Default is ${DEFAULT-VALUE}",
+            defaultValue = "15")
+    int promCloseWaitSecs;
+
+    @Option(names = "-debug")
+    boolean debug;
 
     /**
      * {@link IVersionProvider} implementation that returns version information from {@code /MANIFEST.MF} and {@code /META-INF/MANIFEST.MF} file.
@@ -178,6 +190,16 @@ public abstract class AGSWorkloadArgs  implements Callable<Integer> {
         }
     }
 
+    String[] getVersions(Boolean onlyApplicationVersion) {
+        ManifestVersionProvider provider = new ManifestVersionProvider();
+        try {
+            return provider.getVersion();
+        }
+        catch (Exception e) {
+            return onlyApplicationVersion ? new String[] {"N/A"} : new String[0];
+        }
+    }
+
     /*
     Prints to System out the arguments provided or default values based on {@code onlyProvidedArgs}.
     @param onlyProvidedArgs -- If true, the arguments given in the command line are printed.
@@ -229,6 +251,52 @@ public abstract class AGSWorkloadArgs  implements Callable<Integer> {
                 System.out.print(optionStr);
             }
         }
+    }
 
+    /*
+    Gets the arguments provided or default values based on {@code onlyProvidedArgs}.
+    @param onlyProvidedArgs -- If true, the arguments given in the command line are printed.
+        if false, All provided arguments including defaulted values are printed.
+     */
+    String[] getArguments(boolean onlyProvidedArgs) {
+        ParseResult pr = commandlineSpec.commandLine().getParseResult();
+
+        List<String> args = new ArrayList<>();
+
+        List<PositionalParamSpec> positional = commandlineSpec.positionalParameters();
+        for (PositionalParamSpec argPos : positional) {
+            String argKeyword = argPos.paramLabel();
+            Object value = argPos.getValue();
+            if(value.getClass().isArray())
+                value = Arrays.toString((String[]) value);
+
+            args.add(String.format("%s (Position %s): %s%n",
+                                    argKeyword,
+                                    argPos.index(),
+                                    value));
+        }
+
+        List<OptionSpec> options = commandlineSpec.options();
+        for (OptionSpec opt : options) {
+            String argKeyword = opt.longestName();
+            if(argKeyword.equals("--help") || argKeyword.equals("--version")) {
+                continue;
+            }
+
+            boolean usesDefaultValue= !pr.hasMatchedOption(opt);
+            if(onlyProvidedArgs && usesDefaultValue) {
+                continue;
+            }
+
+            Object value = opt.getValue();
+            if(value.getClass().isArray())
+                value = Arrays.toString((String[]) value);
+            args.add(String.format("%s: %s%s%n",
+                        argKeyword,
+                        value,
+                        (usesDefaultValue) ? " (Default)" : ""));
+        }
+
+        return args.toArray(new String[0]);
     }
 }

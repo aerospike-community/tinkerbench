@@ -36,10 +36,12 @@ public class WorkloadProvider implements AutoCloseable {
     private final AtomicInteger errorCount = new AtomicInteger();
     private final AtomicLong totCallDuration = new AtomicLong();
     private final Vector<Exception> errors = new Vector<>();
+    private final int callsPerSecond;
+    private final OpenTelemetry openTelemetry;
+
     private QueryRunnable queryRunnable = null;
     private long startTimerNS;
     private long endTimerNS;
-    private final int callsPerSecond;
     private LocalDateTime startDateTime;
     private LocalDateTime stopDateTime;
 
@@ -107,16 +109,21 @@ public class WorkloadProvider implements AutoCloseable {
         return totCallDuration.get() == 0L ? 0.0 : (successCount.doubleValue() + errorCount.doubleValue()) / (totCallDuration.doubleValue() / 1_000_000_000.0);
     }
 
+    public OpenTelemetry getOpenTelemetry() { return openTelemetry; }
+
     public WorkloadProvider(int schedulers,
                                 int workers,
                                 Duration duration,
                                 int callsPerSecond,
-                                Duration shutdownTimeout) {
+                                Duration shutdownTimeout,
+                                OpenTelemetry openTelemetry) {
 
         this.targetRunDuration = duration;
         this.callsPerSecond = callsPerSecond;
         this.shutdownTimeout = shutdownTimeout;
         this.schedulers = schedulers;
+        this.openTelemetry = openTelemetry == null ? new OpenTelemetryDummy() : openTelemetry;
+
         schedulerPool = Executors.newFixedThreadPool(schedulers);
         workerPool = Executors.newFixedThreadPool(workers);
 
@@ -128,11 +135,10 @@ public class WorkloadProvider implements AutoCloseable {
                                 Duration duration,
                                 int callsPerSecond,
                                 Duration shutdownTimeout,
+                                OpenTelemetry openTelemetry,
                                 QueryRunnable query) {
-        this(schedulers, workers, duration, callsPerSecond, shutdownTimeout);
-        this.queryRunnable = query;
-        this.status = Status.CanRun;
-        queryRunnable.setWorkloadProvider(this);
+        this(schedulers, workers, duration, callsPerSecond, shutdownTimeout, openTelemetry);
+        this.setQuery(query);
     }
 
     public WorkloadProvider(int schedulers,
@@ -140,9 +146,10 @@ public class WorkloadProvider implements AutoCloseable {
                             Duration duration,
                             int callsPerSecond,
                             Duration shutdownTimeout,
+                            OpenTelemetry openTelemetry,
                             QueryRunnable query,
                             boolean startRun) {
-        this(schedulers, workers, duration, callsPerSecond, shutdownTimeout, query);
+        this(schedulers, workers, duration, callsPerSecond, shutdownTimeout, openTelemetry, query);
         if(startRun)
             Start();
     }
@@ -162,6 +169,9 @@ public class WorkloadProvider implements AutoCloseable {
             this.queryRunnable = queryRunnable;
             this.status = Status.CanRun;
             queryRunnable.setWorkloadProvider(this);
+            if(openTelemetry != null) {
+                openTelemetry.setWorkloadName(queryRunnable.Name());
+            }
         }
         return this;
     }
@@ -173,7 +183,7 @@ public class WorkloadProvider implements AutoCloseable {
     public WorkloadProvider Start() throws RuntimeException {
 
         if(status == Status.CanRun || status == Status.Completed) {
-            final int base = callsPerSecond / schedulers;
+            final int base = callsPerSecond / (schedulers + 1);
             final int remainder = callsPerSecond % schedulers;
             status = Status.PendingRun;
 
@@ -328,6 +338,10 @@ public class WorkloadProvider implements AutoCloseable {
                 if(recordResult) {
                     totCallDuration.addAndGet(duration);
                     successCount.incrementAndGet();
+                    if(openTelemetry != null) {
+                        openTelemetry.incrTransCounter();
+                        openTelemetry.recordElapsedTime(duration);
+                    }
                 }
                 else abortedCount.incrementAndGet();
             } catch (InterruptedException e) {
@@ -405,5 +419,7 @@ public class WorkloadProvider implements AutoCloseable {
     private void AddError(Exception e) {
         errors.add(e);
         errorCount.incrementAndGet();
+        if(openTelemetry != null)
+            openTelemetry.addException(e);
     }
 }
