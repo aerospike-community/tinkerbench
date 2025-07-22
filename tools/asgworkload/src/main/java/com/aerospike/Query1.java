@@ -2,19 +2,27 @@ package com.aerospike;
 
 import org.apache.tinkerpop.gremlin.driver.Cluster;
 import org.apache.tinkerpop.gremlin.driver.remote.DriverRemoteConnection;
+import org.apache.tinkerpop.gremlin.process.traversal.TraversalSource;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
 
 import static org.apache.tinkerpop.gremlin.process.traversal.AnonymousTraversalSource.traversal;
 
 public class Query1 implements QueryRunnable {
 
-    private WorkloadProvider provider;
+    private final WorkloadProvider provider;
+    private final AGSGraphTraversal agsGraphTraversal;
+    private final Long scaleFactor;
+    private final String vertexIdFmt;
 
-    /**
-     */
-    @Override
-    public void setWorkloadProvider(WorkloadProvider provider) {
+    public Query1(WorkloadProvider provider,
+                  AGSGraphTraversal ags) {
         this.provider = provider;
+        this.agsGraphTraversal = ags;
+
+        scaleFactor = provider.getCliArgs().vertexScaleFactor;
+        vertexIdFmt = provider.getCliArgs().vertexIdFmt;
+
+        this.provider.setQuery(this);
     }
 
     @Override
@@ -32,32 +40,11 @@ public class Query1 implements QueryRunnable {
         return "Query1";
     }
 
-    private GraphTraversalSource g = null;
-    private Long scaleFactor = -1L;
-    private String vertexIdFmt = null;
-
     /**
+     * @return true to indicate to execute the workload and false to abort.
      */
     @Override
     public boolean preProcess() {
-
-        final Cluster.Builder clusterBuilder = Cluster.build();
-        clusterBuilder.port(provider.getCliArgs().port).enableSsl(false);
-        for (String host : provider.getCliArgs().agsHosts) {
-            clusterBuilder.addContactPoint(host);
-        }
-        final Cluster cluster = clusterBuilder.create();
-        g = traversal().withRemote(DriverRemoteConnection.using(cluster));
-        if (provider.getCliArgs().parallelize > 0) {
-            g = g.with("aerospike.graph.parallelize",
-                        provider.getCliArgs().parallelize);
-        }
-        scaleFactor = provider.getCliArgs().vertexScaleFactor;
-        vertexIdFmt = provider.getCliArgs().vertexIdFmt;
-
-        System.out.println("PreProcess Query1");
-        System.out.println(provider);
-
         return true;
     }
 
@@ -66,8 +53,6 @@ public class Query1 implements QueryRunnable {
      */
     @Override
     public void postProcess() {
-        System.out.println("PostProcess Query1");
-        System.out.println(provider);
     }
 
     private String getRandomId() {
@@ -76,11 +61,33 @@ public class Query1 implements QueryRunnable {
     }
 
     /**
-     *
+     * Performs the actual workload
+     * @return True to measure the workload and false to indicate the workload was aborted.
      */
     @Override
-    public Boolean call() throws InterruptedException {
-        g.V(getRandomId()).bothE().has("ban", true).otherV().elementMap().toList();
+    public Boolean call()  {
+        G().V(getRandomId()).bothE().has("ban", true).otherV().elementMap().toList();
         return true;
+    }
+
+    /**
+     * @return the AGS Graph Traversal instance
+     */
+    @Override
+    public GraphTraversalSource G() {
+        return this.agsGraphTraversal.G();
+    }
+
+    /**
+     * @return the AGS cluster instance
+     */
+    @Override
+    public Cluster getCluster() {
+        return this.agsGraphTraversal.getCluster();
+    }
+
+    @Override
+    public void close() {
+        //No Opt
     }
 }

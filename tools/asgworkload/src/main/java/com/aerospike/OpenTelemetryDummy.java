@@ -3,9 +3,7 @@ package com.aerospike;
 public class OpenTelemetryDummy  implements OpenTelemetry {
 
     @SuppressWarnings("unused")
-    public OpenTelemetryDummy(int endPointPort,
-                                AGSWorkloadArgs args,
-                                int closeWaitMS,
+    public OpenTelemetryDummy(AGSWorkloadArgs args,
                                 StringBuilder otherInfo) {
     }
 

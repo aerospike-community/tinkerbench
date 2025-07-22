@@ -1,14 +1,16 @@
 package com.aerospike;
 
+import org.apache.tinkerpop.gremlin.driver.Cluster;
+import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
+
 public class QueryTest implements QueryRunnable {
 
-    private WorkloadProvider provider;
-    /**
+    private final WorkloadProvider provider;
 
-     */
-    @Override
-    public void setWorkloadProvider(WorkloadProvider provider) {
+    public QueryTest(WorkloadProvider provider,
+                     AGSGraphTraversal ags) {
         this.provider = provider;
+        this.provider.setQuery(this);
     }
 
     @Override
@@ -20,7 +22,7 @@ public class QueryTest implements QueryRunnable {
     }
 
     /**
-     * @return
+     * @return the Workload description
      */
     @Override
     public String getDescription() {
@@ -28,7 +30,7 @@ public class QueryTest implements QueryRunnable {
     }
 
     /**
-     * @return
+     * @return true to indicate to execute the workload and false to abort.
      */
     @Override
     public boolean preProcess() {
@@ -47,7 +49,8 @@ public class QueryTest implements QueryRunnable {
     }
 
     /**
-     *
+     * Performs the actual workload
+     * @return True to measure the workload and false to indicate the workload was aborted.
      */
     @Override
     public Boolean call() throws InterruptedException {
@@ -60,5 +63,26 @@ public class QueryTest implements QueryRunnable {
             throw e;
         }
         return true;
+    }
+
+    /**
+     * @return the AGS Graph Traversal instance
+     */
+    @Override
+    public GraphTraversalSource G() {
+        return null;
+    }
+
+    /**
+     * @return the AGS cluster instance
+     */
+    @Override
+    public Cluster getCluster() {
+        return null;
+    }
+
+    @Override
+    public void close() {
+        //No Opt
     }
 }

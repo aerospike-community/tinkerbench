@@ -1,0 +1,188 @@
+package com.aerospike;
+
+import org.slf4j.LoggerFactory;
+
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.concurrent.atomic.AtomicInteger;
+
+public class LogSource {
+
+    private static LogSource instance;
+
+    public final static DateTimeFormatter DateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSS");
+    private final static AtomicInteger debugCnt = new AtomicInteger(0);
+    private final boolean debugEnabled;
+
+    private final org.slf4j.Logger logger4j;
+
+    public org.slf4j.Logger getLogger4j() { return logger4j; }
+    public boolean isDebug() { return debugEnabled; }
+
+
+    /*
+    public void setLoglevel() {
+
+        ch.qos.logback.classic.Logger
+        final ch.qos.logback.classic.Logger logger2 = (ch.qos.logback.classic.Logger) logger4j;
+
+    }*/
+
+    public LogSource(boolean debugEnabled) {
+        this.debugEnabled = debugEnabled;
+        this.logger4j = LoggerFactory.getLogger("com.aerospike.asgworkload");
+        instance = this;
+    }
+
+    public static LogSource getInstance() {
+        if (instance == null) { // Check if instance already exists
+            instance = new LogSource(false); // Create instance if not
+        }
+
+        return instance; // Return the single instance
+    }
+
+    public int getDebugCnt() { return debugCnt.get(); }
+
+    public void Print(String name, String msg, boolean err, boolean limited) {
+
+        if (limited) {
+            if (debugCnt.incrementAndGet() <= 1) {
+                PrintDebug(name, "LIMIT1 " + msg, err);
+            } else if (debugCnt.compareAndSet(100, 1)) {
+                PrintDebug(name, "LIMIT100 " + msg, err);
+            }
+        } else {
+            PrintDebug(name, msg, err);
+        }
+    }
+
+    public void Print(String name, String msg, boolean err) {
+
+        LocalDateTime now = LocalDateTime.now();
+        String formattedDateTime = now.format(DateFormatter);
+        String fmtMsg = String.format("%s INFO %s %s%n", name, formattedDateTime, msg);
+
+        if(err) {
+            System.err.printf(fmtMsg);
+        }
+        else {
+            System.out.printf(fmtMsg);
+        }
+    }
+
+    public void Print(String name, Throwable ex) {
+
+        LocalDateTime now = LocalDateTime.now();
+        String formattedDateTime = now.format(DateFormatter);
+        String fmtMsg = String.format("%s ERROR %s %s: %s%n",
+                name,
+                formattedDateTime,
+                ex.getClass().getSimpleName(),
+                ex.getMessage());
+        System.err.printf(fmtMsg);
+    }
+
+    public void Print(String name, boolean err, String msg, Object var2) {
+        Print(name, String.format(msg, var2), err);
+    }
+
+    public void Print(String name, boolean err, String msg, Object var2, Object var3) {
+       PrintDebug(name, String.format(msg, err, var2, var3), err);
+    }
+
+    public void Print(String name, boolean err, String msg, Object... var2) {
+        Print(name, String.format(msg, var2), err);
+    }
+
+    public void PrintDebug(String name, String msg, boolean limited) {
+
+        if(debugEnabled) {
+            if (limited) {
+                if (debugCnt.incrementAndGet() <= 1) {
+                    PrintDebug(name, "LIMIT1 " + msg);
+                } else if (debugCnt.compareAndSet(100, 1)) {
+                    PrintDebug(name, "LIMIT100 " + msg);
+                }
+            } else {
+                PrintDebug(name, msg);
+            }
+        }
+    }
+
+    public void PrintDebug(String name, String msg) {
+        if(debugEnabled) {
+            LocalDateTime now = LocalDateTime.now();
+            String formattedDateTime = now.format(DateFormatter);
+            String fmtMsg = String.format("%s DEBUG %s %s%n", name, formattedDateTime, msg);
+
+            System.out.printf(fmtMsg);
+            logger4j.debug(fmtMsg);
+        }
+    }
+
+    public void PrintDebug(String name, Throwable ex) {
+        if(debugEnabled) {
+            LocalDateTime now = LocalDateTime.now();
+            String formattedDateTime = now.format(DateFormatter);
+            String fmtMsg = String.format("%s DEBUG %s %s: %s%n",
+                    name,
+                    formattedDateTime,
+                    ex.getClass().getSimpleName(),
+                    ex.getMessage());
+            System.err.printf(fmtMsg);
+        }
+    }
+
+    public void PrintDebug(String name, String msg, Object var2) {
+        if(debugEnabled) {
+            PrintDebug(name, String.format(msg, var2));
+        }
+    }
+
+    public void PrintDebug(String name, String msg, Object var2, Object var3) {
+        if(debugEnabled) {
+            PrintDebug(name, String.format(msg, var2, var3));
+        }
+    }
+
+    public void PrintDebug(String name, String msg, Object... var2) {
+        if(debugEnabled) {
+            PrintDebug(name, String.format(msg, var2));
+        }
+    }
+
+    public void title(AGSWorkloadArgs args) {
+
+        logger4j.info("Program: {}", args.commandlineSpec.name());
+        logger4j.info("Arguments:");
+        for (String arg : args.getArguments(false)) {
+            logger4j.info("\t{}", arg);
+        }
+        logger4j.info("Versions:");
+        for(String version : args.getVersions(false)) {
+            logger4j.info("\t{}", version);
+        }
+    }
+
+    public void info(String msg) { logger4j.info(msg); }
+
+    public void info(String var1, Object var2) { logger4j.info(var1, var2); }
+
+    public void info(String var1, Object var2, Object var3) { logger4j.info(var1, var2, var3); }
+
+    public void info(String var1, Object... var2) { logger4j.info(var1, var2); }
+
+    public void info(String var1, Throwable var2) { logger4j.info(var1, var2); }
+
+    public void error(String msg) { logger4j.error(msg); }
+
+    public void error(String var1, Object var2) { logger4j.error(var1, var2); }
+
+    public void error(String var1, Object var2, Object var3) { logger4j.error(var1, var2, var3); }
+
+    public void error(String var1, Object... var2) { logger4j.error(var1, var2); }
+
+    public void error(String var1, Throwable var2) { logger4j.error(var1, var2); }
+
+}

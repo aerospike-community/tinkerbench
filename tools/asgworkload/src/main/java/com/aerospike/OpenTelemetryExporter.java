@@ -8,8 +8,6 @@ import io.opentelemetry.exporter.prometheus.PrometheusHttpServer;
 import io.opentelemetry.sdk.OpenTelemetrySdk;
 import io.opentelemetry.sdk.metrics.SdkMeterProvider;
 import io.opentelemetry.sdk.resources.Resource;
-import sun.misc.Signal;
-import sun.misc.SignalHandler;
 
 import java.time.Instant;
 import java.time.LocalDateTime;
@@ -50,21 +48,22 @@ public final class OpenTelemetryExporter implements com.aerospike.OpenTelemetry 
     private LocalDateTime endLocalDateTime;
     private final boolean debug;
     private final AtomicBoolean closed = new AtomicBoolean(false);
+
+    private final LogSource logger = LogSource.getInstance();
+
     public final AtomicBoolean abortRun;
     public final AtomicBoolean terminateRun;
 
-    public OpenTelemetryExporter(int prometheusPort,
-                                 AGSWorkloadArgs args,
-                                 int closeWaitMS,
+    public OpenTelemetryExporter(AGSWorkloadArgs args,
                                  StringBuilder otherInfo) {
 
         this.debug = args.debug;
         this.startTimeMillis = System.currentTimeMillis();
         this.startLocalDateTime = LocalDateTime.ofInstant(Instant.ofEpochMilli(this.startTimeMillis),
                                     ZoneId.systemDefault());
-        this.prometheusPort = prometheusPort;
+        this.prometheusPort = args.promPort;
         this.connectionState = "Initializing";
-        this.closeWaitMS = closeWaitMS;
+        this.closeWaitMS =(int) args.closeWaitSecs.toMillis();
         this.abortRun = args.abortRun;
         this.terminateRun = args.terminateRun;
 
@@ -188,31 +187,17 @@ public final class OpenTelemetryExporter implements com.aerospike.OpenTelemetry 
                 .buildAndRegisterGlobal();
     }
 
-    private final DateTimeFormatter debugDateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSS");
-    private final AtomicInteger debugCnt = new AtomicInteger(0);
     private void printDebug(String msg, boolean limited) {
-
-        if(limited) {
-            if(debugCnt.incrementAndGet() <= 1) {
-                printDebug("LIMIT1 " + msg);
-            }
-            else if(debugCnt.compareAndSet(100, 1)){
-                printDebug("LIMIT100 " + msg);
-            }
-        }
-        else {
-            printDebug(msg);
-        }
+        logger.PrintDebug("OPENTEL", msg, limited);
+        logger.getLogger4j().debug("OPENTEL: {}", msg);
     }
     private void printDebug(String msg) {
-        LocalDateTime now = LocalDateTime.now();
-        String formattedDateTime = now.format(debugDateFormatter);
-
-        System.out.printf("%s DEBUG OTEL %s%n", formattedDateTime, msg);
+        logger.PrintDebug("OPENTEL", msg);
+        logger.getLogger4j().debug("OPENTEL: {}", msg);
     }
     private void printMsg(String msg) {
         LocalDateTime now = LocalDateTime.now();
-        String formattedDateTime = now.format(debugDateFormatter);
+        String formattedDateTime = now.format(LogSource.DateFormatter);
 
         System.out.printf("%s %s%n", formattedDateTime, msg);
     }

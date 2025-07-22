@@ -1,0 +1,3 @@
+<configuration>
+    <logger name="com.aerospike.asgworkload" level="OFF"/>
+</configuration>

@@ -4,7 +4,7 @@
   <groupId>com.aerospike</groupId>
   <artifactId>asgworkload</artifactId>
   <name>AGS Workload</name>
-  <version>1.0.0</version>
+  <version>1.1.0</version>
   <description>Aerospike Graph Workload Generator</description>
   <url>https://aerospike.com</url>
   <build>
@@ -31,6 +31,7 @@
         <configuration>
           <archive>
             <manifest>
+              <addClasspath>true</addClasspath>
               <addDefaultImplementationEntries>true</addDefaultImplementationEntries>
               <addDefaultSpecificationEntries>true</addDefaultSpecificationEntries>
             </manifest>
@@ -50,15 +51,39 @@
         </executions>
         <configuration>
           <finalName>${project.artifactId}-${project.version}</finalName>
+          <filters>
+            <filter>
+              <artifact>*:*</artifact>
+              <excludes>
+                <exclude>module-info.class</exclude>
+                <exclude>META-INF/*.SF</exclude>
+                <exclude>META-INF/*.DSA</exclude>
+                <exclude>META-INF/*.RSA</exclude>
+              </excludes>
+            </filter>
+          </filters>
         </configuration>
       </plugin>
     </plugins>
   </build>
+  <dependencyManagement>
+    <dependencies>
+      <dependency>
+        <groupId>io.opentelemetry</groupId>
+        <artifactId>opentelemetry-bom</artifactId>
+        <version>1.52.0</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
   <properties>
+    <maven.compiler.source>21</maven.compiler.source>
+    <tinkerpop.version>3.7.3</tinkerpop.version>
     <maven.compiler.target>21</maven.compiler.target>
     <picocli.version>4.7.7</picocli.version>
-    <maven.compiler.source>21</maven.compiler.source>
+    <slf4j.version>2.0.17</slf4j.version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <tinkerpop.version>3.7.3</tinkerpop.version>
+    <logback.version>1.5.18</logback.version>
   </properties>
 </project>

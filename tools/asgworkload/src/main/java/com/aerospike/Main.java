@@ -7,23 +7,28 @@ public class Main extends  AGSWorkloadArgs {
     public Integer call() {
         PrintArguments(false);
 
-        try(OpenTelemetry openTel = OpenTelemetryHelper.Create(promPort,
-                                                                this,
-                                                                (int) closeWaitSecs.toMillis(),
+        LogSource logger = new LogSource(debug);
+        logger.title(this);
+
+        try(OpenTelemetry openTel = OpenTelemetryHelper.Create(this,
                                                                 null);
-                WorkloadProvider workload = new WorkloadProviderScheduler(schedulars,
-                                                                            workers,
-                                                                            duration,
-                                                                            callsPerSecond,
-                                                                            shutdownTimeout,
-                                                                            openTel,
-                                                                            this)) {
-            workload.setQuery(new QueryTest())
-                    .Start()
+                WorkloadProvider workload = new WorkloadProviderScheduler(openTel,
+                                                                            this);
+                AGSGraphTraversal agsGraphTraversalSource = new AGSGraphTraversalSource(this,
+                                                                                        openTel);
+                QueryRunnable workloadRunner = Helpers.GetQuery(queryName,
+                                                                workload,
+                                                                agsGraphTraversalSource,
+                                                                debug)) {
+            workload.Start()
                     .awaitTermination();
         } catch (Exception e) {
+            logger.error("main",e);
             throw new RuntimeException(e);
         }
+
+        logger.getLogger4j().info("closed");
+
         return  0;
     }
 

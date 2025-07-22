@@ -8,9 +8,7 @@ The call function should be the actual workload that will be performed and measu
 If the call function should return false or throws an InterruptedException; this indicates not to measure this workload and the call is treated as aborted.
 If an exception occurs, it is captured and treated as an error which will be included in the call-per-sec rate calculations (aborted calls do not).
  */
-public interface QueryRunnable extends Callable<Boolean> {
-
-    public void setWorkloadProvider(WorkloadProvider provider);
+public interface QueryRunnable extends AGSGraphTraversal, Callable<Boolean> {
 
     public String Name();
 

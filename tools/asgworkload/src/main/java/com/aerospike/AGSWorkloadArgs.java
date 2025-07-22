@@ -32,7 +32,7 @@ public abstract class AGSWorkloadArgs  implements Callable<Integer> {
     @Spec
     CommandSpec commandlineSpec;
 
-    @Parameters(description = "The query to run")
+    @Parameters(description = "The query to run which should match the class name")
     String queryName;
 
     @Option(names = {"-s", "--schedulers"},
@@ -103,6 +103,10 @@ public abstract class AGSWorkloadArgs  implements Callable<Integer> {
     @Option(names = "-debug",
                 description = "Enables application debug tracing.")
     boolean debug;
+
+    @Option(names = "-test",
+            description = "Enables application test mode (no physical connections to AGS).")
+    boolean testMode;
 
     public final AtomicBoolean abortRun = new AtomicBoolean(false);
     public final AtomicBoolean terminateRun = new AtomicBoolean(false);
@@ -275,7 +279,7 @@ public abstract class AGSWorkloadArgs  implements Callable<Integer> {
             if(value.getClass().isArray())
                 value = Arrays.toString((String[]) value);
 
-            args.add(String.format("%s (Position %s): %s%n",
+            args.add(String.format("%s (Position %s): %s",
                                     argKeyword,
                                     argPos.index(),
                                     value));
@@ -296,7 +300,7 @@ public abstract class AGSWorkloadArgs  implements Callable<Integer> {
             Object value = opt.getValue();
             if(value.getClass().isArray())
                 value = Arrays.toString((String[]) value);
-            args.add(String.format("%s: %s%s%n",
+            args.add(String.format("%s: %s%s",
                         argKeyword,
                         value,
                         (usesDefaultValue) ? " (Default)" : ""));

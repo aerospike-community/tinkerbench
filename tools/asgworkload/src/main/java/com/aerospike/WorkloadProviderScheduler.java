@@ -38,6 +38,8 @@ public class WorkloadProviderScheduler implements WorkloadProvider {
     private LocalDateTime startDateTime = null;
     private LocalDateTime stopDateTime = null;
 
+    private final LogSource logger = LogSource.getInstance();
+
     private void setStatus(WorkloadStatus workloadStatus) {
 
         if(this.status != workloadStatus) {
@@ -123,60 +125,35 @@ public class WorkloadProviderScheduler implements WorkloadProvider {
 
     public AGSWorkloadArgs getCliArgs() { return cliArgs; }
 
-    public WorkloadProviderScheduler(int schedulers,
-                                     int workers,
-                                     Duration duration,
-                                     int callsPerSecond,
-                                     Duration shutdownTimeout,
-                                     OpenTelemetry openTelemetry,
+    public WorkloadProviderScheduler(OpenTelemetry openTelemetry,
                                      AGSWorkloadArgs cliArgs) {
 
-        this.targetRunDuration = duration;
-        this.callsPerSecond = callsPerSecond;
-        this.shutdownTimeout = shutdownTimeout;
-        this.schedulers = schedulers;
+        this.targetRunDuration = cliArgs.duration;
+        this.callsPerSecond = cliArgs.callsPerSecond;
+        this.shutdownTimeout = cliArgs.shutdownTimeout;
+        this.schedulers = cliArgs.schedulars;
         this.openTelemetry = openTelemetry == null ? new OpenTelemetryDummy() : openTelemetry;
         this.cliArgs = cliArgs;
 
-        schedulerPool = Executors.newFixedThreadPool(schedulers);
-        workerPool = Executors.newFixedThreadPool(workers);
+        schedulerPool = Executors.newFixedThreadPool(this.schedulers);
+        workerPool = Executors.newFixedThreadPool(cliArgs.workers);
 
         setStatus(WorkloadStatus.Initialized);
     }
 
-    public WorkloadProviderScheduler(int schedulers,
-                                     int workers,
-                                     Duration duration,
-                                     int callsPerSecond,
-                                     Duration shutdownTimeout,
-                                     OpenTelemetry openTelemetry,
+    public WorkloadProviderScheduler(OpenTelemetry openTelemetry,
                                      AGSWorkloadArgs cliArgs,
                                      QueryRunnable query) {
-        this(schedulers,
-                workers,
-                duration,
-                callsPerSecond,
-                shutdownTimeout,
-                openTelemetry,
+        this(openTelemetry,
                 cliArgs);
         this.setQuery(query);
     }
 
-    public WorkloadProviderScheduler(int schedulers,
-                                     int workers,
-                                     Duration duration,
-                                     int callsPerSecond,
-                                     Duration shutdownTimeout,
-                                     OpenTelemetry openTelemetry,
+    public WorkloadProviderScheduler(OpenTelemetry openTelemetry,
                                      AGSWorkloadArgs cliArgs,
                                      QueryRunnable query,
                                      boolean startRun) {
-        this(schedulers,
-                workers,
-                duration,
-                callsPerSecond,
-                shutdownTimeout,
-                openTelemetry,
+        this(openTelemetry,
                 cliArgs,
                 query);
         if(startRun)
@@ -196,7 +173,6 @@ public class WorkloadProviderScheduler implements WorkloadProvider {
         }
         else {
             this.queryRunnable = queryRunnable;
-            queryRunnable.setWorkloadProvider(this);
             if(openTelemetry != null) {
                 openTelemetry.setWorkloadName(queryRunnable.WorkloadType().toString(),
                                                 queryRunnable.Name());
@@ -450,6 +426,7 @@ public class WorkloadProviderScheduler implements WorkloadProvider {
     private void AddError(Exception e) {
         errors.add(e);
         errorCount.incrementAndGet();
+        logger.error(String.format("Workload %s",queryRunnable.Name()), e);
         if(openTelemetry != null)
             openTelemetry.addException(e);
     }
