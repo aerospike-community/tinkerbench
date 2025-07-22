@@ -14,7 +14,7 @@ public interface QueryRunnable extends Callable<Boolean> {
 
     public String Name();
 
-    public QueryTypes QueryType();
+    public WorkloadTypes WorkloadType();
 
     /*
     Returns the description of the query.

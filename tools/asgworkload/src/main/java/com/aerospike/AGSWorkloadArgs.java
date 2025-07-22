@@ -19,6 +19,7 @@ import java.util.Arrays;
 import java.util.Enumeration;
 import java.util.List;
 import java.util.concurrent.Callable;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.jar.Attributes;
 import java.util.jar.Manifest;
 
@@ -32,7 +33,7 @@ public abstract class AGSWorkloadArgs  implements Callable<Integer> {
     CommandSpec commandlineSpec;
 
     @Parameters(description = "The query to run")
-    int idxQuery;
+    String queryName;
 
     @Option(names = {"-s", "--schedulers"},
             defaultValue = "1",
@@ -45,8 +46,8 @@ public abstract class AGSWorkloadArgs  implements Callable<Integer> {
     int workers;
 
     @Option(names = {"-d", "--duration"},
-            description = "The Run Time duration using ISO 8601 duration format (e.g., PT1H30M for 1 hour 30 minutes, PT20.30S represents a duration of 20 seconds and 300 milliseconds). Default is ${DEFAULT-VALUE}",
-            defaultValue = "PT30S")
+            description = "The Run Time duration (not wall clock) of the workload only using ISO 8601 duration format (e.g., PT1H30M for 1 hour 30 minutes, PT20.30S represents a duration of 20 seconds and 300 milliseconds). Default is ${DEFAULT-VALUE}",
+            defaultValue = "PT5M")
     Duration duration;
 
     @Option(names = {"-c", "--callsPerSec"},
@@ -94,13 +95,17 @@ public abstract class AGSWorkloadArgs  implements Callable<Integer> {
             defaultValue = "19090")
     int promPort;
 
-    @Option(names = {"-promWait", "--prometheusCloseWaitSecs"},
-            description = "Open Telemetry wait interval, in seconds, upon application exit. This interval ensure all values are picked by the Prometheus server. This should match the 'scrape_interval' in the PROM ymal file. Can be zero to disable wait. Default is ${DEFAULT-VALUE}",
-            defaultValue = "15")
-    int promCloseWaitSecs;
+    @Option(names = {"-cw", "--CloseWaitSecs"},
+            description = "Close wait interval, in seconds, upon application exit. This interval ensure all values are picked by the Prometheus server. This should match the 'scrape_interval' in the PROM ymal file. Can be zero to disable wait. Default is ${DEFAULT-VALUE}",
+            defaultValue = "PT15S")
+    Duration closeWaitSecs;
 
-    @Option(names = "-debug")
+    @Option(names = "-debug",
+                description = "Enables application debug tracing.")
     boolean debug;
+
+    public final AtomicBoolean abortRun = new AtomicBoolean(false);
+    public final AtomicBoolean terminateRun = new AtomicBoolean(false);
 
     /**
      * {@link IVersionProvider} implementation that returns version information from {@code /MANIFEST.MF} and {@code /META-INF/MANIFEST.MF} file.

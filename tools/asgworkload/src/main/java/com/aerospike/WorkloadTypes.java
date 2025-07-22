@@ -1,8 +1,7 @@
 package com.aerospike;
 
-public enum QueryTypes {
+public enum WorkloadTypes {
 	Query,
-	QueryNOTFOUND,
 	//Put
 	Write,
 	Test

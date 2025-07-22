@@ -2,28 +2,22 @@ package com.aerospike;
 
 import picocli.CommandLine;
 
-import java.util.concurrent.atomic.AtomicBoolean;
-
-import static org.apache.tinkerpop.gremlin.process.traversal.AnonymousTraversalSource.traversal;
-
 public class Main extends  AGSWorkloadArgs {
-
-    public static final AtomicBoolean abortRun = new AtomicBoolean(false);
-    public static final AtomicBoolean terminateRun = new AtomicBoolean(false);
 
     public Integer call() {
         PrintArguments(false);
 
         try(OpenTelemetry openTel = OpenTelemetryHelper.Create(promPort,
-                                                                (AGSWorkloadArgs) this,
-                                                                promCloseWaitSecs,
+                                                                this,
+                                                                (int) closeWaitSecs.toMillis(),
                                                                 null);
-                WorkloadProvider workload = new WorkloadProvider(schedulars,
-                                                                workers,
-                                                                duration,
-                                                                callsPerSecond,
-                                                                shutdownTimeout,
-                                                                openTel)) {
+                WorkloadProvider workload = new WorkloadProviderScheduler(schedulars,
+                                                                            workers,
+                                                                            duration,
+                                                                            callsPerSecond,
+                                                                            shutdownTimeout,
+                                                                            openTel,
+                                                                            this)) {
             workload.setQuery(new QueryTest())
                     .Start()
                     .awaitTermination();
@@ -36,6 +30,12 @@ public class Main extends  AGSWorkloadArgs {
     public static void main(final String[] args) {
 
         Main mainInstance = new Main();
+
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            System.out.println("Shutdown initiated. Performing cleanup...");
+            if(!mainInstance.terminateRun.get())
+                mainInstance.abortRun.set(true);
+        }));
 
         int statusCode = new CommandLine(mainInstance).execute(args);
         System.exit(statusCode);

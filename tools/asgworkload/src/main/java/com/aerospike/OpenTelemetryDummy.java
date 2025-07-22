@@ -49,12 +49,12 @@ public class OpenTelemetryDummy  implements OpenTelemetry {
 
     @SuppressWarnings("unused")
     @Override
-    public void setWorkloadName(String workloadName) {
+    public void setWorkloadName(String workLoadType, String workloadName) {
     }
 
     @SuppressWarnings("unused")
     @Override
-    public void setDBConnectionState(String dbConnectionState){
+    public void setConnectionState(String connectionState){
     }
 
     @Override

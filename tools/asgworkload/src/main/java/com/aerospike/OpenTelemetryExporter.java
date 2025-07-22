@@ -30,7 +30,8 @@ public final class OpenTelemetryExporter implements com.aerospike.OpenTelemetry 
 
     private final int prometheusPort;
     private String workloadName;
-    private String dbConnectionState;
+    private String connectionState;
+    private String wlType = "";
     private final int closeWaitMS;
 
     private final Attributes[] hbAttributes;
@@ -49,39 +50,8 @@ public final class OpenTelemetryExporter implements com.aerospike.OpenTelemetry 
     private LocalDateTime endLocalDateTime;
     private final boolean debug;
     private final AtomicBoolean closed = new AtomicBoolean(false);
-    private final AtomicBoolean aborted = new AtomicBoolean(false);
-
-    //If a signal is sent, this will help ensure proper shutdown of OpenTel
-    //I know it is a proprietary API but this is the way I know, need to replace with a "better" modern approach
-    // maybe Runtime.getRuntime().addShutdownHook
-    private static class OTelSignalHandler implements SignalHandler {
-
-        final OpenTelemetryExporter exporter;
-        boolean handlerRunning = false;
-        final SignalHandler oldHandler;
-
-        public OTelSignalHandler(OpenTelemetryExporter exporter) {
-            this.exporter = exporter;
-
-            // First register with SIG_DFL, just to get the old handler.
-            Signal sigInt = new Signal("INT");
-            oldHandler = Signal.handle(sigInt, SignalHandler.SIG_DFL );
-        }
-
-        @Override
-        public void handle(Signal sig) {
-            if(this.handlerRunning) {return;}
-            this.handlerRunning = true;
-            this.exporter.printMsg("Received signal: " + sig.getName());
-            Main.abortRun.set(true);
-            try {
-                this.exporter.setDBConnectionStateAbort("SIG" + sig.getName());
-            }
-            catch (Exception ignored) {
-            }
-            this.oldHandler.handle(sig);
-        }
-    }
+    public final AtomicBoolean abortRun;
+    public final AtomicBoolean terminateRun;
 
     public OpenTelemetryExporter(int prometheusPort,
                                  AGSWorkloadArgs args,
@@ -93,8 +63,10 @@ public final class OpenTelemetryExporter implements com.aerospike.OpenTelemetry 
         this.startLocalDateTime = LocalDateTime.ofInstant(Instant.ofEpochMilli(this.startTimeMillis),
                                     ZoneId.systemDefault());
         this.prometheusPort = prometheusPort;
-        this.dbConnectionState = "Initializing";
+        this.connectionState = "Initializing";
         this.closeWaitMS = closeWaitMS;
+        this.abortRun = args.abortRun;
+        this.terminateRun = args.terminateRun;
 
         if(this.debug) {
             this.printDebug("Creating OpenTelemetryExporter");
@@ -174,7 +146,8 @@ public final class OpenTelemetryExporter implements com.aerospike.OpenTelemetry 
                         AttributeKey.longKey("CallsPerSecond"), (long) args.callsPerSecond,
                         AttributeKey.longKey("schedulars"), (long) args.schedulars,
                         AttributeKey.longKey("workers"), (long) args.workers,
-                        AttributeKey.stringKey("duration"), args.duration.toString()
+                        AttributeKey.stringKey("duration"), args.duration.toString(),
+                        AttributeKey.longKey("durationMillis"), args.duration.toMillis()
                 )};
 
         this.updateInfoGauge(true);
@@ -183,9 +156,12 @@ public final class OpenTelemetryExporter implements com.aerospike.OpenTelemetry 
             this.printDebug("Creating Signal Handler...");
         }
 
-        OTelSignalHandler handler = new OTelSignalHandler(this);
-        Signal.handle(new Signal("TERM"), handler); // Catch SIGTERM
-        Signal.handle(new Signal("INT"), handler);  // Catch SIGINT (Ctrl+C)
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            if(!this.closed.get()) {
+                System.out.println("OTel Shutdown hook. Performing cleanup...");
+                this.setConnectionStateAbort("Abort Requested");
+            }
+        }));
     }
 
     private OpenTelemetrySdk initOpenTelemetry() {
@@ -260,8 +236,8 @@ public final class OpenTelemetryExporter implements com.aerospike.OpenTelemetry 
                 attributes.putAll(attrItem);
             }
         }
-        if(this.dbConnectionState != null) {
-            attributes.put("DBConnState", this.dbConnectionState);
+        if(this.connectionState != null) {
+            attributes.put("DBConnState", this.connectionState);
         }
         if(this.endTimeMillis != 0) {
             attributes.put("endTimeMillis", this.endTimeMillis);
@@ -295,7 +271,7 @@ public final class OpenTelemetryExporter implements com.aerospike.OpenTelemetry 
         if(this.closed.get()) { return; }
 
         //Ignore Cluser Closed exceptions when the app is terminating
-        if((Main.terminateRun.get() || Main.abortRun.get()) && Objects.equals(message, "Cluster has been closed")) {
+        if((terminateRun.get() || abortRun.get()) && Objects.equals(message, "Cluster has been closed")) {
             return;
         }
 
@@ -355,7 +331,7 @@ public final class OpenTelemetryExporter implements com.aerospike.OpenTelemetry 
 
     @Override
     public void recordElapsedTime(long elapsedNanos) {
-        this.recordElapsedTime("", elapsedNanos);
+        this.recordElapsedTime(wlType, elapsedNanos);
     }
 
     @Override
@@ -381,63 +357,70 @@ public final class OpenTelemetryExporter implements com.aerospike.OpenTelemetry 
 
     @Override
     public void incrTransCounter() {
-        incrTransCounter("");
+        incrTransCounter(wlType);
     }
 
     @Override
-    public void setWorkloadName(String workloadName) {
-        if(this.closed.get() | this.aborted.get()) { return; }
+    public void setWorkloadName(String workLoadType, String workloadName) {
+        if(this.closed.get() | this.abortRun.get()) { return; }
 
+        wlType = workLoadType;
+        long pid = ProcessHandle.current().pid();
         this.workloadName = workloadName;
         if(this.debug) {
-            this.printDebug("Workload Name  " + workloadName, false);
+            this.printDebug("Workload Name  " + workloadName + " Type " + workLoadType, false);
         }
         this.hbAttributes[0] = Attributes.of(
-                AttributeKey.stringKey("workload"), this.workloadName
+                AttributeKey.stringKey("workload"), this.workloadName,
+                AttributeKey.stringKey("wltype"), this.wlType,
+                AttributeKey.longKey("pid"), pid
         );
         this.updateInfoGauge(false);
     }
 
     @Override
-    public void setDBConnectionState(String dbConnectionState){
-        if(this.closed.get() | this.aborted.get()) { return; }
+    public void setConnectionState(String connectionState){
+        if(this.closed.get() | this.abortRun.get()) { return; }
 
-        this.dbConnectionState = dbConnectionState;
+        this.connectionState = connectionState;
         if(this.debug) {
-            this.printDebug("DB Status Change  " + dbConnectionState, false);
+            this.printDebug("Status Change  " + connectionState, false);
         }
         this.updateInfoGauge(false);
     }
 
-    private void setDBConnectionStateAbort(String state) {
-        if(this.closed.get() | this.aborted.get()) { return; }
+    private void setConnectionStateAbort(String state) {
+        if(this.closed.get()) { return; }
 
         this.closed.set(true);
-        this.aborted.set(true);
+        this.abortRun.set(true);
         this.endTimeMillis = System.currentTimeMillis();
         this.endLocalDateTime = LocalDateTime.now();
-        this.dbConnectionState = state;
+        this.connectionState = state;
 
         this.printMsg(String.format("OpenTelemetry Disabled at %s", this.endLocalDateTime.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)));
         try {
             if (this.debug) {
-                this.printDebug("DB Status Change  " + state, false);
+                this.printDebug("Status Change  " + state, false);
             }
             this.printMsg("Sending OpenTelemetry LUpdating Metrics in Abort Mode...");
             this.updateInfoGauge(false, true);
             this.printMsg("OpenTelemetry Waiting to complete... Ctrl-C to cancel OpenTelemetry update...");
             Thread.sleep(this.closeWaitMS + 1000); //need to wait for PROM to re-scrap...
             this.internalClose();
-        }
-        catch (Exception ignored) {}
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt(); // Restore interrupt status
+        } catch (Exception ignored) {}
         this.printMsg("Closed OpenTelemetry Exporter");
     }
 
-    private void setDBConnectionStateClosed() {
+    private void setConnectionStateClosed() {
        try {
-            if (openTelemetryInfoGauge != null && !this.aborted.get()) {
+            if (openTelemetryInfoGauge != null && !this.abortRun.get()) {
                 this.endTimeMillis = System.currentTimeMillis();
                 this.endLocalDateTime = LocalDateTime.now();
+                if(connectionState.equals("Running"))
+                    this.connectionState = "Closed";
                 this.printMsg(String.format("OpenTelemetry Disabled at %s", this.endLocalDateTime.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)));
                 this.printMsg("Sending OpenTelemetry Last Updated Metrics...");
                 this.updateInfoGauge(false);
@@ -470,7 +453,7 @@ public final class OpenTelemetryExporter implements com.aerospike.OpenTelemetry 
 
         this.printMsg("Closing OpenTelemetry Exporter...");
 
-        this.setDBConnectionStateClosed();
+        this.setConnectionStateClosed();
 
         this.internalClose();
 
@@ -490,7 +473,7 @@ public final class OpenTelemetryExporter implements com.aerospike.OpenTelemetry 
     public String toString() {
         return String.format("OpenTelemetryExporter{prometheusport:%d, state:%s, Gauge:%s, transactioncounter:%s, exceptioncounter:%s, latancyhistogram:%s closed:%s}",
                                 this.prometheusPort,
-                                this.dbConnectionState,
+                                this.connectionState,
                                 this.openTelemetryInfoGauge,
                                 this.openTelemetryTransactionCounter,
                                 this.openTelemetryExceptionCounter,

@@ -4,7 +4,7 @@ public class QueryTest implements QueryRunnable {
 
     private WorkloadProvider provider;
     /**
-     * @param provider
+
      */
     @Override
     public void setWorkloadProvider(WorkloadProvider provider) {
@@ -15,8 +15,8 @@ public class QueryTest implements QueryRunnable {
     public String Name() { return "queryTest"; }
 
     @Override
-    public QueryTypes QueryType() {
-        return QueryTypes.Test;
+    public WorkloadTypes WorkloadType() {
+        return WorkloadTypes.Test;
     }
 
     /**
