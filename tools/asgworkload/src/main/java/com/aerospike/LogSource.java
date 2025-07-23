@@ -19,15 +19,6 @@ public class LogSource {
     public org.slf4j.Logger getLogger4j() { return logger4j; }
     public boolean isDebug() { return debugEnabled; }
 
-
-    /*
-    public void setLoglevel() {
-
-        ch.qos.logback.classic.Logger
-        final ch.qos.logback.classic.Logger logger2 = (ch.qos.logback.classic.Logger) logger4j;
-
-    }*/
-
     public LogSource(boolean debugEnabled) {
         this.debugEnabled = debugEnabled;
         this.logger4j = LoggerFactory.getLogger("com.aerospike.asgworkload");

@@ -4,7 +4,7 @@ public interface OpenTelemetry extends AutoCloseable {
 
     public boolean getClosed();
     void addException(Exception exception);
-    void addException(String exceptionType, String exception_subtype, String message);
+    void addException(String exceptionType, String message);
 
     void recordElapsedTime(String type, long elapsedNanos);
     void recordElapsedTime(long elapsedNanos);

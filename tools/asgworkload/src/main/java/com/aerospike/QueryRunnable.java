@@ -10,9 +10,16 @@ If an exception occurs, it is captured and treated as an error which will be inc
  */
 public interface QueryRunnable extends AGSGraphTraversal, Callable<Boolean> {
 
+    /**
+     * @return thw Query name
+     */
     public String Name();
 
     public WorkloadTypes WorkloadType();
+
+    public WorkloadProvider Start();
+
+    public WorkloadProvider PrintSummary();
 
     /*
     Returns the description of the query.

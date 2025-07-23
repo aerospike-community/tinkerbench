@@ -47,7 +47,7 @@ public abstract class AGSWorkloadArgs  implements Callable<Integer> {
 
     @Option(names = {"-d", "--duration"},
             description = "The Run Time duration (not wall clock) of the workload only using ISO 8601 duration format (e.g., PT1H30M for 1 hour 30 minutes, PT20.30S represents a duration of 20 seconds and 300 milliseconds). Default is ${DEFAULT-VALUE}",
-            defaultValue = "PT5M")
+            defaultValue = "PT15M")
     Duration duration;
 
     @Option(names = {"-c", "--callsPerSec"},
@@ -70,30 +70,19 @@ public abstract class AGSWorkloadArgs  implements Callable<Integer> {
             defaultValue = "0")
     int parallelize;
 
-    @Option(names = {"-qhp","--queryHopPaths"},
-            description = "The Number of possible query hop paths. 0 to disable. Default is ${DEFAULT-VALUE}",
-            defaultValue = "0")
-    int nbrHopPaths;
-
     @Option(names = {"-sd","--shutdown"},
             description = "Timeout used to wait for worker and scheduler shutdown. The duration is based on the ISO 8601 format (e.g., PT3M for 3 minutes, PT20.30S represents a duration of 20 seconds and 300 milliseconds). Default is ${DEFAULT-VALUE}",
             defaultValue = "PT15S")
     Duration shutdownTimeout;
 
-    @Option(names = {"-vsf","--vertexScaleFactor"},
-            description = "Scaling factor used in generating the Vertex's id. Default is ${DEFAULT-VALUE}",
-            defaultValue = "1")
-    Long vertexScaleFactor;
-
-    @Option(names = {"--vertexIdFormat"},
-            description = "The Vertex's id format where a random value based on Vertex Scale Factor. Default is ${DEFAULT-VALUE}",
-            defaultValue = "A%019d")
-    String vertexIdFmt;
-
-    @Option(names = {"-prom", "--prometheusPort"},
+    @Option(names = {"--prometheusPort"},
             description = "Prometheus OpenTel End Point port. If -1, OpenTel metrics are disabled. Default is ${DEFAULT-VALUE}",
             defaultValue = "19090")
     int promPort;
+
+    @Option(names = "-prom",
+            description = "Enables Prometheus OpenTel metrics.")
+    boolean promEnabled;
 
     @Option(names = {"-cw", "--CloseWaitSecs"},
             description = "Close wait interval, in seconds, upon application exit. This interval ensure all values are picked by the Prometheus server. This should match the 'scrape_interval' in the PROM ymal file. Can be zero to disable wait. Default is ${DEFAULT-VALUE}",

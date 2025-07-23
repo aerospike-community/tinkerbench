@@ -8,7 +8,6 @@ import static org.apache.tinkerpop.gremlin.process.traversal.AnonymousTraversalS
 
 public class AGSGraphTraversalSource  implements AGSGraphTraversal {
 
-    private final boolean debug;
     private final Cluster cluster;
     private final GraphTraversalSource g;
     private final OpenTelemetry openTelemetry;
@@ -17,7 +16,6 @@ public class AGSGraphTraversalSource  implements AGSGraphTraversal {
     public AGSGraphTraversalSource(AGSWorkloadArgs args,
                                    OpenTelemetry openTelemetry) {
 
-        this.debug = args.debug;
         this.openTelemetry = openTelemetry;
 
         logger.PrintDebug("AGS",
@@ -79,8 +77,7 @@ public class AGSGraphTraversalSource  implements AGSGraphTraversal {
     @Override
     public void close() {
 
-        if(debug)
-            System.out.println("DEBUG AGS Closing...");
+        logger.PrintDebug("AGS", "Closing GraphTraversalSource...");
 
         try {
             if(this.g != null)
@@ -88,12 +85,11 @@ public class AGSGraphTraversalSource  implements AGSGraphTraversal {
             if(this.cluster != null)
                 this.cluster.close();
         } catch (Exception e) {
-            if(debug)
-                System.err.printf("DEBUG AGS Closing error: %s...%n",
-                                    e.getMessage());
+            logger.error("Error closing GraphTraversalSource", e);
+            logger.PrintDebug("AGS", "Error closing GraphTraversalSource", e);
+
             openTelemetry.addException(e);
         }
-        if(debug)
-            System.out.println("DEBUG AGS Closed...");
+        logger.PrintDebug("AGS", "Closed GraphTraversalSource...");
     }
 }

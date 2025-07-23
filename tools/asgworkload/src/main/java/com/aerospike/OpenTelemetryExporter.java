@@ -37,7 +37,6 @@ public final class OpenTelemetryExporter implements com.aerospike.OpenTelemetry 
     private final LongGauge openTelemetryInfoGauge;
     private final LongCounter openTelemetryExceptionCounter;
     private final LongCounter openTelemetryTransactionCounter;
-    private final LongCounter openTelemetryErrorCounter;
     private final DoubleHistogram openTelemetryLatencyMSHistogram;
     private final DoubleHistogram openTelemetryLatencyUSHistogram;
 
@@ -91,11 +90,11 @@ public final class OpenTelemetryExporter implements com.aerospike.OpenTelemetry 
                         .setDescription("Aerospike Workload Exception")
                         .build();
 
-        this.openTelemetryErrorCounter =
-                openTelemetryMeter
-                        .counterBuilder(METRIC_NAME + ".related.errors")
-                        .setDescription("Aerospike Workload Related Errors")
-                        .build();
+        //this.openTelemetryErrorCounter =
+        //        openTelemetryMeter
+        //                .counterBuilder(METRIC_NAME + ".related.errors")
+        //                .setDescription("Aerospike Workload Related Errors")
+        //                .build();
 
         this.openTelemetryLatencyMSHistogram =
                 openTelemetryMeter
@@ -244,14 +243,13 @@ public final class OpenTelemetryExporter implements com.aerospike.OpenTelemetry 
         String exceptionType = exception.getClass().getName().replaceFirst("com\\.aerospike\\.client\\.AerospikeException\\$", "");
         exceptionType = exceptionType.replaceFirst("com\\.aerospike\\.client\\.", "");
 
-        String exception_subtype = null;
         String message = exception.getMessage();
 
-        this.addException(exceptionType, exception_subtype, message);
+        this.addException(exceptionType, message);
     }
 
     @Override
-    public void addException(String exceptionType, String exception_subtype, String message) {
+    public void addException(String exceptionType, String message) {
 
         if(this.closed.get()) { return; }
 
@@ -267,21 +265,6 @@ public final class OpenTelemetryExporter implements com.aerospike.OpenTelemetry 
                 AttributeKey.stringKey("exception"), message,
                 AttributeKey.longKey("startTimeMillis"), this.startTimeMillis
         ));
-
-        if(exception_subtype != null) {
-            attributes.put("exception_subtype", exception_subtype);
-
-            AttributesBuilder attributesMRTErr = Attributes.builder();
-            attributesMRTErr.putAll(this.hbAttributes[0]);
-            attributesMRTErr.putAll(Attributes.of(
-                    AttributeKey.stringKey("error_type"), exception_subtype,
-                    AttributeKey.longKey("startTimeMillis"), this.startTimeMillis,
-                    AttributeKey.booleanKey("retry"), exception_subtype.contains("retry")
-            ));
-
-            this.openTelemetryErrorCounter.add(1,
-                    attributesMRTErr.build());
-        }
 
         this.openTelemetryExceptionCounter.add(1, attributes.build());
 

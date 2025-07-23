@@ -28,7 +28,7 @@ public class OpenTelemetryDummy  implements OpenTelemetry {
 
     @SuppressWarnings("unused")
     @Override
-    public void addException(String exceptionType, String exception_subtype, String message) {
+    public void addException(String exceptionType, String message) {
     }
 
     @SuppressWarnings("unused")

@@ -2,29 +2,41 @@ package com.aerospike;
 
 import picocli.CommandLine;
 
+import java.io.IOException;
+
 public class Main extends  AGSWorkloadArgs {
 
-    public Integer call() {
+    public Integer call() throws Exception {
         PrintArguments(false);
 
         LogSource logger = new LogSource(debug);
         logger.title(this);
 
-        try(OpenTelemetry openTel = OpenTelemetryHelper.Create(this,
+        final OpenTelemetry openTel = OpenTelemetryHelper.Create(this,
                                                                 null);
-                WorkloadProvider workload = new WorkloadProviderScheduler(openTel,
-                                                                            this);
-                AGSGraphTraversal agsGraphTraversalSource = new AGSGraphTraversalSource(this,
+        final WorkloadProvider workload = new WorkloadProviderScheduler(openTel,
+                                                                        this);
+        final AGSGraphTraversal agsGraphTraversalSource = new AGSGraphTraversalSource(this,
                                                                                         openTel);
-                QueryRunnable workloadRunner = Helpers.GetQuery(queryName,
-                                                                workload,
-                                                                agsGraphTraversalSource,
-                                                                debug)) {
-            workload.Start()
+
+        try {
+            final QueryRunnable workloadRunner = Helpers.GetQuery(queryName,
+                                                                    workload,
+                                                                    agsGraphTraversalSource,
+                                                                    debug);
+            workloadRunner
+                    .Start()
                     .awaitTermination();
+            workloadRunner.PrintSummary();
+
         } catch (Exception e) {
             logger.error("main",e);
             throw new RuntimeException(e);
+        }
+        finally {
+            workload.close();
+            agsGraphTraversalSource.close();
+            openTel.close();
         }
 
         logger.getLogger4j().info("closed");

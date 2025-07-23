@@ -104,4 +104,5 @@ public interface WorkloadProvider extends AutoCloseable {
      */
     public boolean awaitTermination();
 
+    public WorkloadProvider PrintSummary();
 }

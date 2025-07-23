@@ -29,6 +29,16 @@ public class QueryTest implements QueryRunnable {
         return "Test Query";
     }
 
+    @Override
+    public WorkloadProvider Start() {
+        return provider.Start();
+    }
+
+    @Override
+    public WorkloadProvider PrintSummary() {
+        return provider.PrintSummary();
+    }
+
     /**
      * @return true to indicate to execute the workload and false to abort.
      */
