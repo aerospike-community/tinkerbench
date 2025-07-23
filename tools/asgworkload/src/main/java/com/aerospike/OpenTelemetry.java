@@ -12,7 +12,7 @@ public interface OpenTelemetry extends AutoCloseable {
     void incrTransCounter();
     void incrTransCounter(String type);
 
-    void setWorkloadName(String workLoadType, String workloadName);
+    void setWorkloadName(String workLoadType, String workloadName, boolean warmup);
     void setConnectionState(String connectionState);
 
     String printConfiguration();

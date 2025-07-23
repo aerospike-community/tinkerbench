@@ -9,7 +9,7 @@
       <element id="extracted-dir" path="$MAVEN_REPOSITORY$/org/apache/tinkerpop/gremlin-language/3.7.3/gremlin-language-3.7.3.jar" path-in-jar="/" />
       <element id="extracted-dir" path="$MAVEN_REPOSITORY$/org/apache/tinkerpop/gremlin-shaded/3.7.3/gremlin-shaded-3.7.3.jar" path-in-jar="/" />
       <element id="extracted-dir" path="$MAVEN_REPOSITORY$/org/apache/tinkerpop/gremlin-util/3.7.3/gremlin-util-3.7.3.jar" path-in-jar="/" />
-      <element id="extracted-dir" path="$PROJECT_DIR$/target/asgworkload-1.0.0.jar" path-in-jar="/META-INF/" />
+      <element id="file-copy" path="$PROJECT_DIR$/out/artifacts/asgworkload_jar/asgworkload.jar" />
     </root>
   </artifact>
 </component>

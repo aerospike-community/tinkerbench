@@ -30,13 +30,27 @@ public class QueryTest implements QueryRunnable {
     }
 
     @Override
-    public WorkloadProvider Start() {
-        return provider.Start();
+    public QueryRunnable Start() {
+        provider.Start();
+        return this;
     }
 
     @Override
-    public WorkloadProvider PrintSummary() {
-        return provider.PrintSummary();
+    public QueryRunnable awaitTermination() {
+        this.provider.awaitTermination();
+        return this;
+    }
+
+    @Override
+    public QueryRunnable Shutdown() {
+        this.provider.Shutdown();
+        return this;
+    }
+
+    @Override
+    public QueryRunnable PrintSummary() {
+        provider.PrintSummary();
+        return this;
     }
 
     /**
@@ -89,10 +103,5 @@ public class QueryTest implements QueryRunnable {
     @Override
     public Cluster getCluster() {
         return null;
-    }
-
-    @Override
-    public void close() {
-        //No Opt
     }
 }

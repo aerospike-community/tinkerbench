@@ -8,6 +8,11 @@ import java.util.concurrent.TimeUnit;
 public interface WorkloadProvider extends AutoCloseable {
 
     /*
+    Returns true if current run is a warmup.
+     */
+    public boolean isWarmup();
+
+    /*
     The targeted calls-per-second.
      */
     public int getTargetCallsPerSecond();
@@ -58,9 +63,14 @@ public interface WorkloadProvider extends AutoCloseable {
     public LocalDateTime getStartDateTime();
 
     /*
-    Returns the current calls-per-second.
+    Returns the current Success calls-per-second rate.
      */
     public double getCallsPerSecond();
+
+    /*
+    Returns the current errors-per-second rate.
+     */
+    public double getErrorsPerSecond();
 
     public OpenTelemetry getOpenTelemetry();
 

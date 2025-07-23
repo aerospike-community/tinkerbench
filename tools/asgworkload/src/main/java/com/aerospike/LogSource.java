@@ -2,11 +2,15 @@ package com.aerospike;
 
 import org.slf4j.LoggerFactory;
 
+import java.io.ByteArrayOutputStream;
+import java.io.Closeable;
+import java.io.IOException;
+import java.io.PrintStream;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class LogSource {
+public final class LogSource {
 
     private static LogSource instance;
 
@@ -34,6 +38,39 @@ public class LogSource {
     }
 
     public int getDebugCnt() { return debugCnt.get(); }
+
+    public final static class Stream implements Closeable {
+
+        private final LogSource source;
+        private final ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        private final PrintStream printStream = new PrintStream(outputStream);
+
+        public Stream(LogSource source) { this.source = source; }
+        public Stream() { this.source = LogSource.getInstance(); }
+
+        public PrintStream getPrintStream() { return printStream; }
+
+        @Override
+        public String toString() { return outputStream.toString(); }
+
+        public void info() { source.info(toString()); }
+        public void debug() { source.getLogger4j().debug(toString()); }
+        public void warn() { source.getLogger4j().warn(toString()); }
+        public void error() { source.getLogger4j().error(toString()); }
+        public void trace() { source.getLogger4j().trace(toString()); }
+        public void Print(String name, boolean err) { source.Print(name, err, toString()); }
+        public void PrintDebug(String name) { source.PrintDebug(name, toString()); }
+
+        @Override
+        public void close() {
+            try {
+                printStream.close();
+                outputStream.close();
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        }
+    }
 
     public void Print(String name, String msg, boolean err, boolean limited) {
 

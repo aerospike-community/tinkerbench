@@ -2,9 +2,50 @@ package com.aerospike;
 
 import picocli.CommandLine;
 
-import java.io.IOException;
+import java.time.Duration;
 
 public class Main extends  AGSWorkloadArgs {
+
+    private static void ExecuteWorkload(OpenTelemetry openTel,
+                                        LogSource logger,
+                                        AGSGraphTraversal agsGraphTraversal,
+                                        Duration targetRunDuration,
+                                        AGSWorkloadArgs args,
+                                        boolean isWarmUp) {
+        try(final WorkloadProvider workload = new WorkloadProviderScheduler(openTel,
+                                                                            targetRunDuration,
+                                                                            isWarmUp,
+                                                                            args)) {
+            final QueryRunnable workloadRunner = Helpers.GetQuery(args.queryName,
+                                                                    workload,
+                                                                    agsGraphTraversal,
+                                                                    args.debug);
+            if(isWarmUp) {
+                System.out.println("Running WarmUp...");
+                logger.info("Running WarmUp...");
+            } else {
+                System.out.printf("Running workload %s...\n", args.queryName);
+                logger.info("Running WarmUp {}...", args.queryName);
+            }
+
+            workloadRunner
+                .Start()
+                .awaitTermination()
+                .PrintSummary();
+
+            if(isWarmUp) {
+                System.out.println("WarmUp Completed...");
+                logger.info("WarmUp Completed...");
+            } else {
+                System.out.println("Workload Completed...");
+                logger.info("Workload Completed...");
+            }
+
+        } catch (Exception e) {
+            logger.error(isWarmUp ? "Warmup" : "Workload",e);
+            throw new RuntimeException(e);
+        }
+    }
 
     public Integer call() throws Exception {
         PrintArguments(false);
@@ -12,34 +53,26 @@ public class Main extends  AGSWorkloadArgs {
         LogSource logger = new LogSource(debug);
         logger.title(this);
 
-        final OpenTelemetry openTel = OpenTelemetryHelper.Create(this,
-                                                                null);
-        final WorkloadProvider workload = new WorkloadProviderScheduler(openTel,
-                                                                        this);
-        final AGSGraphTraversal agsGraphTraversalSource = new AGSGraphTraversalSource(this,
-                                                                                        openTel);
+        try(final OpenTelemetry openTel = OpenTelemetryHelper.Create(this, null);
+            final AGSGraphTraversalSource agsGraphTraversalSource
+                            = new AGSGraphTraversalSource(this, openTel)) {
 
-        try {
-            final QueryRunnable workloadRunner = Helpers.GetQuery(queryName,
-                                                                    workload,
-                                                                    agsGraphTraversalSource,
-                                                                    debug);
-            workloadRunner
-                    .Start()
-                    .awaitTermination();
-            workloadRunner.PrintSummary();
+            if (!warmupDuration.isZero()) {
+                ExecuteWorkload(openTel,
+                                    logger,
+                                    agsGraphTraversalSource,
+                                    warmupDuration,
+                                this,
+                            true);
+            }
 
-        } catch (Exception e) {
-            logger.error("main",e);
-            throw new RuntimeException(e);
+            ExecuteWorkload(openTel,
+                            logger,
+                            agsGraphTraversalSource,
+                            duration,
+                            this,
+                            false);
         }
-        finally {
-            workload.close();
-            agsGraphTraversalSource.close();
-            openTel.close();
-        }
-
-        logger.getLogger4j().info("closed");
 
         return  0;
     }

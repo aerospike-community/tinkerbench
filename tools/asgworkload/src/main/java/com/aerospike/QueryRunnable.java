@@ -17,9 +17,13 @@ public interface QueryRunnable extends AGSGraphTraversal, Callable<Boolean> {
 
     public WorkloadTypes WorkloadType();
 
-    public WorkloadProvider Start();
+    public QueryRunnable Start();
 
-    public WorkloadProvider PrintSummary();
+    public QueryRunnable awaitTermination();
+
+    public QueryRunnable Shutdown();
+
+    public QueryRunnable PrintSummary();
 
     /*
     Returns the description of the query.

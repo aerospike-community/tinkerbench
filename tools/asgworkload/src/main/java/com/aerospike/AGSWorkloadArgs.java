@@ -65,6 +65,11 @@ public abstract class AGSWorkloadArgs  implements Callable<Integer> {
             defaultValue = "8182")
     int port;
 
+    @Option(names = {"-wu", "--WarmupDuration"},
+            description = "The warmup time duration (not wall clock)  using ISO 8601 duration format (e.g., PT1H30M for 1 hour 30 minutes, PT20.30S represents a duration of 20 seconds and 300 milliseconds). Zero duration disabled warmup. Default is ${DEFAULT-VALUE}",
+            defaultValue = "PT0M")
+    Duration warmupDuration;
+
     @Option(names = {"-p", "--parallelize"},
             description = "Passed to Aerospike Graph Parallelize option. Default is ${DEFAULT-VALUE}",
             defaultValue = "0")

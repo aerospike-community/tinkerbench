@@ -1,6 +1,6 @@
 package com.aerospike;
 
-public class OpenTelemetryDummy  implements OpenTelemetry {
+public final class OpenTelemetryDummy  implements OpenTelemetry {
 
     @SuppressWarnings("unused")
     public OpenTelemetryDummy(AGSWorkloadArgs args,
@@ -47,7 +47,7 @@ public class OpenTelemetryDummy  implements OpenTelemetry {
 
     @SuppressWarnings("unused")
     @Override
-    public void setWorkloadName(String workLoadType, String workloadName) {
+    public void setWorkloadName(String workLoadType, String workloadName, boolean warmup) {
     }
 
     @SuppressWarnings("unused")

@@ -4,9 +4,11 @@ import org.apache.tinkerpop.gremlin.driver.Cluster;
 import org.apache.tinkerpop.gremlin.driver.remote.DriverRemoteConnection;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
 
+import java.io.Closeable;
+
 import static org.apache.tinkerpop.gremlin.process.traversal.AnonymousTraversalSource.traversal;
 
-public class AGSGraphTraversalSource  implements AGSGraphTraversal {
+public final class AGSGraphTraversalSource  implements AGSGraphTraversal, Closeable {
 
     private final Cluster cluster;
     private final GraphTraversalSource g;
