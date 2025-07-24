@@ -14,6 +14,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
@@ -35,6 +36,10 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
     private final AtomicLong totCallDuration = new AtomicLong();
     private final AtomicLong successDuration = new AtomicLong();
     private final AtomicLong errorDuration = new AtomicLong();
+    private final AtomicBoolean abortRun;
+    private final AtomicBoolean terminateRun;
+    private final AtomicBoolean waitingSchedulerShutdown = new AtomicBoolean();
+    private final int errorThreshold;
     private final Boolean warmup;
     private final Histogram histogram;
 
@@ -157,13 +162,15 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
                                      Duration targetRunDuration,
                                      boolean warmup,
                                      AGSWorkloadArgs cliArgs) {
-
+        this.abortRun = cliArgs.abortRun;
+        this.terminateRun = cliArgs.terminateRun;
+        this.errorThreshold = cliArgs.errorsAbort;
         this.targetRunDuration =  targetRunDuration == null
                                     ? cliArgs.duration
                                     : targetRunDuration;
         this.callsPerSecond = cliArgs.callsPerSecond;
         this.shutdownTimeout = cliArgs.shutdownTimeout;
-        this.schedulers = cliArgs.schedulars;
+        this.schedulers = cliArgs.schedulers;
         this.openTelemetry = openTelemetry == null ? new OpenTelemetryDummy() : openTelemetry;
         this.cliArgs = cliArgs;
         this.warmup = warmup;
@@ -228,6 +235,7 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
             final int useScheduler = schedulers * 2;
             final int base = callsPerSecond / useScheduler;
             final int remainder = callsPerSecond % useScheduler;
+            waitingSchedulerShutdown.set(false);
             setStatus(WorkloadStatus.PendingRun);
 
             if(queryRunnable != null) {
@@ -317,7 +325,6 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
             queryRunnable.postProcess();
             System.out.println(" Completed");
         }
-        cliArgs.terminateRun.set(true);
 
         if(queryRunnable != null) {
             System.out.printf("Shutdown for %s %s %s Completed\n",
@@ -356,7 +363,6 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
                 if(queryRunnable != null) {
                     queryRunnable.postProcess();
                 }
-                cliArgs.terminateRun.set(true);
                 System.out.println("\tRun Completed");
                 return true;
             }
@@ -557,8 +563,9 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
         setStatus(WorkloadStatus.Running);
 
         while (totCallDuration.get() <= targetDurationNS
-                && !(cliArgs.abortRun.get()
-                        && cliArgs.terminateRun.get())) {
+                && errorCount.get() <= errorThreshold
+                && !(abortRun.get()
+                        && terminateRun.get())) {
             long now = System.nanoTime();
             if (now >= nextCallTime) {
                 futures.add(workerPool.submit(new Handler()));
@@ -571,10 +578,29 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
             //    maxCallRate = maxRate;
         }
 
+        if(errorCount.get() > errorThreshold
+                && !abortRun.get())
+        {
+            abortRun.set(true);
+            System.err.printf("\tStopping %s due %d Errors for %s...\n",
+                                warmup ? "warmup" : "workload",
+                                errorCount.get(),
+                                queryRunnable.Name());
+            logger.warn("Stopping {} {} due to the number of errors ({})",
+                            warmup ? "warmup" : "workload",
+                            queryRunnable.Name(),
+                            errorCount.get());
+        }
+
         if(totCallDuration.get() >= targetDurationNS
-                || cliArgs.abortRun.get()) {
-            System.out.printf("\tStopping Workload due to %s...\n",
-                                cliArgs.abortRun.get() ? "Signal" : "Time Limit");
+                || abortRun.get()) {
+            setStatus(WorkloadStatus.WaitingCompletion);
+            if(!waitingSchedulerShutdown.get()) {
+                System.out.printf("\tStopping %s due to %s...\n",
+                        warmup ? "warmup" : "workload",
+                        abortRun.get() ? "Signal" : "Duration Reached");
+                waitingSchedulerShutdown.set(true);
+            }
             logger.PrintDebug("WorkloadProviderScheduler",
                             "Aborting Workers %s",
                             queryRunnable);

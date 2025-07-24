@@ -26,6 +26,7 @@ import java.util.jar.Manifest;
 @Command(name = "agsworkload",
         mixinStandardHelpOptions = true,
         versionProvider = AGSWorkloadArgs.ManifestVersionProvider.class,
+        defaultValueProvider = AGSWorkloadArgs.DefaultProvider.class,
         description = "Aerospike Graph Workload Generator")
 public abstract class AGSWorkloadArgs  implements Callable<Integer> {
 
@@ -36,16 +37,17 @@ public abstract class AGSWorkloadArgs  implements Callable<Integer> {
     String queryName;
 
     @Option(names = {"-s", "--schedulers"},
-            defaultValue = "1",
-            description = "The number of Schedulers to use. Default is ${DEFAULT-VALUE}")
-    int schedulars;
+            converter = SchedulerConverter.class,
+            description = "The number of Schedulers to use. A value of -1 will use the default. Default is ${DEFAULT-VALUE}")
+    int schedulers;
 
     @Option(names = {"-w", "--workers"},
-            defaultValue = "10",
-            description = "The number of working threads per scheduler. Default is ${DEFAULT-VALUE}")
+            converter = WorkerConverter.class,
+            description = "The number of working threads per scheduler. A value of -1 will use the default. Default is ${DEFAULT-VALUE}")
     int workers;
 
     @Option(names = {"-d", "--duration"},
+            converter = DurationConverter.class,
             description = "The Run Time duration (not wall clock) of the workload only using ISO 8601 duration format (e.g., PT1H30M for 1 hour 30 minutes, PT20.30S represents a duration of 20 seconds and 300 milliseconds). Default is ${DEFAULT-VALUE}",
             defaultValue = "PT15M")
     Duration duration;
@@ -66,6 +68,7 @@ public abstract class AGSWorkloadArgs  implements Callable<Integer> {
     int port;
 
     @Option(names = {"-wu", "--WarmupDuration"},
+            converter = DurationConverter.class,
             description = "The warmup time duration (not wall clock)  using ISO 8601 duration format (e.g., PT1H30M for 1 hour 30 minutes, PT20.30S represents a duration of 20 seconds and 300 milliseconds). Zero duration disabled warmup. Default is ${DEFAULT-VALUE}",
             defaultValue = "PT0M")
     Duration warmupDuration;
@@ -76,6 +79,7 @@ public abstract class AGSWorkloadArgs  implements Callable<Integer> {
     int parallelize;
 
     @Option(names = {"-sd","--shutdown"},
+            converter = DurationConverter.class,
             description = "Timeout used to wait for worker and scheduler shutdown. The duration is based on the ISO 8601 format (e.g., PT3M for 3 minutes, PT20.30S represents a duration of 20 seconds and 300 milliseconds). Default is ${DEFAULT-VALUE}",
             defaultValue = "PT15S")
     Duration shutdownTimeout;
@@ -90,9 +94,15 @@ public abstract class AGSWorkloadArgs  implements Callable<Integer> {
     boolean promEnabled;
 
     @Option(names = {"-cw", "--CloseWaitSecs"},
+            converter = DurationConverter.class,
             description = "Close wait interval, in seconds, upon application exit. This interval ensure all values are picked by the Prometheus server. This should match the 'scrape_interval' in the PROM ymal file. Can be zero to disable wait. Default is ${DEFAULT-VALUE}",
             defaultValue = "PT15S")
     Duration closeWaitSecs;
+
+    @Option(names = {"-e","--Errors"},
+            description = "The number of errors reached when the workload is aborted. Default is ${DEFAULT-VALUE}",
+            defaultValue = "150")
+    int errorsAbort;
 
     @Option(names = "-debug",
                 description = "Enables application debug tracing.")
@@ -103,12 +113,13 @@ public abstract class AGSWorkloadArgs  implements Callable<Integer> {
     boolean testMode;
 
     public final AtomicBoolean abortRun = new AtomicBoolean(false);
+    public final AtomicBoolean abortSIGRun = new AtomicBoolean(false);
     public final AtomicBoolean terminateRun = new AtomicBoolean(false);
 
     /**
      * {@link IVersionProvider} implementation that returns version information from {@code /MANIFEST.MF} and {@code /META-INF/MANIFEST.MF} file.
      */
-    static class ManifestVersionProvider implements IVersionProvider {
+    static final class ManifestVersionProvider implements IVersionProvider {
 
         public String[] getVersion() throws Exception {
             final List<String> versions = new ArrayList<>();
@@ -190,6 +201,67 @@ public abstract class AGSWorkloadArgs  implements Callable<Integer> {
 
         private static Object get(Attributes attributes, String key) {
             return attributes.get(new Attributes.Name(key));
+        }
+    }
+
+    static final class DefaultProvider implements CommandLine.IDefaultValueProvider {
+
+        private final int nbrCores = Runtime.getRuntime().availableProcessors();
+
+        public int DefaultNbrSchedules() { return (int) Math.ceil(nbrCores * .5); }
+        public int DefaultNbrWorks() { return nbrCores * 10; }
+
+        @Override
+        public String defaultValue(CommandLine.Model.ArgSpec argSpec) throws Exception {
+
+            if (argSpec.isOption()) {
+                OptionSpec option = (OptionSpec) argSpec;
+                if ("--schedulers".equals(option.longestName())) {
+                    return String.valueOf(DefaultNbrSchedules());
+                } else if ("--workers".equals(option.longestName())) {
+                    return String.valueOf(DefaultNbrWorks());
+                }
+            }
+            return null;
+        }
+    }
+
+    static final class SchedulerConverter implements CommandLine.ITypeConverter<Integer> {
+        @Override
+        public Integer convert(String value) throws Exception {
+            int i = Integer.parseInt(value);
+
+            if(i <= 0) {
+                DefaultProvider d = new DefaultProvider();
+                i = d.DefaultNbrSchedules();
+            }
+
+            return i;
+        }
+    }
+
+    static final class WorkerConverter implements CommandLine.ITypeConverter<Integer> {
+        @Override
+        public Integer convert(String value) throws Exception {
+            int i = Integer.parseInt(value);
+
+            if(i <= 0) {
+                DefaultProvider d = new DefaultProvider();
+                i = d.DefaultNbrWorks();
+            }
+
+            return i;
+        }
+    }
+
+    static final class DurationConverter implements CommandLine.ITypeConverter<Duration> {
+        @Override
+        public Duration convert(String value) throws Exception {
+            if(value.startsWith("PT") || value.startsWith("pt")) {
+                return Duration.parse(value);
+            }
+
+            return Duration.parse("PT" + value.toUpperCase());
         }
     }
 

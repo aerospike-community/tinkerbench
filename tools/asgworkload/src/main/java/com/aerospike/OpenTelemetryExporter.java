@@ -63,7 +63,7 @@ public final class OpenTelemetryExporter implements com.aerospike.OpenTelemetry 
         this.prometheusPort = args.promPort;
         this.connectionState = "Initializing";
         this.closeWaitMS =(int) args.closeWaitSecs.toMillis();
-        this.abortRun = args.abortRun;
+        this.abortRun = args.abortSIGRun;
         this.terminateRun = args.terminateRun;
 
         this.printDebug("Creating OpenTelemetryExporter");
@@ -200,8 +200,11 @@ public final class OpenTelemetryExporter implements com.aerospike.OpenTelemetry 
             attributes.put("runDurationMillis", this.endTimeMillis - this.startTimeMillis);
         }
 
-        this.openTelemetryInfoGauge.set(hbCnt.incrementAndGet(), //System.currentTimeMillis(),
-                                            attributes.build());
+        long counter = (System.currentTimeMillis()
+                                * 1000000000000000L)
+                            + (long) hbCnt.incrementAndGet() ;
+        this.openTelemetryInfoGauge.set(counter,
+                                        attributes.build());
 
        this.printDebug(String.format("Info Gauge %d", hbCnt.get()));
     }
@@ -243,7 +246,7 @@ public final class OpenTelemetryExporter implements com.aerospike.OpenTelemetry 
         this.hbAttributes[3] =
                 Attributes.of(
                         AttributeKey.longKey("CallsPerSecond"), (long) args.callsPerSecond,
-                        AttributeKey.longKey("schedulars"), (long) args.schedulars,
+                        AttributeKey.longKey("schedulars"), (long) args.schedulers,
                         AttributeKey.longKey("workers"), (long) args.workers,
                         AttributeKey.stringKey("duration"), targetDuration.toString(),
                         AttributeKey.longKey("durationMillis"), targetDuration.toMillis()
@@ -372,7 +375,6 @@ public final class OpenTelemetryExporter implements com.aerospike.OpenTelemetry 
         if(this.closed.get()) { return; }
 
         this.closed.set(true);
-        this.abortRun.set(true);
         this.endTimeMillis = System.currentTimeMillis();
         this.endLocalDateTime = LocalDateTime.now();
         this.connectionState = state;

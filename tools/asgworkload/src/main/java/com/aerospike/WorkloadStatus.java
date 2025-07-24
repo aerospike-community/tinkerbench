@@ -5,6 +5,7 @@ public enum WorkloadStatus {
     CanRun,
     PendingRun,
     Running,
+    WaitingCompletion,
     Completed,
     PendingShutdown,
     Shutdown

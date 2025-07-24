@@ -66,25 +66,32 @@ public class Main extends  AGSWorkloadArgs {
                             true);
             }
 
-            ExecuteWorkload(openTel,
-                            logger,
-                            agsGraphTraversalSource,
-                            duration,
-                            this,
-                            false);
+            if(!mainInstance.abortRun.get()) {
+                ExecuteWorkload(openTel,
+                        logger,
+                        agsGraphTraversalSource,
+                        duration,
+                        this,
+                        false);
+                mainInstance.terminateRun.set(true);
+            }
         }
 
         return  0;
     }
 
+    private static final Main mainInstance = new Main();
+
     public static void main(final String[] args) {
 
-        Main mainInstance = new Main();
-
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-            System.out.println("Shutdown initiated. Performing cleanup...");
-            if(!mainInstance.terminateRun.get())
+            if(mainInstance.terminateRun.get()) {
+                System.out.println("Shutdown initiated...");
+            } else {
+                System.out.println("Abort initiated. Performing cleanup...");
                 mainInstance.abortRun.set(true);
+                mainInstance.abortSIGRun.set(true);
+            }
         }));
 
         int statusCode = new CommandLine(mainInstance).execute(args);

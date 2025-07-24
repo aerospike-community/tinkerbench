@@ -4,7 +4,6 @@ import org.slf4j.LoggerFactory;
 
 import java.io.ByteArrayOutputStream;
 import java.io.Closeable;
-import java.io.IOException;
 import java.io.PrintStream;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -202,6 +201,16 @@ public final class LogSource {
     public void info(String var1, Object... var2) { logger4j.info(var1, var2); }
 
     public void info(String var1, Throwable var2) { logger4j.info(var1, var2); }
+
+    public void warn(String msg) { logger4j.warn(msg); }
+
+    public void warn(String var1, Object var2) { logger4j.warn(var1, var2); }
+
+    public void warn(String var1, Object var2, Object var3) { logger4j.warn(var1, var2, var3); }
+
+    public void warn(String var1, Object... var2) { logger4j.warn(var1, var2); }
+
+    public void warn(String var1, Throwable var2) { logger4j.warn(var1, var2); }
 
     public void error(String msg) { logger4j.error(msg); }
 
