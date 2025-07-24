@@ -49,34 +49,52 @@ import static org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__.values
 
 public class MyWorkloadQuery extends QueryWorkloadProvider {
 
-    public MyWorkloadQuery(final WorkloadProvider provider,
-                           final AGSGraphTraversal ags) {
+    public MyWorkloadQuery (final WorkloadProvider provider,
+                          final AGSGraphTraversal ags) {
         super(provider, ags);
     }
 
+    /**
+     * @return thw Query name
+     */
     @Override
     public String Name() {
         return "MyWorkload";
     }
 
+    /**
+     * @return The query description
+     */
     @Override
     public String getDescription() {
-        return "My Workload Graph Traversal";
+        return "My Workload   Graph Traversal";
     }
 
+    /**
+     * Performs any required pre-process required for the workload.
+     * @return true to execute workload or false to abort execution
+     */
     @Override
     public boolean preProcess() {
         return true;
     }
 
+    /**
+     * Performs any post-processing for the workload
+     */
     @Override
     public void postProcess() {
-        // Optional cleanup logic
+
     }
 
+    /**
+     * @return true to indicate that the workload was successful and should be recorded.
+     *  False to indicate that the workload should not be recorded. This also occurs for any exceptions
+     * @throws Exception
+     */
     @Override
     public Boolean call() throws Exception {
-        G().V(3).out().limit(5).path().by(values("code", "city").fold()).toList();
+        G().V(3).out().limit(5).path().by(values("code","city").fold()).toList();
         return true;
     }
 }
