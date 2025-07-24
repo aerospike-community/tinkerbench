@@ -200,9 +200,14 @@ public final class OpenTelemetryExporter implements com.aerospike.OpenTelemetry 
             attributes.put("runDurationMillis", this.endTimeMillis - this.startTimeMillis);
         }
 
+        long hCnt = (long) hbCnt.incrementAndGet();
+        if(hCnt >= 90) {
+            hCnt = 0;
+            hbCnt.set(0);
+        }
         long counter = (System.currentTimeMillis()
-                                * 1000000000000000L)
-                            + (long) hbCnt.incrementAndGet() ;
+                                * 100L)
+                            + hCnt ;
         this.openTelemetryInfoGauge.set(counter,
                                         attributes.build());
 
