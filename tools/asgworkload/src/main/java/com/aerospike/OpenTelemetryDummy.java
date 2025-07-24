@@ -1,5 +1,7 @@
 package com.aerospike;
 
+import java.time.Duration;
+
 public final class OpenTelemetryDummy  implements OpenTelemetry {
 
     @SuppressWarnings("unused")
@@ -12,6 +14,14 @@ public final class OpenTelemetryDummy  implements OpenTelemetry {
 
     @Override
     public boolean getClosed() { return false; }
+
+    @Override
+    public void Reset(AGSWorkloadArgs args,
+                      String workloadName,
+                      String workloadType,
+                      Duration targetDuration,
+                      boolean warmup,
+                      StringBuilder otherInfo) { }
 
     @SuppressWarnings("unused")
     @Override

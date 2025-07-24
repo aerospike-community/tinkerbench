@@ -22,11 +22,18 @@ public abstract class QueryWorkloadProvider implements QueryRunnable {
         this.provider.setQuery(this);
     }
 
-    /*
-    * @return Logger instance
+    /**
+     * @return Logger instance
      */
     public LogSource getLogger() { return logger; }
+
     public OpenTelemetry getOpenTelemetry() { return provider.getOpenTelemetry(); }
+
+    /**
+     * @return true if this workload is a warmup...
+     */
+    @Override
+    public boolean isWarmup() { return provider.isWarmup();}
 
     @Override
     public WorkloadTypes WorkloadType() {

@@ -21,6 +21,9 @@ public class QueryTest implements QueryRunnable {
         return WorkloadTypes.Test;
     }
 
+    @Override
+    public boolean isWarmup() { return provider.isWarmup(); }
+
     /**
      * @return the Workload description
      */

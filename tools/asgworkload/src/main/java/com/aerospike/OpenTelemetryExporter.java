@@ -9,6 +9,7 @@ import io.opentelemetry.sdk.OpenTelemetrySdk;
 import io.opentelemetry.sdk.metrics.SdkMeterProvider;
 import io.opentelemetry.sdk.resources.Resource;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -115,32 +116,7 @@ public final class OpenTelemetryExporter implements com.aerospike.OpenTelemetry 
         this.printDebug("Register to Counters");
         this.printDebug("Updating Gauge");
 
-        this.hbAttributes = new Attributes[] {
-                Attributes.of(
-                        AttributeKey.stringKey("workload"), workloadName == null ? "Workload" : workloadName,
-                        AttributeKey.stringKey("wltype"), "Initial",
-                        AttributeKey.longKey("pid"), pid
-                ),
-                //There are attributes commonly used for all events
-                Attributes.of(
-                        AttributeKey.stringKey("otherInfo"), otherInfo == null ? null : otherInfo.toString(),
-                        AttributeKey.longKey("startTimeMillis"), this.startTimeMillis,
-                        AttributeKey.stringKey("startDateTime"), this.startLocalDateTime.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME),
-                        AttributeKey.stringKey("AGSHost"), args.agsHosts[0]
-                        ),
-                Attributes.of(
-                        AttributeKey.stringKey("commandlineargs"), String.join(" ", args.getArguments(true)),
-                        AttributeKey.stringKey("appversion"), args.getVersions(true)[0]
-                ),
-                Attributes.of(
-                        AttributeKey.longKey("CallsPerSecond"), (long) args.callsPerSecond,
-                        AttributeKey.longKey("schedulars"), (long) args.schedulars,
-                        AttributeKey.longKey("workers"), (long) args.workers,
-                        AttributeKey.stringKey("duration"), args.duration.toString(),
-                        AttributeKey.longKey("durationMillis"), args.duration.toMillis()
-                )};
-
-        this.updateInfoGauge(true);
+        this.hbAttributes = new Attributes[4];
 
         this.printDebug("Creating Signal Handler...");
 
@@ -206,15 +182,15 @@ public final class OpenTelemetryExporter implements com.aerospike.OpenTelemetry 
 
         AttributesBuilder attributes = Attributes.builder();
 
-        attributes.putAll(this.hbAttributes[0]);
-        attributes.put("hbCount", this.hbCnt.incrementAndGet());
+        //attributes.putAll(this.hbAttributes[0]);
+        //attributes.put("hbCount", this.hbCnt.incrementAndGet());
 
-        if(initial) {
+        //if(initial) {
             attributes.put("type", "static");
             for (Attributes attrItem : this.hbAttributes) {
                 attributes.putAll(attrItem);
             }
-        }
+        //}
         if(this.connectionState != null) {
             attributes.put("DBConnState", this.connectionState);
         }
@@ -224,9 +200,56 @@ public final class OpenTelemetryExporter implements com.aerospike.OpenTelemetry 
             attributes.put("runDurationMillis", this.endTimeMillis - this.startTimeMillis);
         }
 
-        this.openTelemetryInfoGauge.set(System.currentTimeMillis(), attributes.build());
+        this.openTelemetryInfoGauge.set(hbCnt.incrementAndGet(), //System.currentTimeMillis(),
+                                            attributes.build());
 
        this.printDebug(String.format("Info Gauge %d", hbCnt.get()));
+    }
+
+    public void Reset(AGSWorkloadArgs args,
+                      String workloadName,
+                      String workloadType,
+                      Duration targetDuration,
+                      boolean warmup,
+                      StringBuilder otherInfo) {
+
+        this.wlType = String.format("%s-%s",
+                                    warmup ? "Warmup" : "Workload",
+                                    workloadType == null ? "Initial" : workloadType);
+        this.workloadName = workloadName == null ? "Workload" : workloadName;
+
+        this.endTimeMillis = 0;
+        this.endLocalDateTime = null;
+
+        this.hbAttributes[0] =
+                Attributes.of(
+                        AttributeKey.stringKey("workload"), this.workloadName,
+                        AttributeKey.stringKey("wltype"), this.wlType,
+                        AttributeKey.longKey("pid"), this.pid
+                );
+                //There are attributes commonly used for all events
+        this.hbAttributes[1] =
+                Attributes.of(
+                        AttributeKey.stringKey("otherInfo"), otherInfo == null ? null : otherInfo.toString(),
+                        AttributeKey.longKey("startTimeMillis"), this.startTimeMillis,
+                        AttributeKey.stringKey("startDateTime"), this.startLocalDateTime.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME),
+                        AttributeKey.stringKey("AGSHost"), args.agsHosts[0]
+                );
+        this.hbAttributes[2] =
+                Attributes.of(
+                        AttributeKey.stringKey("commandlineargs"), String.join(" ", args.getArguments(true)),
+                        AttributeKey.stringKey("appversion"), args.getVersions(true)[0]
+                );
+        this.hbAttributes[3] =
+                Attributes.of(
+                        AttributeKey.longKey("CallsPerSecond"), (long) args.callsPerSecond,
+                        AttributeKey.longKey("schedulars"), (long) args.schedulars,
+                        AttributeKey.longKey("workers"), (long) args.workers,
+                        AttributeKey.stringKey("duration"), targetDuration.toString(),
+                        AttributeKey.longKey("durationMillis"), targetDuration.toMillis()
+                );
+
+        this.updateInfoGauge(true);
     }
 
     @Override
@@ -321,7 +344,7 @@ public final class OpenTelemetryExporter implements com.aerospike.OpenTelemetry 
 
         wlType = String.format("%s-%s",
                                 warmup ? "Warmup" : "Workload",
-                                workloadName);
+                                workLoadType);
         this.workloadName = workloadName;
 
         this.printDebug("Workload Name  " + workloadName + " Type " + workLoadType, false);

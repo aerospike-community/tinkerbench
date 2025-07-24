@@ -1,8 +1,17 @@
 package com.aerospike;
 
+import java.time.Duration;
+
 public interface OpenTelemetry extends AutoCloseable {
 
-    public boolean getClosed();
+    boolean getClosed();
+    void Reset(AGSWorkloadArgs args,
+                      String workloadName,
+                      String workloadType,
+                      Duration targetDuration,
+                      boolean warmup,
+                      StringBuilder otherInfo);
+
     void addException(Exception exception);
     void addException(String exceptionType, String message);
 

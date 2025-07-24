@@ -43,6 +43,12 @@
     },
     {
       "type": "panel",
+      "id": "table",
+      "name": "Table",
+      "version": ""
+    },
+    {
+      "type": "panel",
       "id": "timeseries",
       "name": "Time series",
       "version": ""
@@ -99,7 +105,7 @@
       },
       "gridPos": {
         "h": 4,
-        "w": 4,
+        "w": 3,
         "x": 0,
         "y": 0
       },
@@ -130,7 +136,7 @@
           },
           "disableTextWrap": false,
           "editorMode": "builder",
-          "expr": "aerospike_workload_ags_stateinfo{instance=~\"$client\", workload=~\"$workload\"}",
+          "expr": "aerospike_workload_ags_stateinfo{instance=~\"$client\", workload=~\"$workload\", wltype=~\"$workloadtype\", type=\"static\"}",
           "format": "table",
           "fullMetaSearch": false,
           "includeNullMetadata": true,
@@ -141,12 +147,25 @@
         }
       ],
       "title": "Workload",
+      "transformations": [
+        {
+          "id": "sortBy",
+          "options": {
+            "fields": {},
+            "sort": [
+              {
+                "field": "Value"
+              }
+            ]
+          }
+        }
+      ],
       "type": "stat"
     },
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "${DS_PROMETHEUS}"
+        "uid": "${DATASOURCE}"
       },
       "fieldConfig": {
         "defaults": {
@@ -173,7 +192,93 @@
       "gridPos": {
         "h": 4,
         "w": 3,
-        "x": 4,
+        "x": 3,
+        "y": 0
+      },
+      "id": 17,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "/^wltype$/",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "pluginVersion": "11.3.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "disableTextWrap": false,
+          "editorMode": "builder",
+          "expr": "aerospike_workload_ags_stateinfo{instance=~\"$client\", workload=~\"$workload\", wltype=~\"$workloadtype\", type=\"static\"}",
+          "format": "table",
+          "fullMetaSearch": false,
+          "includeNullMetadata": true,
+          "legendFormat": "__auto",
+          "range": true,
+          "refId": "A",
+          "useBackend": false
+        }
+      ],
+      "title": "Workload Type",
+      "transformations": [
+        {
+          "id": "sortBy",
+          "options": {
+            "fields": {},
+            "sort": [
+              {
+                "field": "Value"
+              }
+            ]
+          }
+        }
+      ],
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DATASOURCE}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 3,
+        "x": 6,
         "y": 0
       },
       "id": 2,
@@ -197,29 +302,43 @@
       "pluginVersion": "11.3.0",
       "targets": [
         {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
           "disableTextWrap": false,
           "editorMode": "builder",
-          "expr": "aerospike_workload_ags_stateinfo{instance=~\"$client\", workload=~\"$workload\", type=\"static\"}",
+          "expr": "aerospike_workload_ags_stateinfo{instance=~\"$client\", workload=~\"$workload\", type=\"static\", wltype=~\"$workloadtype\"}",
           "format": "table",
           "fullMetaSearch": false,
           "includeNullMetadata": true,
           "legendFormat": "__auto",
           "range": true,
           "refId": "A",
-          "useBackend": false,
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${DS_PROMETHEUS}"
-          }
+          "useBackend": false
         }
       ],
       "title": "Targeted Calls per Second",
+      "transformations": [
+        {
+          "id": "sortBy",
+          "options": {
+            "fields": {},
+            "sort": [
+              {
+                "desc": false,
+                "field": "Value"
+              }
+            ]
+          }
+        }
+      ],
       "type": "stat"
     },
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "${DS_PROMETHEUS}"
+        "uid": "${DATASOURCE}"
       },
       "fieldConfig": {
         "defaults": {
@@ -246,7 +365,7 @@
       "gridPos": {
         "h": 4,
         "w": 3,
-        "x": 7,
+        "x": 9,
         "y": 0
       },
       "id": 13,
@@ -270,29 +389,43 @@
       "pluginVersion": "11.3.0",
       "targets": [
         {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
           "disableTextWrap": false,
           "editorMode": "builder",
-          "expr": "aerospike_workload_ags_stateinfo{instance=~\"$client\", workload=~\"$workload\", type=\"static\"}",
+          "expr": "aerospike_workload_ags_stateinfo{instance=~\"$client\", workload=~\"$workload\", type=\"static\", wltype=~\"$workloadtype\"}",
           "format": "table",
           "fullMetaSearch": false,
           "includeNullMetadata": true,
           "legendFormat": "__auto",
           "range": true,
           "refId": "A",
-          "useBackend": false,
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${DS_PROMETHEUS}"
-          }
+          "useBackend": false
         }
       ],
       "title": "Targeted Schedulers",
+      "transformations": [
+        {
+          "id": "sortBy",
+          "options": {
+            "fields": {},
+            "sort": [
+              {
+                "desc": false,
+                "field": "Value"
+              }
+            ]
+          }
+        }
+      ],
       "type": "stat"
     },
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "${DS_PROMETHEUS}"
+        "uid": "${DATASOURCE}"
       },
       "description": "The number of workers per scheduler",
       "fieldConfig": {
@@ -320,7 +453,7 @@
       "gridPos": {
         "h": 4,
         "w": 3,
-        "x": 10,
+        "x": 12,
         "y": 0
       },
       "id": 14,
@@ -344,23 +477,37 @@
       "pluginVersion": "11.3.0",
       "targets": [
         {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
           "disableTextWrap": false,
           "editorMode": "builder",
-          "expr": "aerospike_workload_ags_stateinfo{instance=~\"$client\", workload=~\"$workload\", type=\"static\"}",
+          "expr": "aerospike_workload_ags_stateinfo{instance=~\"$client\", workload=~\"$workload\", type=\"static\", wltype=~\"$workloadtype\"}",
           "format": "table",
           "fullMetaSearch": false,
           "includeNullMetadata": true,
           "legendFormat": "__auto",
           "range": true,
           "refId": "A",
-          "useBackend": false,
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${DS_PROMETHEUS}"
-          }
+          "useBackend": false
         }
       ],
       "title": "Targeted Workers",
+      "transformations": [
+        {
+          "id": "sortBy",
+          "options": {
+            "fields": {},
+            "sort": [
+              {
+                "desc": false,
+                "field": "Value"
+              }
+            ]
+          }
+        }
+      ],
       "type": "stat"
     },
     {
@@ -368,7 +515,7 @@
         "type": "prometheus",
         "uid": "${DATASOURCE}"
       },
-      "description": "The benchmark's starting and completion time",
+      "description": "The workload's starting and completion time",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -440,8 +587,8 @@
       },
       "gridPos": {
         "h": 4,
-        "w": 8,
-        "x": 13,
+        "w": 9,
+        "x": 15,
         "y": 0
       },
       "id": 10,
@@ -473,7 +620,7 @@
           "disableTextWrap": false,
           "editorMode": "code",
           "exemplar": false,
-          "expr": "aerospike_workload_ags_stateinfo{instance=~\"$client\", type=\"static\"}",
+          "expr": "aerospike_workload_ags_stateinfo{instance=~\"$client\", type=\"static\", workload=~\"$workload\", wltype=~\"$workloadtype\"}",
           "format": "table",
           "fullMetaSearch": false,
           "includeNullMetadata": true,
@@ -481,25 +628,6 @@
           "legendFormat": "__auto",
           "range": true,
           "refId": "A",
-          "useBackend": false
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${DATASOURCE}"
-          },
-          "disableTextWrap": false,
-          "editorMode": "code",
-          "exemplar": false,
-          "expr": "aerospike_workload_ags_stateinfo{instance=~\"$client\"}",
-          "format": "table",
-          "fullMetaSearch": false,
-          "hide": false,
-          "includeNullMetadata": true,
-          "instant": false,
-          "legendFormat": "__auto",
-          "range": true,
-          "refId": "B",
           "useBackend": false
         }
       ],
@@ -511,7 +639,8 @@
             "fields": {},
             "sort": [
               {
-                "field": "hbCount"
+                "desc": false,
+                "field": "Value"
               }
             ]
           }
@@ -527,18 +656,23 @@
           "id": "organize",
           "options": {
             "excludeByName": {
+              "AGSHost": true,
               "AGSHost 1": true,
               "AGSHost 2": true,
+              "CallsPerSecond": true,
               "CallsPerSecond 1": true,
               "CallsPerSecond 2": true,
+              "DBConnState": true,
               "DBConnState 1": true,
               "DBConnState 2": true,
               "DBHost": true,
               "DBHost 1": true,
               "DBHost 2": true,
               "Time": true,
+              "Value": true,
               "Value #A": true,
               "Value #B": true,
+              "__name__": true,
               "__name__ 1": true,
               "__name__ 2": true,
               "appversion": true,
@@ -558,10 +692,13 @@
               "commandlineargs": true,
               "commandlineargs 1": true,
               "commandlineargs 2": true,
+              "duration": true,
               "duration 1": true,
               "duration 2": true,
+              "durationMillis": true,
               "durationMillis 1": true,
               "durationMillis 2": true,
+              "endLocalDateTime": false,
               "endTimeMillis": true,
               "generalInfo": true,
               "generalInfo 1": true,
@@ -572,8 +709,10 @@
               "indoubtRetries 2": true,
               "indoubtSleep 1": true,
               "indoubtSleep 2": true,
+              "instance": true,
               "instance 1": true,
               "instance 2": true,
+              "job": true,
               "job 1": true,
               "job 2": true,
               "mrtSize": true,
@@ -588,12 +727,15 @@
               "nkeys": true,
               "nkeys 1": true,
               "nkeys 2": true,
+              "otel_scope_name": true,
               "otel_scope_name 1": true,
               "otel_scope_name 2": true,
               "otherInfo": true,
               "otherInfo 1": true,
               "otherInfo 2": true,
               "pid": true,
+              "pid 1": true,
+              "pid 2": true,
               "policies": true,
               "policies 1": true,
               "policies 2": true,
@@ -604,6 +746,7 @@
               "readPct 1": true,
               "readPct 2": true,
               "runDurationMillis": false,
+              "schedulars": true,
               "schedulars 1": true,
               "schedulars 2": true,
               "setname": true,
@@ -629,6 +772,9 @@
               "type 1": true,
               "type 2": true,
               "wltype": true,
+              "wltype 1": true,
+              "wltype 2": true,
+              "workers": true,
               "workers 1": true,
               "workers 2": true,
               "workload": true,
@@ -640,76 +786,36 @@
             },
             "includeByName": {},
             "indexByName": {
-              "DBConnState 1": 4,
-              "DBConnState 2": 33,
-              "DBHost 1": 5,
-              "DBHost 2": 34,
+              "AGSHost": 5,
+              "CallsPerSecond": 6,
+              "DBConnState": 7,
               "Time": 3,
-              "Value #A": 32,
-              "Value #B": 64,
-              "__name__ 1": 6,
-              "__name__ 2": 35,
-              "appversion 1": 7,
-              "appversion 2": 36,
-              "asyncEnabled 1": 8,
-              "asyncEnabled 2": 37,
-              "batchSize 1": 9,
-              "batchSize 2": 38,
-              "cluster": 62,
-              "commandlineargs 1": 10,
-              "commandlineargs 2": 39,
+              "Value": 23,
+              "__name__": 8,
+              "appversion": 9,
+              "commandlineargs": 10,
+              "duration": 11,
+              "durationMillis": 12,
               "endLocalDateTime": 1,
-              "endTimeMillis": 63,
-              "generalInfo 1": 11,
-              "generalInfo 2": 40,
-              "hbCount 1": 12,
-              "hbCount 2": 41,
-              "instance 1": 13,
-              "instance 2": 42,
-              "job 1": 14,
-              "job 2": 43,
-              "mrtSize 1": 15,
-              "mrtSize 2": 44,
-              "namespace 1": 16,
-              "namespace 2": 45,
-              "nbrMRTs 1": 17,
-              "nbrMRTs 2": 46,
-              "nkeys 1": 18,
-              "nkeys 2": 47,
-              "otel_scope_name 1": 19,
-              "otel_scope_name 2": 48,
-              "otherInfo 1": 20,
-              "otherInfo 2": 49,
-              "policies 1": 21,
-              "policies 2": 50,
-              "readMultiBinPct 1": 22,
-              "readMultiBinPct 2": 51,
-              "readPct 1": 23,
-              "readPct 2": 52,
+              "endTimeMillis": 4,
+              "instance": 13,
+              "job": 14,
+              "otel_scope_name": 15,
+              "pid": 16,
               "runDurationMillis": 2,
-              "setname 1": 24,
-              "setname 2": 53,
-              "startDateTime 1": 0,
-              "startDateTime 2": 54,
-              "startTimeMillis 1": 25,
-              "startTimeMillis 2": 55,
-              "threads 1": 26,
-              "threads 2": 56,
-              "throughputThrottle 1": 27,
-              "throughputThrottle 2": 57,
-              "transactionLimit 1": 28,
-              "transactionLimit 2": 58,
-              "type 1": 29,
-              "type 2": 59,
-              "workload 1": 30,
-              "workload 2": 60,
-              "writeMultiBinPct 1": 31,
-              "writeMultiBinPct 2": 61
+              "schedulars": 17,
+              "startDateTime": 0,
+              "startTimeMillis": 18,
+              "type": 19,
+              "wltype": 20,
+              "workers": 21,
+              "workload": 22
             },
             "renameByName": {
               "Time": "",
               "endLocalDateTime": "End",
               "runDurationMillis": "Duration",
+              "startDateTime": "Start",
               "startDateTime 1": "Start"
             }
           }
@@ -720,7 +826,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "${DS_PROMETHEUS}"
+        "uid": "${DATASOURCE}"
       },
       "description": "The total completed number of write actions across all types",
       "fieldConfig": {
@@ -771,11 +877,11 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "${DATASOURCE}"
+            "uid": "${DS_PROMETHEUS}"
           },
           "disableTextWrap": false,
           "editorMode": "builder",
-          "expr": "sum(last_over_time(aerospike_workload_ags_transaction_total{instance=~\"$client\", workload=~\"$workload\"}[$__interval]))",
+          "expr": "sum(last_over_time(aerospike_workload_ags_transaction_total{instance=~\"$client\", workload=~\"$workload\", wltype=~\"$workloadtype\"}[$__interval]))",
           "fullMetaSearch": false,
           "hide": false,
           "includeNullMetadata": true,
@@ -792,7 +898,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "${DS_PROMETHEUS}"
+        "uid": "${DATASOURCE}"
       },
       "description": "The total number oferrors",
       "fieldConfig": {
@@ -865,11 +971,11 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "${DATASOURCE}"
+            "uid": "${DS_PROMETHEUS}"
           },
           "disableTextWrap": false,
-          "editorMode": "code",
-          "expr": "sum(last_over_time(aerospike_workload_ags_exception_total{instance=~\"$client\", workload=~\"$workload\"}[$__interval]))",
+          "editorMode": "builder",
+          "expr": "sum(last_over_time(aerospike_workload_ags_exception_total{instance=~\"$client\", workload=~\"$workload\", wltype=~\"$workloadtype\"}[$__interval]))",
           "fullMetaSearch": false,
           "hide": false,
           "includeNullMetadata": true,
@@ -886,7 +992,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "${DS_PROMETHEUS}"
+        "uid": "${DATASOURCE}"
       },
       "fieldConfig": {
         "defaults": {
@@ -934,29 +1040,43 @@
       "pluginVersion": "11.3.0",
       "targets": [
         {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
           "disableTextWrap": false,
           "editorMode": "builder",
-          "expr": "aerospike_workload_ags_stateinfo{instance=~\"$client\", workload=~\"$workload\", type=\"static\"}",
+          "expr": "aerospike_workload_ags_stateinfo{instance=~\"$client\", workload=~\"$workload\", type=\"static\", wltype=~\"$workloadtype\"}",
           "format": "table",
           "fullMetaSearch": false,
           "includeNullMetadata": true,
           "legendFormat": "__auto",
           "range": true,
           "refId": "A",
-          "useBackend": false,
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${DS_PROMETHEUS}"
-          }
+          "useBackend": false
         }
       ],
       "title": "Targeted Duration",
+      "transformations": [
+        {
+          "id": "sortBy",
+          "options": {
+            "fields": {},
+            "sort": [
+              {
+                "desc": false,
+                "field": "Value"
+              }
+            ]
+          }
+        }
+      ],
       "type": "stat"
     },
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "${DS_PROMETHEUS}"
+        "uid": "${DATASOURCE}"
       },
       "fieldConfig": {
         "defaults": {
@@ -1007,23 +1127,37 @@
       "pluginVersion": "11.3.0",
       "targets": [
         {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
           "disableTextWrap": false,
           "editorMode": "builder",
-          "expr": "aerospike_workload_ags_stateinfo{instance=~\"$client\", workload=~\"$workload\"}",
+          "expr": "aerospike_workload_ags_stateinfo{instance=~\"$client\", workload=~\"$workload\", wltype=~\"$workloadtype\", type=\"static\"}",
           "format": "table",
           "fullMetaSearch": false,
           "includeNullMetadata": true,
           "legendFormat": "__auto",
           "range": true,
           "refId": "A",
-          "useBackend": false,
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${DS_PROMETHEUS}"
-          }
+          "useBackend": false
         }
       ],
       "title": "Status",
+      "transformations": [
+        {
+          "id": "sortBy",
+          "options": {
+            "fields": {},
+            "sort": [
+              {
+                "desc": false,
+                "field": "Value"
+              }
+            ]
+          }
+        }
+      ],
       "type": "stat"
     },
     {
@@ -1083,7 +1217,7 @@
           "disableTextWrap": false,
           "editorMode": "builder",
           "exemplar": false,
-          "expr": "aerospike_workload_ags_lng_latency_milliseconds_sum{instance=~\"$client\", workload=~\"$workload\"}",
+          "expr": "aerospike_workload_ags_lng_latency_milliseconds_sum{instance=~\"$client\", workload=~\"$workload\", wltype=~\"$workloadtype\"}",
           "format": "table",
           "fullMetaSearch": false,
           "includeNullMetadata": true,
@@ -1100,14 +1234,14 @@
           "disableTextWrap": false,
           "editorMode": "builder",
           "exemplar": false,
-          "expr": "aerospike_workload_ags_stateinfo{type=\"static\"}",
+          "expr": "aerospike_workload_ags_stateinfo{type=\"static\", wltype=~\"$workloadtype\", workload=~\"$workload\"}",
           "format": "table",
           "fullMetaSearch": false,
           "hide": false,
           "includeNullMetadata": true,
-          "instant": false,
+          "instant": true,
           "legendFormat": "__auto",
-          "range": true,
+          "range": false,
           "refId": "A",
           "useBackend": false
         }
@@ -1115,18 +1249,22 @@
       "title": "Execution Duration",
       "transformations": [
         {
+          "id": "sortBy",
+          "options": {
+            "fields": {},
+            "sort": [
+              {
+                "desc": false,
+                "field": "Value #A"
+              }
+            ]
+          }
+        },
+        {
           "id": "configFromData",
           "options": {
-            "applyTo": {
-              "id": "byType",
-              "options": "number"
-            },
             "configRefId": "A",
             "mappings": [
-              {
-                "fieldName": "durationMillis",
-                "handlerKey": "max"
-              },
               {
                 "fieldName": "Time",
                 "handlerKey": "__ignore"
@@ -1160,8 +1298,9 @@
                 "handlerKey": "__ignore"
               },
               {
-                "fieldName": "hbCount",
-                "handlerKey": "__ignore"
+                "fieldName": "durationMillis",
+                "handlerKey": "max",
+                "reducerId": "lastNotNull"
               },
               {
                 "fieldName": "instance",
@@ -1173,6 +1312,10 @@
               },
               {
                 "fieldName": "otel_scope_name",
+                "handlerKey": "__ignore"
+              },
+              {
+                "fieldName": "pid",
                 "handlerKey": "__ignore"
               },
               {
@@ -1189,6 +1332,10 @@
               },
               {
                 "fieldName": "type",
+                "handlerKey": "__ignore"
+              },
+              {
+                "fieldName": "wltype",
                 "handlerKey": "__ignore"
               },
               {
@@ -1238,7 +1385,7 @@
       },
       "gridPos": {
         "h": 4,
-        "w": 21,
+        "w": 24,
         "x": 0,
         "y": 8
       },
@@ -1265,7 +1412,7 @@
         {
           "disableTextWrap": false,
           "editorMode": "builder",
-          "expr": "aerospike_workload_ags_stateinfo{instance=~\"$client\", workload=~\"$workload\", type=\"static\"}",
+          "expr": "aerospike_workload_ags_stateinfo{instance=~\"$client\", workload=~\"$workload\", type=\"static\", wltype=~\"$workloadtype\"}",
           "format": "table",
           "fullMetaSearch": false,
           "includeNullMetadata": true,
@@ -1280,6 +1427,20 @@
         }
       ],
       "title": "CLI Arguments",
+      "transformations": [
+        {
+          "id": "sortBy",
+          "options": {
+            "fields": {},
+            "sort": [
+              {
+                "desc": true,
+                "field": "Time"
+              }
+            ]
+          }
+        }
+      ],
       "type": "stat"
     },
     {
@@ -1342,7 +1503,7 @@
       },
       "gridPos": {
         "h": 9,
-        "w": 21,
+        "w": 24,
         "x": 0,
         "y": 12
       },
@@ -1374,10 +1535,10 @@
         {
           "disableTextWrap": false,
           "editorMode": "builder",
-          "expr": "rate(aerospike_workload_ags_transaction_total{instance=~\"$client\", workload=~\"$workload\"}[$__rate_interval])",
+          "expr": "rate(aerospike_workload_ags_transaction_total{instance=~\"$client\", workload=~\"$workload\", wltype=~\"$workloadtype\"}[$__rate_interval])",
           "fullMetaSearch": false,
           "includeNullMetadata": true,
-          "legendFormat": "{{workload}}",
+          "legendFormat": "{{workload}} {{wltype}}",
           "range": true,
           "refId": "A",
           "useBackend": false,
@@ -1450,7 +1611,7 @@
       },
       "gridPos": {
         "h": 8,
-        "w": 21,
+        "w": 24,
         "x": 0,
         "y": 21
       },
@@ -1476,10 +1637,10 @@
         {
           "disableTextWrap": false,
           "editorMode": "builder",
-          "expr": "increase(aerospike_workload_ags_transaction_total{instance=~\"$client\", workload=~\"$workload\"}[$__rate_interval])",
+          "expr": "increase(aerospike_workload_ags_transaction_total{instance=~\"$client\", workload=~\"$workload\", wltype=~\"$workloadtype\"}[$__rate_interval])",
           "fullMetaSearch": false,
           "includeNullMetadata": true,
-          "legendFormat": "{{workload}}",
+          "legendFormat": "{{workload}} {{wltype}}",
           "range": true,
           "refId": "A",
           "useBackend": false,
@@ -1513,8 +1674,8 @@
         "overrides": []
       },
       "gridPos": {
-        "h": 10,
-        "w": 21,
+        "h": 11,
+        "w": 24,
         "x": 0,
         "y": 29
       },
@@ -1566,7 +1727,7 @@
           },
           "disableTextWrap": false,
           "editorMode": "builder",
-          "expr": "sum by(le) (aerospike_workload_ags_latency_microsecond_bucket)",
+          "expr": "sum by(le) (aerospike_workload_ags_latency_microsecond_bucket{instance=~\"$client\", workload=~\"$workload\", wltype=~\"$workloadtype\"})",
           "fullMetaSearch": false,
           "includeNullMetadata": true,
           "legendFormat": "__auto",
@@ -1614,10 +1775,10 @@
         "overrides": []
       },
       "gridPos": {
-        "h": 5,
-        "w": 21,
+        "h": 6,
+        "w": 3,
         "x": 0,
-        "y": 39
+        "y": 40
       },
       "id": 9,
       "options": {
@@ -1647,7 +1808,7 @@
           },
           "editorMode": "code",
           "exemplar": true,
-          "expr": "avg by (namespace) (histogram_quantile(0.50, (aerospike_workload_ags_latency_microsecond_bucket{instance=~\"$client\", workload=~\"$workload\"})))",
+          "expr": "avg by (namespace) (histogram_quantile(0.50, (aerospike_workload_ags_latency_microsecond_bucket{instance=~\"$client\", workload=~\"$workload\", wltype=~\"$workloadtype\"})))",
           "hide": false,
           "instant": false,
           "interval": "",
@@ -1661,7 +1822,7 @@
           },
           "editorMode": "code",
           "exemplar": true,
-          "expr": "avg by (namespace) (histogram_quantile(0.95, (aerospike_workload_ags_latency_microsecond_bucket{instance=~\"$client\", workload=~\"$workload\"})))",
+          "expr": "avg by (namespace) (histogram_quantile(0.95, (aerospike_workload_ags_latency_microsecond_bucket{instance=~\"$client\", workload=~\"$workload\", wltype=~\"$workloadtype\"})))",
           "instant": false,
           "interval": "",
           "legendFormat": "p95",
@@ -1674,7 +1835,7 @@
           },
           "editorMode": "code",
           "exemplar": true,
-          "expr": "avg by (namespace) (histogram_quantile(0.99, (aerospike_workload_ags_latency_microsecond_bucket{instance=~\"$client\", workload=~\"$workload\"})))",
+          "expr": "avg by (namespace) (histogram_quantile(0.99, (aerospike_workload_ags_latency_microsecond_bucket{instance=~\"$client\", workload=~\"$workload\", wltype=~\"$workloadtype\"})))",
           "interval": "",
           "legendFormat": "p99",
           "range": true,
@@ -1687,7 +1848,7 @@
           },
           "editorMode": "code",
           "exemplar": true,
-          "expr": "avg by (namespace) (histogram_quantile(0.999, (aerospike_workload_ags_latency_microsecond_bucket{instance=~\"$client\", workload=~\"$workload\"})))",
+          "expr": "avg by (namespace) (histogram_quantile(0.999, (aerospike_workload_ags_latency_microsecond_bucket{instance=~\"$client\", workload=~\"$workload\", wltype=~\"$workloadtype\"})))",
           "hide": false,
           "instant": false,
           "interval": "",
@@ -1697,6 +1858,153 @@
       ],
       "title": "Percentiles",
       "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "description": "All Errors",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": false
+          },
+          "decimals": 0,
+          "fieldMinMax": false,
+          "mappings": [],
+          "noValue": "No Errors Detected",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "locale"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 11,
+        "w": 24,
+        "x": 0,
+        "y": 46
+      },
+      "id": 16,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
+          "fields": "",
+          "reducer": [
+            "sum"
+          ],
+          "show": false
+        },
+        "showHeader": true
+      },
+      "pluginVersion": "11.3.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DATASOURCE}"
+          },
+          "disableTextWrap": false,
+          "editorMode": "builder",
+          "exemplar": false,
+          "expr": "aerospike_workload_ags_exception_total{instance=~\"$client\", workload=~\"$workload\", wltype=~\"$workloadtype\"}",
+          "format": "time_series",
+          "fullMetaSearch": false,
+          "includeNullMetadata": true,
+          "instant": false,
+          "legendFormat": "__auto",
+          "range": true,
+          "refId": "A",
+          "useBackend": false
+        }
+      ],
+      "title": "All Error",
+      "transformations": [
+        {
+          "id": "reduce",
+          "options": {
+            "includeTimeField": false,
+            "labelsToFields": true,
+            "mode": "seriesToRows",
+            "reducers": [
+              "max"
+            ]
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Field": true,
+              "__name__": true,
+              "instance": true,
+              "job": true,
+              "otel_scope_name": true,
+              "pid": true,
+              "startTimeMillis": true
+            },
+            "includeByName": {},
+            "indexByName": {
+              "Field": 5,
+              "Max": 4,
+              "__name__": 6,
+              "exception": 3,
+              "exception_type": 2,
+              "instance": 7,
+              "job": 8,
+              "otel_scope_name": 9,
+              "pid": 10,
+              "startTimeMillis": 11,
+              "wltype": 0,
+              "workload": 1
+            },
+            "renameByName": {
+              "Max": "Errors",
+              "exception": "Caused",
+              "exception_type": "Exception",
+              "wltype": "Type",
+              "workload": "Name"
+            }
+          }
+        },
+        {
+          "id": "groupToNestedTable",
+          "options": {
+            "fields": {
+              "Exception": {
+                "aggregations": [],
+                "operation": "groupby"
+              },
+              "Name": {
+                "aggregations": [],
+                "operation": "groupby"
+              },
+              "Type": {
+                "aggregations": [],
+                "operation": "groupby"
+              }
+            },
+            "showSubframeHeaders": true
+          }
+        }
+      ],
+      "type": "table"
     },
     {
       "datasource": {
@@ -1761,19 +2069,15 @@
       },
       "gridPos": {
         "h": 11,
-        "w": 21,
+        "w": 24,
         "x": 0,
-        "y": 44
+        "y": 57
       },
-      "id": 16,
+      "id": 18,
       "options": {
         "legend": {
-          "calcs": [
-            "max",
-            "lastNotNull",
-            "range"
-          ],
-          "displayMode": "table",
+          "calcs": [],
+          "displayMode": "list",
           "placement": "bottom",
           "showLegend": true
         },
@@ -1790,11 +2094,14 @@
             "uid": "${DATASOURCE}"
           },
           "disableTextWrap": false,
-          "editorMode": "code",
-          "expr": "increase(aerospike_workload_ags_exception_total{instance=~\"$client\", workload=~\"$workload\"}[$__rate_interval])",
+          "editorMode": "builder",
+          "exemplar": false,
+          "expr": "aerospike_workload_ags_exception_total{instance=~\"$client\", workload=~\"$workload\", wltype=~\"$workloadtype\"}",
+          "format": "time_series",
           "fullMetaSearch": false,
           "includeNullMetadata": true,
-          "legendFormat": "{{type}} - {{exception_type}}: {{exception}}",
+          "instant": false,
+          "legendFormat": "{{wltype}} - {{exception_type}}: {{exception}}",
           "range": true,
           "refId": "A",
           "useBackend": false
@@ -1861,6 +2168,27 @@
         "refresh": 2,
         "regex": "",
         "type": "query"
+      },
+      {
+        "current": {},
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${DS_PROMETHEUS}"
+        },
+        "definition": "label_values(aerospike_workload_ags_stateinfo{instance=~\"$client\", workload=~\"$workload\"},wltype)",
+        "includeAll": true,
+        "label": "Workload Type",
+        "multi": true,
+        "name": "workloadtype",
+        "options": [],
+        "query": {
+          "qryType": 1,
+          "query": "label_values(aerospike_workload_ags_stateinfo{instance=~\"$client\", workload=~\"$workload\"},wltype)",
+          "refId": "PrometheusVariableQueryEditor-VariableQuery"
+        },
+        "refresh": 2,
+        "regex": "",
+        "type": "query"
       }
     ]
   },
@@ -1872,6 +2200,6 @@
   "timezone": "browser",
   "title": "Aerospike Workload",
   "uid": "besk2xu6dpp1ca",
-  "version": 11,
+  "version": 16,
   "weekStart": ""
 }

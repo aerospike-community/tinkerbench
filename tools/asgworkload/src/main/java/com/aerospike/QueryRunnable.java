@@ -13,22 +13,27 @@ public interface QueryRunnable extends AGSGraphTraversal, Callable<Boolean> {
     /**
      * @return thw Query name
      */
-    public String Name();
+    String Name();
 
-    public WorkloadTypes WorkloadType();
+    /*
+    Returns true if this workload is a warmup...
+     */
+    boolean isWarmup();
 
-    public QueryRunnable Start();
+    WorkloadTypes WorkloadType();
 
-    public QueryRunnable awaitTermination();
+    QueryRunnable Start();
 
-    public QueryRunnable Shutdown();
+    QueryRunnable awaitTermination();
 
-    public QueryRunnable PrintSummary();
+    QueryRunnable Shutdown();
+
+    QueryRunnable PrintSummary();
 
     /*
     Returns the description of the query.
      */
-    public String getDescription();
+    String getDescription();
 
     /*
     Performs a "Warm Up" or preprocessing prior to calling "run".
@@ -36,11 +41,11 @@ public interface QueryRunnable extends AGSGraphTraversal, Callable<Boolean> {
     Returns:
         True to perform normal processing. False to cancel execution.
      */
-    public boolean preProcess() throws InterruptedException;
+    boolean preProcess() throws InterruptedException;
 
     /*
     Preforms post-processing after calling "run".
     Note: This is not executed within the scheduler.
      */
-    public void postProcess();
+    void postProcess();
 }

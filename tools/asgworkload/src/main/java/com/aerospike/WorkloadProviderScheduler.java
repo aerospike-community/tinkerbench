@@ -205,9 +205,12 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
         else {
             this.queryRunnable = queryRunnable;
             if(openTelemetry != null) {
-                openTelemetry.setWorkloadName(queryRunnable.WorkloadType().toString(),
-                                                queryRunnable.Name(),
-                                                warmup);
+                openTelemetry.Reset(cliArgs,
+                                    queryRunnable.Name(),
+                                    queryRunnable.WorkloadType().toString(),
+                                    targetRunDuration,
+                                    warmup,
+                                    null);
             }
             setStatus(WorkloadStatus.CanRun);
             logger.PrintDebug("WorkloadProviderScheduler", "Set Query to %s", queryRunnable);
@@ -254,7 +257,8 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
             }
             System.out.println(" Completed");
             schedulerFutures.clear();
-            System.out.printf("Starting Workload for %s %s\n",
+            System.out.printf("Starting %s for %s %s\n",
+                                warmup ? "Warmup" : "Workload",
                                 queryRunnable.WorkloadType().toString(),
                                 queryRunnable.Name());
 
@@ -306,7 +310,8 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
         setStatus(WorkloadStatus.Shutdown);
 
         if(!alreadyCompleted && queryRunnable != null) {
-            System.out.printf("Running Post-process for %s %s...",
+            System.out.printf("Running Post-process for %s %s %s...",
+                                warmup ? "Warmup" : "Workload",
                                 queryRunnable.WorkloadType().toString(),
                                 queryRunnable.Name());
             queryRunnable.postProcess();
@@ -315,7 +320,8 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
         cliArgs.terminateRun.set(true);
 
         if(queryRunnable != null) {
-            System.out.printf("Shutdown for %s %s Completed\n",
+            System.out.printf("Shutdown for %s %s %s Completed\n",
+                    warmup ? "Warmup" : "Workload",
                     queryRunnable.WorkloadType().toString(),
                     queryRunnable.Name());
         }
@@ -377,7 +383,8 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
     public WorkloadProvider PrintSummary(PrintStream printStream) {
 
         if(queryRunnable == null) {
-            printStream.println("No Workload Summary available.");
+            printStream.printf("No %s Summary available.\n",
+                                warmup ? "Warmup" : "Workload");
             return this;
         }
         final Duration rtDuration = Duration.ofNanos(totCallDuration.get());
@@ -386,8 +393,8 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
         final int abortedCount = getAbortedCount();
         final int totalCount = successCount + errorCount + abortedCount;
 
-        printStream.printf("%sSummary for %s:\n",
-                            warmup ? "Warmup " : "",
+        printStream.printf("%s Summary for %s:\n",
+                            warmup ? "Warmup " : "Workload",
                             queryRunnable.Name());
         if(getStatus() != WorkloadStatus.Running)
             printStream.printf("\tStatus: %s\n", getStatus());
@@ -455,7 +462,8 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
 
         if(totCallDuration.get() == 0)
         {
-            return String.format("WorkloadProvider [status=%s, call/sec=, pending=%,d, successes=%,d, errors=%,d,aborted=%d, start=, stop=, run_duration=0, run_reminding=%s]",
+            return String.format("WorkloadProvider [type=%s, status=%s, call/sec=, pending=%,d, successes=%,d, errors=%,d,aborted=%d, start=, stop=, run_duration=0, run_reminding=%s]",
+                    warmup ? "warmup" : "workload",
                     status,
                     pendingCount.get(),
                     successCount.get(),
@@ -469,7 +477,8 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
                                 ? targetRunDuration.minus(rtDuration)
                                 : Duration.ZERO;
 
-        return String.format("WorkloadProviderScheduler [status=%s, call/sec=%,.2f, pending=%,d, successes=%,d, errors=%,d, aborted=%d, start=%s, stop=%s, run_duration=%s, run_reminding=%s]",
+        return String.format("WorkloadProviderScheduler [type=%s, status=%s, call/sec=%,.2f, pending=%,d, successes=%,d, errors=%,d, aborted=%d, start=%s, stop=%s, run_duration=%s, run_reminding=%s]",
+                                warmup ? "warmup" : "workload",
                                 status,
                                 getCallsPerSecond(),
                                 pendingCount.get(),
