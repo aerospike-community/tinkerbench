@@ -1,13 +1,16 @@
 This tool is designed to run and benchmark query workloads against the Aerospike Graph Service (AGS). It supports a simple extensible interface and integrates with Prometheus and Grafana for performance monitoring.
 
-🛠️ Getting Started
-Build
+**🛠️ Getting Started**
+
+**__Build__**
+
 To compile the project, run the following from the root of the repository:
 ```
 mvn clean install
 ```
 
-Usage
+**Usage**
+
 The CLI includes full help documentation:
 
 ```
@@ -21,7 +24,7 @@ agsworkload AirRouteQuery
 ```
 
 
-📦 Workloads
+**📦 Workloads**
 
 The tool currently supports two workloads:
 
@@ -31,7 +34,8 @@ The tool currently supports two workloads:
 
 You can add custom workloads by extending the `QueryWorkloadProvider` class.
 
-✏️ Defining a Custom Workload
+**✏️ Defining a Custom Workload**
+
 To create your own workload, simply extend QueryWorkloadProvider. No other code changes are required.
 After adding your class:
 
@@ -100,12 +104,13 @@ public class MyWorkloadQuery extends QueryWorkloadProvider {
 }
 ```
 
-📈 Monitoring with Prometheus
+****📈 Monitoring with Prometheus****
+
 To enable Prometheus metrics, use the -prom flag using the proper port (run --help for info).
 
 ```
 agsworkload MyWorkloadQuery -prom
 ```
 This currently provides the best interface. The initial Grafana dashboard can be found at here.
-To visualize the metrics, you can use Grafana.
+To visualize the metrics, you can use the Grafana dashboard provided here .
  ```tools/asgworkload/Aerospike Workload.json```
