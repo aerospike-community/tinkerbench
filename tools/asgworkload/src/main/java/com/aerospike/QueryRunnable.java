@@ -20,6 +20,16 @@ public interface QueryRunnable extends AGSGraphTraversal, Callable<Boolean> {
      */
     boolean isWarmup();
 
+    /*
+    If true, this signals the result of the query should be displayed/logged
+     */
+    boolean isPrintResult();
+
+    /*
+    Prints the result from a Query
+     */
+    <T> void PrintResult(T result);
+
     WorkloadTypes WorkloadType();
 
     QueryRunnable Start();

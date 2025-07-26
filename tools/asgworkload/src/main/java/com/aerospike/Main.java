@@ -16,16 +16,26 @@ public class Main extends  AGSWorkloadArgs {
                                                                             targetRunDuration,
                                                                             isWarmUp,
                                                                             args)) {
-            final QueryRunnable workloadRunner = Helpers.GetQuery(args.queryName,
-                                                                    workload,
-                                                                    agsGraphTraversal,
-                                                                    args.debug);
+            final boolean isQueryString = args.queryNameOrString
+                                            .indexOf(".") > 0;
+
+            final QueryRunnable workloadRunner = isQueryString
+                                                    ? new EvalQueryWorkloadProvider(workload,
+                                                                                    agsGraphTraversal,
+                                                                                    args.queryNameOrString)
+                                                    : Helpers.GetQuery(args.queryNameOrString,
+                                                                        workload,
+                                                                        agsGraphTraversal,
+                                                                        args.debug);
+            if(mainInstance.abortRun.get())
+                return;
+
             if(isWarmUp) {
                 System.out.println("Running WarmUp...");
                 logger.info("Running WarmUp...");
             } else {
-                System.out.printf("Running workload %s...\n", args.queryName);
-                logger.info("Running WarmUp {}...", args.queryName);
+                System.out.printf("Running workload %s...\n", args.queryNameOrString);
+                logger.info("Running WarmUp {}...", args.queryNameOrString);
             }
 
             workloadRunner

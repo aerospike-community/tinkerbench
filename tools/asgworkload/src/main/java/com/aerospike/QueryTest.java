@@ -6,11 +6,13 @@ import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSo
 public class QueryTest implements QueryRunnable {
 
     private final WorkloadProvider provider;
+    private final boolean isPrintResults;
 
     public QueryTest(WorkloadProvider provider,
                      AGSGraphTraversal ags) {
         this.provider = provider;
         this.provider.setQuery(this);
+        this.isPrintResults = provider.getCliArgs().printResult;
     }
 
     @Override
@@ -23,6 +25,14 @@ public class QueryTest implements QueryRunnable {
 
     @Override
     public boolean isWarmup() { return provider.isWarmup(); }
+
+    @Override
+    public boolean isPrintResult() { return isPrintResults; }
+
+    @Override
+    public <T> void PrintResult(T result) {
+        System.out.println(result);
+    }
 
     /**
      * @return the Workload description

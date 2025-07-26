@@ -126,6 +126,11 @@ public final class OpenTelemetryExporter implements com.aerospike.OpenTelemetry 
                 this.setConnectionStateAbort("Abort Requested");
             }
         }));
+
+        try {
+            Thread.sleep(500);
+        } catch (InterruptedException ignored) {
+        }
     }
 
     private OpenTelemetrySdk initOpenTelemetry() {

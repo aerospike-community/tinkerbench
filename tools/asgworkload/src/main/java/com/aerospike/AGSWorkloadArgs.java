@@ -33,8 +33,8 @@ public abstract class AGSWorkloadArgs  implements Callable<Integer> {
     @Spec
     CommandSpec commandlineSpec;
 
-    @Parameters(description = "The query to run which should match the class name")
-    String queryName;
+    @Parameters(description = "The query string to run or a predefined Query.")
+    String queryNameOrString;
 
     @Option(names = {"-s", "--schedulers"},
             converter = SchedulerConverter.class,
@@ -111,6 +111,10 @@ public abstract class AGSWorkloadArgs  implements Callable<Integer> {
     @Option(names = "-test",
             description = "Enables application test mode (no physical connections to AGS).")
     boolean testMode;
+
+    @Option(names = "-result",
+            description = "If provided, the results of the Query are displayed and logged")
+    boolean printResult;
 
     public final AtomicBoolean abortRun = new AtomicBoolean(false);
     public final AtomicBoolean abortSIGRun = new AtomicBoolean(false);
