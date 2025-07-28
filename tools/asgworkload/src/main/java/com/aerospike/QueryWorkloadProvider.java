@@ -12,14 +12,32 @@ public abstract class QueryWorkloadProvider implements QueryRunnable {
     private final AGSGraphTraversal agsGraphTraversal;
     private final LogSource logger = LogSource.getInstance();
     private final boolean isPrintResult;
+    private final String workloadName;
 
     public QueryWorkloadProvider(final WorkloadProvider provider,
                                  final AGSGraphTraversal ags) {
         this.provider = provider;
         this.agsGraphTraversal = ags;
         this.isPrintResult = provider.getCliArgs().printResult;
+        this.workloadName = null;
 
         this.provider.setQuery(this);
+    }
+
+    public QueryWorkloadProvider(final WorkloadProvider provider,
+                                 final AGSGraphTraversal ags,
+                                 final String workloadName) {
+        this.workloadName = workloadName;
+        this.provider = provider;
+        this.agsGraphTraversal = ags;
+        this.isPrintResult = provider.getCliArgs().printResult;
+
+        this.provider.setQuery(this);
+    }
+
+    @Override
+    public String Name() {
+        return this.workloadName;
     }
 
     /**
@@ -108,6 +126,6 @@ public abstract class QueryWorkloadProvider implements QueryRunnable {
 
     @Override
     public String toString() {
-        return String.format("Query[%s-%s]", Name(), WorkloadType());
+        return String.format("Gremlin [%s-%s]", Name(), WorkloadType());
     }
 }

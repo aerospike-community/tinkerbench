@@ -81,7 +81,7 @@ public abstract class AGSWorkloadArgs  implements Callable<Integer> {
     @Option(names = {"-sd","--shutdown"},
             converter = DurationConverter.class,
             description = "Timeout used to wait for worker and scheduler shutdown. The duration is based on the ISO 8601 format (e.g., PT3M for 3 minutes, PT20.30S represents a duration of 20 seconds and 300 milliseconds). Default is ${DEFAULT-VALUE}",
-            defaultValue = "PT15S")
+            defaultValue = "PT15M")
     Duration shutdownTimeout;
 
     @Option(names = {"--prometheusPort"},
@@ -93,11 +93,11 @@ public abstract class AGSWorkloadArgs  implements Callable<Integer> {
             description = "Enables Prometheus OpenTel metrics.")
     boolean promEnabled;
 
-    @Option(names = {"-cw", "--CloseWaitSecs"},
+    @Option(names = {"-cw", "--CloseWait"},
             converter = DurationConverter.class,
-            description = "Close wait interval, in seconds, upon application exit. This interval ensure all values are picked by the Prometheus server. This should match the 'scrape_interval' in the PROM ymal file. Can be zero to disable wait. Default is ${DEFAULT-VALUE}",
+            description = "Close wait interval upon application exit. This interval ensure all values are picked up by the Prometheus server. This should match the 'scrape_interval' in the PROM ymal file. Can be zero to disable wait. Default is ${DEFAULT-VALUE}",
             defaultValue = "PT15S")
-    Duration closeWaitSecs;
+    Duration closeWaitDuration;
 
     @Option(names = {"-e","--Errors"},
             description = "The number of errors reached when the workload is aborted. Default is ${DEFAULT-VALUE}",

@@ -39,6 +39,7 @@ public final class OpenTelemetryExporter implements com.aerospike.OpenTelemetry 
     private final LongGauge openTelemetryInfoGauge;
     private final LongCounter openTelemetryExceptionCounter;
     private final LongCounter openTelemetryTransactionCounter;
+    private final LongCounter openTelemetryRunningDuration;
     private final DoubleHistogram openTelemetryLatencyMSHistogram;
     private final DoubleHistogram openTelemetryLatencyUSHistogram;
 
@@ -47,6 +48,7 @@ public final class OpenTelemetryExporter implements com.aerospike.OpenTelemetry 
     private final LocalDateTime startLocalDateTime;
     private long endTimeMillis;
     private LocalDateTime endLocalDateTime;
+    private Duration targetDuration;
     private final AtomicBoolean closed = new AtomicBoolean(false);
 
     private final LogSource logger = LogSource.getInstance();
@@ -62,7 +64,7 @@ public final class OpenTelemetryExporter implements com.aerospike.OpenTelemetry 
                                     ZoneId.systemDefault());
         this.prometheusPort = args.promPort;
         this.connectionState = "Initializing";
-        this.closeWaitMS =(int) args.closeWaitSecs.toMillis();
+        this.closeWaitMS =(int) args.closeWaitDuration.toMillis();
         this.abortRun = args.abortSIGRun;
         this.terminateRun = args.terminateRun;
 
@@ -110,6 +112,13 @@ public final class OpenTelemetryExporter implements com.aerospike.OpenTelemetry 
                 openTelemetryMeter
                         .counterBuilder(METRIC_NAME + ".transaction")
                         .setDescription("Aerospike Workload Transaction")
+                        .build();
+
+        this.openTelemetryRunningDuration =
+                openTelemetryMeter
+                        .counterBuilder(METRIC_NAME + ".running.ms.duration")
+                        .setDescription("Aerospike Workload Running Duration (ms)")
+                        .setUnit("ms")
                         .build();
 
         this.printDebug("SDK and Metrics Completed");
@@ -233,6 +242,7 @@ public final class OpenTelemetryExporter implements com.aerospike.OpenTelemetry 
 
         this.endTimeMillis = 0;
         this.endLocalDateTime = null;
+        this.targetDuration = targetDuration;
 
         this.hbAttributes[0] =
                 Attributes.of(
@@ -301,54 +311,37 @@ public final class OpenTelemetryExporter implements com.aerospike.OpenTelemetry 
     }
 
     @Override
-    public void recordElapsedTime(String type, long elapsedNanos) {
+    public void recordElapsedTime(long elapsedNanos) {
         if(this.closed.get()) { return; }
-
-        if(type == null)
-            type = "";
 
         AttributesBuilder attributes = Attributes.builder();
         attributes.putAll(this.hbAttributes[0]);
-        if(!type.isEmpty())
-            attributes.put("type", type.toLowerCase());
+
         attributes.put("startTimeMillis", this.startTimeMillis);
+        attributes.put("targetdurationMills", this.targetDuration.toMillis());
 
         final Attributes attrsBuilt = attributes.build();
 
         this.openTelemetryLatencyMSHistogram.record((double) elapsedNanos / NS_TO_MS, attrsBuilt);
         this.openTelemetryLatencyUSHistogram.record((double) elapsedNanos / NS_TO_US, attrsBuilt);
         this.openTelemetryTransactionCounter.add(1, attrsBuilt);
+        this.openTelemetryRunningDuration.add( Math.round(elapsedNanos / NS_TO_MS), attrsBuilt);
 
-        this.printDebug("Elapsed Time Record  " + workloadName + " " + type, true);
-    }
-
-    @Override
-    public void recordElapsedTime(long elapsedNanos) {
-        this.recordElapsedTime(wlType, elapsedNanos);
-    }
-
-    @Override
-    public void incrTransCounter(String type) {
-
-        if(this.closed.get()) { return; }
-
-        if(type == null)
-            type = "";
-
-        AttributesBuilder attributes = Attributes.builder();
-        attributes.putAll(this.hbAttributes[0]);
-        attributes.put("startTimeMillis", this.startTimeMillis);
-        if(!type.isEmpty())
-            attributes.put("type", type.toLowerCase());
-
-        this.openTelemetryTransactionCounter.add(1, attributes.build());
-
-        this.printDebug("Transaction Counter Add " + workloadName + " " + type, true);
+        this.printDebug("Elapsed Time Record  " + workloadName + " " + wlType, true);
     }
 
     @Override
     public void incrTransCounter() {
-        incrTransCounter(wlType);
+
+        if(this.closed.get()) { return; }
+
+        AttributesBuilder attributes = Attributes.builder();
+        attributes.putAll(this.hbAttributes[0]);
+        attributes.put("startTimeMillis", this.startTimeMillis);
+
+        this.openTelemetryTransactionCounter.add(1, attributes.build());
+
+        this.printDebug("Transaction Counter Add " + workloadName + " " + wlType, true);
     }
 
     @Override

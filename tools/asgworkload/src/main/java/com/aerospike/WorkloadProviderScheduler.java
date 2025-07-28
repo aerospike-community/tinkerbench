@@ -38,6 +38,7 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
     private final AtomicLong errorDuration = new AtomicLong();
     private final AtomicBoolean abortRun;
     private final AtomicBoolean terminateRun;
+    private final AtomicBoolean terminateWorkers = new AtomicBoolean();
     private final AtomicBoolean waitingSchedulerShutdown = new AtomicBoolean();
     private final int errorThreshold;
     private final Boolean warmup;
@@ -232,7 +233,7 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
     public WorkloadProvider Start() throws RuntimeException {
 
         if(status == WorkloadStatus.CanRun || status == WorkloadStatus.Completed) {
-            final int useScheduler = schedulers * 2;
+            final int useScheduler = schedulers;
             final int base = callsPerSecond / useScheduler;
             final int remainder = callsPerSecond % useScheduler;
             waitingSchedulerShutdown.set(false);
@@ -301,7 +302,8 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
     @Override
     public void close() {
 
-        if(status == WorkloadStatus.Shutdown || status == WorkloadStatus.PendingShutdown)
+        if(status == WorkloadStatus.Shutdown
+                || status == WorkloadStatus.PendingShutdown)
             return;
 
         boolean alreadyCompleted = status == WorkloadStatus.Completed;
@@ -313,8 +315,13 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
         }
 
         setStatus(WorkloadStatus.PendingShutdown);
-        shutdownAndAwaitTermination(schedulerPool, "Scheduler");
+        if(!schedulerPool.isTerminated()) {
+            for (Future<?> schedulerFuture : schedulerFutures) {
+                schedulerFuture.cancel(true);
+            }
+        }
         shutdownAndAwaitTermination(workerPool, "Worker");
+        shutdownAndAwaitTermination(schedulerPool, "Scheduler");
         setStatus(WorkloadStatus.Shutdown);
 
         if(!alreadyCompleted && queryRunnable != null) {
@@ -332,6 +339,13 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
                     queryRunnable.WorkloadType().toString(),
                     queryRunnable.Name());
         }
+
+        if(openTelemetry != null) {
+            try {
+                openTelemetry.close();
+            } catch (Exception ignored) {
+            }
+        }
     }
 
     /*
@@ -348,28 +362,27 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
     public boolean awaitTermination(long timeout, TimeUnit unit) throws InterruptedException {
 
         if(status == WorkloadStatus.Running) {
-            if(timeout < 0) {
-                timeout = targetRunDuration.toSeconds() + shutdownTimeout.toSeconds();
+            if (timeout < 0) {
+                timeout = targetRunDuration.toSeconds() * 5;
                 unit = TimeUnit.SECONDS;
             }
 
             System.out.println("\tAWaiting for Completion...");
 
-            if(workerPool.awaitTermination(timeout,unit)) {
-                if(!schedulerPool.isTerminated()) {
-                    schedulerPool.awaitTermination(timeout, unit);
-                }
-                setStatus(WorkloadStatus.Completed);
-                if(queryRunnable != null) {
-                    queryRunnable.postProcess();
-                }
-                System.out.println("\tRun Completed");
-                return true;
+            while (!schedulerPool.isTerminated()
+                        && !schedulerPool.isShutdown()) {
+                Thread.onSpinWait();
+            }
+
+            setStatus(WorkloadStatus.Completed);
+            if (queryRunnable != null) {
+                queryRunnable.postProcess();
             }
         }
-
-        System.out.println("\tRun Completed (Timed out)");
-        return false;
+        System.out.printf("\t%s Status %s\n",
+                            warmup ? "Warmup" : "Workload",
+                            status);
+        return true;
     }
 
     /*
@@ -395,20 +408,25 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
         }
         final Duration rtDuration = Duration.ofNanos(totCallDuration.get());
         final int successCount = getSuccessCount();
+        final Duration successDuration = Duration.ofNanos(this.successDuration.get());
         final int errorCount = getErrorCount();
+        final Duration errorDuration = Duration.ofNanos(this.errorDuration.get());
         final int abortedCount = getAbortedCount();
         final int totalCount = successCount + errorCount + abortedCount;
 
         printStream.printf("%s Summary for %s:\n",
                             warmup ? "Warmup " : "Workload",
                             queryRunnable.Name());
-        if(getStatus() != WorkloadStatus.Running)
-            printStream.printf("\tStatus: %s\n", getStatus());
+        printStream.printf("\tStatus: %s\n", abortRun.get()
+                                                ? getStatus() +" (Signaled)"
+                                                : getStatus());
         printStream.printf("\tExecution Time: %s\n", rtDuration);
         printStream.printf("\tMean Calls/Second: %,.2f\n", getCallsPerSecond());
         printStream.printf("\tMean Errors/Second: %,.2f\n", getErrorsPerSecond());
         printStream.printf("\tSuccesses: %,d\n", successCount);
+        printStream.printf("\tSuccesses Duration: %s\n", successDuration);
         printStream.printf("\tErrors: %,d\n", errorCount);
+        printStream.printf("\tErrors Duration: %s\n", errorDuration);
         printStream.printf("\tAborted: %,d\n", abortedCount);
         printStream.printf("\tTotal: %,d\n", totalCount);
 
@@ -507,7 +525,6 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
             histogram.recordValue(latency);
             successCount.incrementAndGet();
             if(openTelemetry != null) {
-                openTelemetry.incrTransCounter();
                 openTelemetry.recordElapsedTime(latency);
             }
         }
@@ -532,13 +549,14 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
                 startCall = System.nanoTime();
                 final boolean recordResult = queryRunnable.call();
                 final long duration = System.nanoTime() - startCall;
-                if(recordResult) {
-                   Success(duration);
-                }
-                else {
-                    abortedCount.incrementAndGet();
-                    logger.getLogger4j().warn("Workload {} aborted",
-                                                queryRunnable);
+                if(!terminateWorkers.get()) {
+                    if (recordResult) {
+                        Success(duration);
+                    } else {
+                        abortedCount.incrementAndGet();
+                        logger.getLogger4j().warn("Workload {} aborted",
+                                queryRunnable);
+                    }
                 }
             } catch (InterruptedException e) {
                 abortedCount.incrementAndGet();
@@ -559,16 +577,16 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
         final long callIntervalNS = 1_000_000_000L / rate;
         final long targetDurationNS = targetRunDuration.toNanos();
         long nextCallTime = System.nanoTime();
-        List<Future<?>> futures = new ArrayList<>();
         setStatus(WorkloadStatus.Running);
 
         while (totCallDuration.get() <= targetDurationNS
                 && errorCount.get() <= errorThreshold
-                && !(abortRun.get()
-                        && terminateRun.get())) {
+                && !terminateWorkers.get()
+                && !abortRun.get()
+                && !terminateRun.get()) {
             long now = System.nanoTime();
             if (now >= nextCallTime) {
-                futures.add(workerPool.submit(new Handler()));
+                workerPool.submit(new Handler());
                 nextCallTime += callIntervalNS;
             } else {
                 Thread.onSpinWait();
@@ -577,6 +595,8 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
             //if(maxRate > maxCallRate)
             //    maxCallRate = maxRate;
         }
+
+        terminateWorkers.set(true);
 
         if(errorCount.get() > errorThreshold
                 && !abortRun.get())
@@ -592,27 +612,18 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
                             errorCount.get());
         }
 
-        if(totCallDuration.get() >= targetDurationNS
-                || abortRun.get()) {
-            setStatus(WorkloadStatus.WaitingCompletion);
-            if(!waitingSchedulerShutdown.get()) {
-                System.out.printf("\tStopping %s due to %s...\n",
-                        warmup ? "warmup" : "workload",
-                        abortRun.get() ? "Signal" : "Duration Reached");
-                waitingSchedulerShutdown.set(true);
-            }
-            logger.PrintDebug("WorkloadProviderScheduler",
-                            "Aborting Workers %s",
-                            queryRunnable);
-            for (Future<?> future : futures) {
-                if (!future.isDone()) {
-                    future.cancel(true);
-                }
-            }
+        setStatus(WorkloadStatus.WaitingCompletion);
+        if(!waitingSchedulerShutdown.get()) {
+            waitingSchedulerShutdown.set(true);
+            System.out.printf("\tStopping %s due to %s...\n",
+                    warmup ? "warmup" : "workload",
+                    abortRun.get() ? "Signal" : "Duration Reached");
         }
-        else {
-            System.out.println("\tStopping Workload...");
-        }
+        schedulerPool.shutdownNow();
+        workerPool.shutdownNow();
+        logger.PrintDebug("WorkloadProviderScheduler",
+                        "Aborting Workers %s",
+                        queryRunnable);
     }
 
     private void shutdownAndAwaitTermination(ExecutorService pool, String poolName) {

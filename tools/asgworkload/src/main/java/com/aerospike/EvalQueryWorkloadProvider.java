@@ -1,22 +1,18 @@
 package com.aerospike;
 
-import org.apache.tinkerpop.gremlin.groovy.jsr223.GremlinGroovyScriptEngine;
 import org.apache.tinkerpop.gremlin.jsr223.GremlinLangScriptEngine;
 import org.apache.tinkerpop.gremlin.process.traversal.Bytecode;
 import org.apache.tinkerpop.gremlin.process.traversal.Traversal;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.DefaultGraphTraversal;
-import org.codehaus.groovy.jsr223.GroovyScriptEngineImpl;
 
 import javax.script.*;
 
 public final class EvalQueryWorkloadProvider extends QueryWorkloadProvider {
 
-    final String ScriptingEngine = "Groovy";
-
     final ScriptEngineManager manager;
-    final GroovyScriptEngineImpl engine;
+    final GremlinLangScriptEngine engine;
     final Bindings bindings;
-    final String gremlinQuery;
+    final String gremlinString;
     final String traversalSource;
     final LogSource logger;
     final Boolean isPrintResult;
@@ -25,51 +21,35 @@ public final class EvalQueryWorkloadProvider extends QueryWorkloadProvider {
 
     public EvalQueryWorkloadProvider(WorkloadProvider provider,
                                      AGSGraphTraversal ags,
-                                     String gremlinQueryScript) {
-        super(provider, ags);
+                                     String gremlinScript) {
+        super(provider, ags, gremlinScript);
 
-        final String[] parts = gremlinQueryScript.split("\\.");
+        final String[] parts = gremlinScript.split("\\.");
         logger = getLogger();
-        this.gremlinQuery = gremlinQueryScript.replace("'","\"");
+        this.gremlinString = gremlinScript.replace("'","\"");
         this.traversalSource = parts[0];
         isPrintResult = isPrintResult();
 
-        System.out.printf("Preparing Gremlin traversal string with Source \"%s\":\n\t%s\n",
+        System.out.printf("Preparing Gremlin traversal string with Source \"%s\":\n\t%s for %s\n",
                             traversalSource,
-                            gremlinQuery);
+                            gremlinString,
+                            isWarmup() ? "Warmup" : "Workload");
 
         logger.PrintDebug("EvalQueryWorkloadProvider", "Creating ScriptEngineManager for Source \"%s\" using Query \"%s\"",
                                     traversalSource,
-                                    gremlinQuery);
+                                    gremlinString);
         manager = new ScriptEngineManager();
-        logger.PrintDebug("EvalQueryWorkloadProvider", String.format("Getting %s Engine", ScriptingEngine));
-        //engine = manager.getEngineByName(ScriptingEngine);
-
-        engine = new GroovyScriptEngineImpl();
-
-        if (engine == null) {
-            final String errMsg = String.format("%s Engine not found \"%s\"",
-                                                    ScriptingEngine,
-                                                    gremlinQuery);
-            System.err.printf("Error: %s Engine not found. Shutting Down...\n",
-                                ScriptingEngine);
-            logger.error(errMsg);
-            getOpenTelemetry().addException("Not Found", errMsg);
-            provider.getCliArgs()
-                    .abortRun.set(true);
-            bindings = null;
-            GetEngines(manager);
-            return;
-        }
+        logger.PrintDebug("EvalQueryWorkloadProvider", "Getting GremlinLangScriptEngine Engine");
+        engine = new GremlinLangScriptEngine();
 
         logger.PrintDebug("EvalQueryWorkloadProvider", "Binding to g");
         bindings = engine.createBindings();
         bindings.put(traversalSource, G());
 
         try {
-            logger.PrintDebug("EvalQueryWorkloadProvider", "Generating Bytecode for \"%s\"", gremlinQuery);
+            logger.PrintDebug("EvalQueryWorkloadProvider", "Generating Bytecode for \"%s\"", gremlinString);
 
-            gremlinEvalBytecode = ((DefaultGraphTraversal<?, ?>) engine.eval(gremlinQuery, bindings)).getBytecode();
+            gremlinEvalBytecode = ((DefaultGraphTraversal<?, ?>) engine.eval(gremlinString, bindings)).getBytecode();
 
             logger.PrintDebug("EvalQueryWorkloadProvider",
                                 "Generated Gremlin Bytecode: %s",
@@ -80,10 +60,10 @@ public final class EvalQueryWorkloadProvider extends QueryWorkloadProvider {
             gremlinLangEngine = new GremlinLangScriptEngine();
         } catch (ScriptException e) {
             System.err.printf("ERROR: could not evaluate gremlin script \"%s\". Error: %s\n",
-                    gremlinQuery,
+                    gremlinString,
                     e.getMessage());
             logger.error(String.format("ERROR: could not evaluate gremlin script \"%s\". Error: %s\n",
-                            gremlinQuery,
+                            gremlinString,
                             e.getMessage()),
                         e);
             getOpenTelemetry().addException(e);
@@ -98,23 +78,18 @@ public final class EvalQueryWorkloadProvider extends QueryWorkloadProvider {
                                 : "Completed");
     }
 
-    private static void GetEngines(ScriptEngineManager manager) {
+    /*private static void GetEngines(ScriptEngineManager manager) {
         for (ScriptEngineFactory factory : manager.getEngineFactories()) {
             System.out.println("Engine Name: " + factory.getEngineName());
             System.out.println("Language Name: " + factory.getLanguageName());
             System.out.println("Names: " + factory.getNames());
             System.out.println("--------------------");
         }
-    }
+    }*/
 
     @Override
     public WorkloadTypes WorkloadType() {
-        return WorkloadTypes.QueryString;
-    }
-
-    @Override
-    public String Name() {
-        return "Query String";
+        return WorkloadTypes.GremlinString;
     }
 
     /**
@@ -122,7 +97,7 @@ public final class EvalQueryWorkloadProvider extends QueryWorkloadProvider {
      */
     @Override
     public String getDescription() {
-        return this.gremlinQuery;
+        return "Executes an user defined Gremlin String";
     }
 
     @Override

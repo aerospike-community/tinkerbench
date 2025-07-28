@@ -27,9 +27,6 @@ public final class OpenTelemetryDummy  implements OpenTelemetry {
     @Override
     public void incrTransCounter() {
     }
-    @Override
-    public void incrTransCounter(String type) {
-    }
 
     @SuppressWarnings("unused")
     @Override
@@ -39,11 +36,6 @@ public final class OpenTelemetryDummy  implements OpenTelemetry {
     @SuppressWarnings("unused")
     @Override
     public void addException(String exceptionType, String message) {
-    }
-
-    @SuppressWarnings("unused")
-    @Override
-    public void recordElapsedTime(String type, long elapsedNanos) {
     }
 
     @SuppressWarnings("unused")

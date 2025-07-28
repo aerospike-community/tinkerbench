@@ -2,7 +2,7 @@ package com.aerospike;
 
 public enum WorkloadTypes {
 	Query,
-	QueryString,
+	GremlinString,
 	//Put
 	Write,
 	Test

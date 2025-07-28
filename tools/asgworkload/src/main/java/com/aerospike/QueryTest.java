@@ -91,8 +91,6 @@ public class QueryTest implements QueryRunnable {
      */
     @Override
     public Boolean call() throws InterruptedException {
-        System.out.println("Running QueryTest");
-        System.out.println(provider);
         try {
             Thread.sleep(1);
         } catch (InterruptedException e) {
