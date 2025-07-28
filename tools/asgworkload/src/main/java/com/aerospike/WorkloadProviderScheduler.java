@@ -270,10 +270,11 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
                                 warmup ? "Warmup" : "Workload",
                                 queryRunnable.WorkloadType().toString(),
                                 queryRunnable.Name());
+            final long targetDuration = System.nanoTime() + targetRunDuration.toNanos();
 
             for (int i = 0; i < schedulers; i++) {
                 final int rate = base + (i < remainder ? 1 : 0);
-                schedulerFutures.add(schedulerPool.submit(() -> runDispatcher(rate)));
+                schedulerFutures.add(schedulerPool.submit(() -> runDispatcher(rate, targetDuration)));
             }
 
             try {
@@ -359,19 +360,47 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
     Throws:
         InterruptedException – if interrupted while waiting
      */
-    public boolean awaitTermination(long timeout, TimeUnit unit) throws InterruptedException {
+    public boolean awaitTermination() {
+
+        boolean result = false;
 
         if(status == WorkloadStatus.Running) {
-            if (timeout < 0) {
-                timeout = targetRunDuration.toSeconds() * 5;
-                unit = TimeUnit.SECONDS;
-            }
-
+            result = true;
             System.out.println("\tAWaiting for Completion...");
+            LocalDateTime exitTime = LocalDateTime.now()
+                                            .plus(targetRunDuration)
+                                            .plus(shutdownTimeout);
+            boolean abortNextTimeout = false;
 
             while (!schedulerPool.isTerminated()
                         && !schedulerPool.isShutdown()) {
                 Thread.onSpinWait();
+                if(LocalDateTime.now().isAfter(exitTime)) {
+                    if(abortNextTimeout) {
+                        abortRun.set(true);
+                        System.err.printf("\tStopping %s due to Abort Signalled...\n",
+                                            warmup ? "warmup" : "workload");
+                        schedulerPool.shutdownNow();
+                        workerPool.shutdownNow();
+                        result = false;
+                        break;
+                    }
+                    terminateWorkers.set(true);
+                    System.out.printf("\tStopping %s due to Timeout... Waiting Completion...\n",
+                                            warmup ? "warmup" : "workload");
+                    schedulerPool.shutdown();
+                    workerPool.shutdown();
+                    try {
+                        if(workerPool.awaitTermination(shutdownTimeout.toSeconds(), TimeUnit.SECONDS)
+                            &&  schedulerPool.awaitTermination(shutdownTimeout.toSeconds(), TimeUnit.SECONDS))
+                        {
+                            break;
+                        };
+                    } catch (InterruptedException ignored) { }
+                    abortNextTimeout = true;
+                    exitTime =  LocalDateTime.now()
+                                    .plus(shutdownTimeout);
+                }
             }
 
             setStatus(WorkloadStatus.Completed);
@@ -382,21 +411,7 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
         System.out.printf("\t%s Status %s\n",
                             warmup ? "Warmup" : "Workload",
                             status);
-        return true;
-    }
-
-    /*
-    Blocks until all tasks have completed execution after a shutdown request, or the timeout occurs, or the current thread is interrupted, whichever happens first.
-    Returns:
-        true if this executor terminated and false if the timeout elapsed before termination or nothing is running.
-     */
-    public boolean awaitTermination() {
-        try {
-            return awaitTermination(-1, TimeUnit.SECONDS);
-        }
-        catch (InterruptedException e) {
-            return false;
-        }
+        return result;
     }
 
     public WorkloadProvider PrintSummary(PrintStream printStream) {
@@ -436,24 +451,29 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
             Map<String, List<Exception>> errors = getErrors()
                     .stream()
                     .collect(Collectors.groupingBy(w -> w.getClass().getName()));
+
             for (Map.Entry<String, List<Exception>> entry : errors.entrySet()) {
-                Map<String, List<Exception>> sameMsgs = entry.getValue()
-                        .stream()
-                        .collect(Collectors.groupingBy(Throwable::getMessage));
-                if (entry.getValue().size() == sameMsgs.size()) {
-                    printStream.printf("\tCnt: %d\tException: %s\t'%s'\n",
-                            entry.getValue().size(),
-                            entry.getKey(),
-                            entry.getValue().getFirst().getMessage());
-                } else {
-                    printStream.printf("\tCnt: %d\tException: %s:\n",
-                            entry.getValue().size(),
-                            entry.getKey());
-                    for (Map.Entry<String, List<Exception>> sameMsg : sameMsgs.entrySet()) {
-                        printStream.printf("\t\tCnt: %d\tMsg: '%s'\n",
-                                sameMsgs.size(),
-                                sameMsg.getKey());
+                try {
+                    Map<String, List<Exception>> sameMsgs = entry.getValue()
+                            .stream()
+                            .collect(Collectors.groupingBy(Throwable::getMessage));
+                    if (entry.getValue().size() == sameMsgs.size()) {
+                        printStream.printf("\tCnt: %d\tException: %s\t'%s'\n",
+                                entry.getValue().size(),
+                                entry.getKey(),
+                                entry.getValue().getFirst().getMessage());
+                    } else {
+                        printStream.printf("\tCnt: %d\tException: %s:\n",
+                                entry.getValue().size(),
+                                entry.getKey());
+                        for (Map.Entry<String, List<Exception>> sameMsg : sameMsgs.entrySet()) {
+                            printStream.printf("\t\tCnt: %d\tMsg: '%s'\n",
+                                    sameMsgs.size(),
+                                    sameMsg.getKey());
+                        }
                     }
+                } catch (Exception ignored) {
+                    printStream.printf("\t%s\n", entry.toString());
                 }
             }
         }
@@ -572,28 +592,25 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
         }
     }
 
-    private void runDispatcher(int rate) {
+    private void runDispatcher(final int rate,
+                               final long targetDurationNS) {
 
         final long callIntervalNS = 1_000_000_000L / rate;
-        final long targetDurationNS = targetRunDuration.toNanos();
         long nextCallTime = System.nanoTime();
         setStatus(WorkloadStatus.Running);
+        long now;
 
-        while (totCallDuration.get() <= targetDurationNS
+        while ((now = System.nanoTime()) <= targetDurationNS
                 && errorCount.get() <= errorThreshold
                 && !terminateWorkers.get()
                 && !abortRun.get()
                 && !terminateRun.get()) {
-            long now = System.nanoTime();
             if (now >= nextCallTime) {
                 workerPool.submit(new Handler());
                 nextCallTime += callIntervalNS;
             } else {
                 Thread.onSpinWait();
             }
-            //double maxRate = getCallsPerSecond();
-            //if(maxRate > maxCallRate)
-            //    maxCallRate = maxRate;
         }
 
         terminateWorkers.set(true);

@@ -9,7 +9,6 @@ import javax.script.*;
 
 public final class EvalQueryWorkloadProvider extends QueryWorkloadProvider {
 
-    final ScriptEngineManager manager;
     final GremlinLangScriptEngine engine;
     final Bindings bindings;
     final String gremlinString;
@@ -38,7 +37,6 @@ public final class EvalQueryWorkloadProvider extends QueryWorkloadProvider {
         logger.PrintDebug("EvalQueryWorkloadProvider", "Creating ScriptEngineManager for Source \"%s\" using Query \"%s\"",
                                     traversalSource,
                                     gremlinString);
-        manager = new ScriptEngineManager();
         logger.PrintDebug("EvalQueryWorkloadProvider", "Getting GremlinLangScriptEngine Engine");
         engine = new GremlinLangScriptEngine();
 
@@ -111,11 +109,15 @@ public final class EvalQueryWorkloadProvider extends QueryWorkloadProvider {
 
     @Override
     public Boolean call() throws Exception {
+       //TODO: This needs to be refactored moving the close outside te scope of the measurement...
+        // If close not performed, there seems to be a leak according to the profiler
         try (final Traversal.Admin<?,?> resultTraversal = gremlinLangEngine.eval(gremlinEvalBytecode,
                                                                                     bindings,
                                                                                     traversalSource)) {
             if(isPrintResult) {
                 resultTraversal.forEachRemaining(this::PrintResult);
+            } else {
+                resultTraversal.toList();
             }
         }
         return true;

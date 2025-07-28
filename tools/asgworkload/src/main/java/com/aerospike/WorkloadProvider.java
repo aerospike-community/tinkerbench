@@ -95,19 +95,6 @@ public interface WorkloadProvider extends AutoCloseable {
     public WorkloadProvider Shutdown();
 
     /*
-   Blocks until all tasks have completed execution after a shutdown request, or the timeout occurs, or the current thread is interrupted, whichever happens first.
-   Params:
-       timeout – the maximum time to wait unit before terminating workload.
-                   If -1, the default duration is used.
-       time unit - The unit of time
-   Returns:
-       true if this executor terminated and false if the timeout elapsed before termination or nothing is running.
-   Throws:
-       InterruptedException – if interrupted while waiting
-    */
-    public boolean awaitTermination(long timeout, TimeUnit unit) throws InterruptedException;
-
-    /*
     Blocks until all tasks have completed execution after a shutdown request, or the timeout occurs, or the current thread is interrupted, whichever happens first.
     Returns:
         true if this executor terminated and false if the timeout elapsed before termination or nothing is running.

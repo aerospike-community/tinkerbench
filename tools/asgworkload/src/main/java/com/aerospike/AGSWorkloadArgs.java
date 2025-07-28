@@ -81,7 +81,7 @@ public abstract class AGSWorkloadArgs  implements Callable<Integer> {
     @Option(names = {"-sd","--shutdown"},
             converter = DurationConverter.class,
             description = "Timeout used to wait for worker and scheduler shutdown. The duration is based on the ISO 8601 format (e.g., PT3M for 3 minutes, PT20.30S represents a duration of 20 seconds and 300 milliseconds). Default is ${DEFAULT-VALUE}",
-            defaultValue = "PT15M")
+            defaultValue = "PT15S")
     Duration shutdownTimeout;
 
     @Option(names = {"--prometheusPort"},
