@@ -4,7 +4,7 @@ import picocli.CommandLine;
 
 import java.time.Duration;
 
-public class Main extends  AGSWorkloadArgs {
+public class Main extends AGSWorkloadArgs {
 
     private static void ExecuteWorkload(OpenTelemetry openTel,
                                         LogSource logger,
@@ -12,25 +12,27 @@ public class Main extends  AGSWorkloadArgs {
                                         Duration targetRunDuration,
                                         AGSWorkloadArgs args,
                                         boolean isWarmUp) {
-        try(final WorkloadProvider workload = new WorkloadProviderScheduler(openTel,
-                                                                            targetRunDuration,
-                                                                            isWarmUp,
-                                                                            args)) {
+        args.idManager.init(agsGraphTraversal.G());
+        try (final WorkloadProvider workload = new WorkloadProviderScheduler(openTel,
+                targetRunDuration,
+                isWarmUp,
+                args)) {
             final boolean isQueryString = args.queryNameOrString
-                                            .indexOf(".") > 0;
+                    .indexOf(".") > 0;
 
             final QueryRunnable workloadRunner = isQueryString
-                                                    ? new EvalQueryWorkloadProvider(workload,
-                                                                                    agsGraphTraversal,
-                                                                                    args.queryNameOrString)
-                                                    : Helpers.GetQuery(args.queryNameOrString,
-                                                                        workload,
-                                                                        agsGraphTraversal,
-                                                                        args.debug);
-            if(mainInstance.abortRun.get())
+                    ? new EvalQueryWorkloadProvider(workload,
+                    agsGraphTraversal,
+                    args.queryNameOrString,
+                    args.idManager)
+                    : Helpers.GetQuery(args.queryNameOrString,
+                    workload,
+                    agsGraphTraversal,
+                    args.debug);
+            if (mainInstance.abortRun.get())
                 return;
 
-            if(isWarmUp) {
+            if (isWarmUp) {
                 System.out.println("Running WarmUp...");
                 logger.info("Running WarmUp...");
             } else {
@@ -39,12 +41,12 @@ public class Main extends  AGSWorkloadArgs {
             }
 
             workloadRunner
-                .Start()
-                .awaitTermination()
-                .Shutdown()
-                .PrintSummary();
+                    .Start()
+                    .awaitTermination()
+                    .Shutdown()
+                    .PrintSummary();
 
-            if(isWarmUp) {
+            if (isWarmUp) {
                 System.out.println("WarmUp Completed...");
                 logger.info("WarmUp Completed...");
             } else {
@@ -53,7 +55,7 @@ public class Main extends  AGSWorkloadArgs {
             }
 
         } catch (Exception e) {
-            logger.error(isWarmUp ? "Warmup" : "Workload",e);
+            logger.error(isWarmUp ? "Warmup" : "Workload", e);
             throw new RuntimeException(e);
         }
     }
@@ -64,20 +66,20 @@ public class Main extends  AGSWorkloadArgs {
         LogSource logger = new LogSource(debug);
         logger.title(this);
 
-        try(final OpenTelemetry openTel = OpenTelemetryHelper.Create(this, null);
-            final AGSGraphTraversalSource agsGraphTraversalSource
-                            = new AGSGraphTraversalSource(this, openTel)) {
+        try (final OpenTelemetry openTel = OpenTelemetryHelper.Create(this, null);
+             final AGSGraphTraversalSource agsGraphTraversalSource
+                     = new AGSGraphTraversalSource(this, openTel)) {
 
             if (!warmupDuration.isZero()) {
                 ExecuteWorkload(openTel,
-                                    logger,
-                                    agsGraphTraversalSource,
-                                    warmupDuration,
-                                this,
-                            true);
+                        logger,
+                        agsGraphTraversalSource,
+                        warmupDuration,
+                        this,
+                        true);
             }
 
-            if(!mainInstance.abortRun.get()) {
+            if (!mainInstance.abortRun.get()) {
                 ExecuteWorkload(openTel,
                         logger,
                         agsGraphTraversalSource,
@@ -88,7 +90,7 @@ public class Main extends  AGSWorkloadArgs {
             }
         }
 
-        return  0;
+        return 0;
     }
 
     private static final Main mainInstance = new Main();
@@ -96,7 +98,7 @@ public class Main extends  AGSWorkloadArgs {
     public static void main(final String[] args) {
 
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-            if(mainInstance.terminateRun.get()) {
+            if (mainInstance.terminateRun.get()) {
                 System.out.println("Shutdown initiated...");
             } else {
                 System.out.println("Abort initiated. Performing cleanup...");

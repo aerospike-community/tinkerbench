@@ -17,11 +17,54 @@ public final class EvalQueryWorkloadProvider extends QueryWorkloadProvider {
     final Boolean isPrintResult;
     GremlinLangScriptEngine gremlinLangEngine = null;
     Bytecode gremlinEvalBytecode = null;
+    Terminator terminator = Terminator.toList;
+    boolean requiresIdFormat = false;
+    final IdManager idManager;
+    ThreadLocal<Bytecode> bytecodeThreadLocal;
+
+    enum Terminator {
+        next,
+        toList,
+        iterate,
+        toSet
+    }
 
     public EvalQueryWorkloadProvider(WorkloadProvider provider,
                                      AGSGraphTraversal ags,
-                                     String gremlinScript) {
+                                     String gremlinScript,
+                                     IdManager idManager) {
         super(provider, ags, gremlinScript);
+        this.idManager = idManager;
+
+        if (gremlinScript.endsWith("next()") ||
+            gremlinScript.endsWith("toList()") ||
+            gremlinScript.endsWith("iterate()") ||
+            gremlinScript.endsWith("toSet()")) {
+            // Remove the terminator from the script
+            String terminatorString = gremlinScript.substring(gremlinScript.lastIndexOf('.') + 1);
+            switch (terminatorString) {
+                case "next()":
+                    terminator = Terminator.next;
+                    break;
+                case "toList()":
+                    terminator = Terminator.toList;
+                    break;
+                case "iterate()":
+                    terminator = Terminator.iterate;
+                    break;
+                case "toSet()":
+                    terminator = Terminator.toSet;
+                    break;
+                default:
+                    throw new IllegalArgumentException(String.format("Error Unknown terminator \"%s\" in Gremlin script \"%s\"\n",
+                            terminatorString,
+                            gremlinScript));
+            }
+            gremlinScript = gremlinScript.substring(0, gremlinScript.lastIndexOf('.'));
+        }
+        if (gremlinScript.contains("%s")) {
+            requiresIdFormat = true;
+        }
 
         final String[] parts = gremlinScript.split("\\.");
         logger = getLogger();
@@ -47,7 +90,11 @@ public final class EvalQueryWorkloadProvider extends QueryWorkloadProvider {
         try {
             logger.PrintDebug("EvalQueryWorkloadProvider", "Generating Bytecode for \"%s\"", gremlinString);
 
-            gremlinEvalBytecode = ((DefaultGraphTraversal<?, ?>) engine.eval(gremlinString, bindings)).getBytecode();
+            Object id = idManager.getId();
+            if (id instanceof String) {
+                id = "'" + id + "'";
+            }
+            gremlinEvalBytecode = ((DefaultGraphTraversal<?, ?>) engine.eval(String.format(gremlinString, id), bindings)).getBytecode();
 
             logger.PrintDebug("EvalQueryWorkloadProvider",
                                 "Generated Gremlin Bytecode: %s",
@@ -56,7 +103,15 @@ public final class EvalQueryWorkloadProvider extends QueryWorkloadProvider {
             logger.PrintDebug("EvalQueryWorkloadProvider",
                             "Creating GremlinLangScriptEngine...");
             gremlinLangEngine = new GremlinLangScriptEngine();
-        } catch (ScriptException e) {
+            Object finalId = id;
+            bytecodeThreadLocal = ThreadLocal.withInitial(() -> {
+                try {
+                    return ((DefaultGraphTraversal<?, ?>) engine.eval(String.format(gremlinString, finalId), bindings)).getBytecode();
+                } catch (ScriptException e) {
+                    throw new RuntimeException(e);
+                }
+            });
+        } catch (Exception e) {
             System.err.printf("ERROR: could not evaluate gremlin script \"%s\". Error: %s\n",
                     gremlinString,
                     e.getMessage());
@@ -110,14 +165,34 @@ public final class EvalQueryWorkloadProvider extends QueryWorkloadProvider {
     @Override
     public Boolean call() throws Exception {
        //TODO: This needs to be refactored moving the close outside te scope of the measurement...
+        if (requiresIdFormat) {
+            final Object id = idManager.getId();
+            Object[] data = bytecodeThreadLocal.get().getStepInstructions().getFirst().getArguments();
+            data[0] = id;
+        }
         // If close not performed, there seems to be a leak according to the profiler
-        try (final Traversal.Admin<?,?> resultTraversal = gremlinLangEngine.eval(gremlinEvalBytecode,
+        try (final Traversal.Admin<?,?> resultTraversal = gremlinLangEngine.eval(bytecodeThreadLocal.get(),
                                                                                     bindings,
                                                                                     traversalSource)) {
-            if(isPrintResult) {
+            if (isPrintResult) {
                 resultTraversal.forEachRemaining(this::PrintResult);
             } else {
-                resultTraversal.toList();
+                switch (terminator) {
+                    case next:
+                        resultTraversal.next();
+                        break;
+                    case iterate:
+                        resultTraversal.iterate();
+                        break;
+                    case toSet:
+                        resultTraversal.toSet();
+                        break;
+                    case toList:
+                        resultTraversal.toList();
+                        break;
+                    default:
+                        throw new IllegalStateException("This should never happen: Unknown terminator " + terminator);
+                }
             }
         }
         return true;
