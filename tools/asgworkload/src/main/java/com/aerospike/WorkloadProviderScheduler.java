@@ -390,7 +390,7 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
 
         if(status == WorkloadStatus.Running) {
             result = true;
-            System.out.println("\tAWaiting for Completion...");
+            System.out.println("\tAwaiting for Completion...");
             LocalDateTime exitTime = LocalDateTime.now()
                                             .plus(targetRunDuration)
                                             .plus(shutdownTimeout);
@@ -399,6 +399,7 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
             while (!schedulerPool.isTerminated()
                         && !schedulerPool.isShutdown()) {
                 Thread.onSpinWait();
+                // TODO: Maybe use latch w/ scheduled thing here to avoid extra cpu.
                 if(LocalDateTime.now().isAfter(exitTime)) {
                     if(abortNextTimeout) {
                         abortRun.set(true);

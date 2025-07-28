@@ -99,6 +99,12 @@ public abstract class AGSWorkloadArgs  implements Callable<Integer> {
             defaultValue = "PT15S")
     Duration closeWaitDuration;
 
+    @Option(names = {"-id", "--IdManager"},
+            converter = IdManagerConverter.class,
+            description = "The IdManager to use for the workload. Default is ${DEFAULT-VALUE}",
+            defaultValue = "com.aerospike.IdSampler")
+    IdManager idManager;
+
     @Option(names = {"-e","--Errors"},
             description = "The number of errors reached when the workload is aborted. Default is ${DEFAULT-VALUE}",
             defaultValue = "150")
@@ -213,7 +219,7 @@ public abstract class AGSWorkloadArgs  implements Callable<Integer> {
         private final int nbrCores = Runtime.getRuntime().availableProcessors();
 
         public int DefaultNbrSchedules() { return (int) Math.ceil(nbrCores * .5); }
-        public int DefaultNbrWorks() { return nbrCores * 10; }
+        public int DefaultNbrWorks() { return nbrCores; }
 
         @Override
         public String defaultValue(CommandLine.Model.ArgSpec argSpec) throws Exception {
@@ -266,6 +272,22 @@ public abstract class AGSWorkloadArgs  implements Callable<Integer> {
             }
 
             return Duration.parse("PT" + value.toUpperCase());
+        }
+    }
+
+    static final class IdManagerConverter implements CommandLine.ITypeConverter<IdManager> {
+        @Override
+        public IdManager convert(String value) throws Exception {
+            try {
+                Class<?> idManagerClass = Class.forName(value);
+                if (IdManager.class.isAssignableFrom(idManagerClass)) {
+                    return (IdManager) idManagerClass.getDeclaredConstructor().newInstance();
+                } else {
+                    throw new IllegalArgumentException("Class " + value + " does not implement IdManager interface.");
+                }
+            } catch (Exception e) {
+                throw new IllegalArgumentException("Failed to instantiate IdManager from class: " + value, e);
+            }
         }
     }
 
