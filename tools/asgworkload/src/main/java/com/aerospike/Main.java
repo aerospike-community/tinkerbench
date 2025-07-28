@@ -41,7 +41,6 @@ public class Main extends  AGSWorkloadArgs {
             workloadRunner
                 .Start()
                 .awaitTermination()
-                .Shutdown()
                 .PrintSummary();
 
             if(isWarmUp) {
