@@ -48,7 +48,7 @@ public abstract class AGSWorkloadArgs  implements Callable<Integer> {
 
     @Option(names = {"-d", "--duration"},
             converter = DurationConverter.class,
-            description = "The Run Time duration (not wall clock) of the workload only using ISO 8601 duration format (e.g., PT1H30M for 1 hour 30 minutes, PT20.30S represents a duration of 20 seconds and 300 milliseconds). Default is ${DEFAULT-VALUE}",
+            description = "The Time duration (wall clock) of the workload. it  uses the ISO 8601 duration format (e.g., PT1H30M for 1 hour 30 minutes, PT20.30S represents a duration of 20 seconds and 300 milliseconds). Default is ${DEFAULT-VALUE}",
             defaultValue = "PT15M")
     Duration duration;
 
