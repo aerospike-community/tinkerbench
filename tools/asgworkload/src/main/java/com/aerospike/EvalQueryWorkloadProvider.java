@@ -1,11 +1,15 @@
 package com.aerospike;
 
+import groovy.transform.Final;
 import org.apache.tinkerpop.gremlin.jsr223.GremlinLangScriptEngine;
 import org.apache.tinkerpop.gremlin.process.traversal.Bytecode;
 import org.apache.tinkerpop.gremlin.process.traversal.Traversal;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.DefaultGraphTraversal;
+import org.javatuples.Pair;
 
 import javax.script.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public final class EvalQueryWorkloadProvider extends QueryWorkloadProvider {
 
@@ -22,6 +26,8 @@ public final class EvalQueryWorkloadProvider extends QueryWorkloadProvider {
     final IdManager idManager;
     ThreadLocal<Bytecode> bytecodeThreadLocal;
 
+    final Pattern funcPattern = Pattern.compile("^\\s*(?<stmt>.+)\\.(?<func>[^(]+)\\(\\s*\\)\\s*$");
+
     enum Terminator {
         next,
         toList,
@@ -36,31 +42,28 @@ public final class EvalQueryWorkloadProvider extends QueryWorkloadProvider {
         super(provider, ags, gremlinScript);
         this.idManager = idManager;
 
-        if (gremlinScript.endsWith("next()") ||
-            gremlinScript.endsWith("toList()") ||
-            gremlinScript.endsWith("iterate()") ||
-            gremlinScript.endsWith("toSet()")) {
-            // Remove the terminator from the script
-            String terminatorString = gremlinScript.substring(gremlinScript.lastIndexOf('.') + 1);
+        Matcher matcher = funcPattern.matcher(gremlinScript);
+        if (matcher.find()) {
+            String terminatorString = matcher.group("func").toLowerCase();
             switch (terminatorString) {
-                case "next()":
+                case "next":
                     terminator = Terminator.next;
                     break;
-                case "toList()":
+                case "tolist":
                     terminator = Terminator.toList;
                     break;
-                case "iterate()":
+                case "iterate":
                     terminator = Terminator.iterate;
                     break;
-                case "toSet()":
+                case "toset":
                     terminator = Terminator.toSet;
                     break;
                 default:
-                    throw new IllegalArgumentException(String.format("Error Unknown terminator \"%s\" in Gremlin script \"%s\"\n",
+                    throw new IllegalArgumentException(String.format("Error Unknown terminator function \"%s\" in Gremlin script \"%s\"\n",
                             terminatorString,
                             gremlinScript));
             }
-            gremlinScript = gremlinScript.substring(0, gremlinScript.lastIndexOf('.'));
+            gremlinScript = matcher.group("stmt");
         }
         if (gremlinScript.contains("%s")) {
             requiresIdFormat = true;
@@ -72,9 +75,10 @@ public final class EvalQueryWorkloadProvider extends QueryWorkloadProvider {
         this.traversalSource = parts[0];
         isPrintResult = isPrintResult();
 
-        System.out.printf("Preparing Gremlin traversal string with Source \"%s\":\n\t%s for %s\n",
+        System.out.printf("Preparing Gremlin traversal string with Source \"%s\":\n\t%s using %s for %s\n",
                             traversalSource,
                             gremlinString,
+                            terminator,
                             isWarmup() ? "Warmup" : "Workload");
 
         logger.PrintDebug("EvalQueryWorkloadProvider", "Creating ScriptEngineManager for Source \"%s\" using Query \"%s\"",
@@ -163,38 +167,67 @@ public final class EvalQueryWorkloadProvider extends QueryWorkloadProvider {
     }
 
     @Override
-    public Boolean call() throws Exception {
-       //TODO: This needs to be refactored moving the close outside te scope of the measurement...
+    public Pair<Boolean,Object> call() throws Exception {
+
+        // If close not performed, there seems to be a leak according to the profiler
+        final Traversal.Admin<?,?> resultTraversal = gremlinLangEngine.eval(bytecodeThreadLocal.get(),
+                                                                            bindings,
+                                                                            traversalSource);
+        if (isPrintResult) {
+            resultTraversal.forEachRemaining(this::PrintResult);
+        } else {
+            switch (terminator) {
+                case next:
+                    resultTraversal.next();
+                    break;
+                case iterate:
+                    resultTraversal.iterate();
+                    break;
+                case toSet:
+                    resultTraversal.toSet();
+                    break;
+                case toList:
+                    resultTraversal.toList();
+                    break;
+                default:
+                    throw new IllegalStateException("This should never happen: Unknown terminator " + terminator);
+            }
+        }
+        return new Pair<>(true, resultTraversal);
+    }
+
+    /*
+   Called before the actual workload is executed.
+   This is called within the scheduler and is NOT part of the workload measurement.
+   In this case we are producing the vertex id, if required, for the Gremlin string.
+    */
+    @Override
+    public void preCall() {
         if (requiresIdFormat) {
+            logger.PrintDebug("EvalQueryWorkloadProvider", "Pre Call");
             final Object id = idManager.getId();
             Object[] data = bytecodeThreadLocal.get().getStepInstructions().getFirst().getArguments();
             data[0] = id;
+            logger.PrintDebug("EvalQueryWorkloadProvider", "Pre Call with id %s", id);
         }
-        // If close not performed, there seems to be a leak according to the profiler
-        try (final Traversal.Admin<?,?> resultTraversal = gremlinLangEngine.eval(bytecodeThreadLocal.get(),
-                                                                                    bindings,
-                                                                                    traversalSource)) {
-            if (isPrintResult) {
-                resultTraversal.forEachRemaining(this::PrintResult);
-            } else {
-                switch (terminator) {
-                    case next:
-                        resultTraversal.next();
-                        break;
-                    case iterate:
-                        resultTraversal.iterate();
-                        break;
-                    case toSet:
-                        resultTraversal.toSet();
-                        break;
-                    case toList:
-                        resultTraversal.toList();
-                        break;
-                    default:
-                        throw new IllegalStateException("This should never happen: Unknown terminator " + terminator);
-                }
-            }
+    }
+
+    /*
+    Called after the actual workload is executed passing the value type T from the workload.
+    This is called within the scheduler and is NOT part of the workload measurement.
+     */
+    @Override
+    public void postCall(Object resultTraversal, Boolean ignored0, Throwable ignored1) {
+
+        if(resultTraversal == null){
+            return;
         }
-        return true;
+
+        try {
+            logger.PrintDebug("EvalQueryWorkloadProvider", "Post Call");
+            ((Traversal.Admin<?,?>)resultTraversal).close();
+        } catch (Exception e) {
+            logger.Print("EvalQueryWorkloadProvider error during close of the traversal", e);
+        }
     }
 }

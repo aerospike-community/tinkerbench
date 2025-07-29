@@ -2,6 +2,7 @@ package com.aerospike;
 
 import org.apache.tinkerpop.gremlin.driver.Cluster;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
+import org.javatuples.Pair;
 
 public class QueryTest implements QueryRunnable {
 
@@ -86,18 +87,27 @@ public class QueryTest implements QueryRunnable {
     }
 
     /**
-     * Performs the actual workload
-     * @return True to measure the workload and false to indicate the workload was aborted.
+     *
      */
     @Override
-    public Boolean call() throws InterruptedException {
+    public void preCall() {
+
+    }
+
+    @Override
+    public void postCall(Object ignored0, Boolean ignored1, Throwable ignored2) {
+
+    }
+
+    @Override
+    public Pair<Boolean,Object> call() throws InterruptedException {
         try {
             Thread.sleep(1);
         } catch (InterruptedException e) {
             System.out.println("QueryTest Exception " + e.getMessage());
             throw e;
         }
-        return true;
+        return new Pair<>(true,null);
     }
 
     /**

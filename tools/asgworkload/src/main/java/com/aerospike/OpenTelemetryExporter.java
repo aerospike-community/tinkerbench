@@ -39,7 +39,6 @@ public final class OpenTelemetryExporter implements com.aerospike.OpenTelemetry 
     private final LongGauge openTelemetryInfoGauge;
     private final LongCounter openTelemetryExceptionCounter;
     private final LongCounter openTelemetryTransactionCounter;
-    private final LongCounter openTelemetryRunningDuration;
     private final DoubleHistogram openTelemetryLatencyMSHistogram;
     private final DoubleHistogram openTelemetryLatencyUSHistogram;
 
@@ -112,13 +111,6 @@ public final class OpenTelemetryExporter implements com.aerospike.OpenTelemetry 
                 openTelemetryMeter
                         .counterBuilder(METRIC_NAME + ".transaction")
                         .setDescription("Aerospike Workload Transaction")
-                        .build();
-
-        this.openTelemetryRunningDuration =
-                openTelemetryMeter
-                        .counterBuilder(METRIC_NAME + ".running.ms.duration")
-                        .setDescription("Aerospike Workload Running Duration (ms)")
-                        .setUnit("ms")
                         .build();
 
         this.printDebug("SDK and Metrics Completed");
@@ -325,7 +317,6 @@ public final class OpenTelemetryExporter implements com.aerospike.OpenTelemetry 
         this.openTelemetryLatencyMSHistogram.record((double) elapsedNanos / NS_TO_MS, attrsBuilt);
         this.openTelemetryLatencyUSHistogram.record((double) elapsedNanos / NS_TO_US, attrsBuilt);
         this.openTelemetryTransactionCounter.add(1, attrsBuilt);
-        this.openTelemetryRunningDuration.add( Math.round(elapsedNanos / NS_TO_MS), attrsBuilt);
 
         this.printDebug("Elapsed Time Record  " + workloadName + " " + wlType, true);
     }

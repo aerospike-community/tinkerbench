@@ -2,6 +2,7 @@ package com.aerospike;
 
 import org.HdrHistogram.*;
 
+import org.javatuples.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -9,7 +10,6 @@ import java.io.PrintStream;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Vector;
@@ -208,7 +208,7 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
         this.warmup = warmup;
         {
             // A Histogram covering the range from 1 nsec to target duration with 3 decimal point resolution:
-            final Duration higestDuration = targetRunDuration.plusMinutes(1);
+            final Duration higestDuration = this.targetRunDuration.plusMinutes(1);
             this.histogram = new AtomicHistogram(higestDuration.toNanos(), 3);
         }
 
@@ -590,15 +590,21 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
 
         public void run() {
             long startCall = 0;
+            Object resultValue = null;
+            boolean success = false;
+            Throwable lastError = null;
             pendingCount.incrementAndGet();
 
             try {
+                queryRunnable.preCall();
                 startCall = System.nanoTime();
-                final boolean recordResult = queryRunnable.call();
+                final Pair<Boolean,Object> recordResult = queryRunnable.call();
                 final long duration = System.nanoTime() - startCall;
+                resultValue = recordResult.getValue1();
                 if(!terminateWorkers.get()) {
-                    if (recordResult) {
+                    if (recordResult.getValue0()) {
                         Success(duration);
+                        success = true;
                     } else {
                         abortedCount.incrementAndGet();
                         logger.getLogger4j().warn("Workload {} aborted",
@@ -609,11 +615,16 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
                 abortedCount.incrementAndGet();
             } catch (CompletionException e) {
                 final long duration = System.nanoTime() - startCall;
-                Error(duration, e.getCause());
+                lastError = e.getCause();
+                Error(duration, lastError);
             } catch (Exception e) {
                 final long duration = System.nanoTime() - startCall;
+                lastError = e;
                 Error(duration, e);
             } finally {
+                queryRunnable.postCall(resultValue,
+                                            success,
+                                            lastError);
                 pendingCount.decrementAndGet();
             }
         }

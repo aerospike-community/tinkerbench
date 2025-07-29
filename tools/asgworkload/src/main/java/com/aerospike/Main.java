@@ -23,8 +23,8 @@ public class Main extends  AGSWorkloadArgs {
             final QueryRunnable workloadRunner = isQueryString
                                                     ? new EvalQueryWorkloadProvider(workload,
                                                                                     agsGraphTraversal,
-                    args.queryNameOrString,
-                    args.idManager)
+                                                                                    args.queryNameOrString,
+                                                                                    args.idManager)
                                                     : Helpers.GetQuery(args.queryNameOrString,
                                                                         workload,
                                                                         agsGraphTraversal,
