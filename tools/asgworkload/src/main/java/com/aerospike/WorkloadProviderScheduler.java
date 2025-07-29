@@ -488,7 +488,7 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
                         printStream.printf("\tCnt: %d\tException: %s\t'%s'\n",
                                 entry.getValue().size(),
                                 entry.getKey(),
-                                entry.getValue().getFirst().getMessage());
+                                entry.getValue().get(0).getMessage());
                     } else {
                         printStream.printf("\tCnt: %d\tException: %s:\n",
                                 entry.getValue().size(),
