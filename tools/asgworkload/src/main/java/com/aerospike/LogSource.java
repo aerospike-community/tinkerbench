@@ -141,7 +141,7 @@ public final class LogSource {
         if(debugEnabled) {
             LocalDateTime now = LocalDateTime.now();
             String formattedDateTime = now.format(DateFormatter);
-            String fmtMsg = String.format("%s DEBUG %s %s%n", name, formattedDateTime, msg);
+            String fmtMsg = String.format("%s DEBUG %s %s\n", name, formattedDateTime, msg);
 
             System.out.printf(fmtMsg);
             logger4j.debug(fmtMsg);

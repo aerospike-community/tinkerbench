@@ -1,6 +1,5 @@
 package com.aerospike;
 
-import groovy.transform.Final;
 import org.apache.tinkerpop.gremlin.jsr223.GremlinLangScriptEngine;
 import org.apache.tinkerpop.gremlin.process.traversal.Bytecode;
 import org.apache.tinkerpop.gremlin.process.traversal.Traversal;
@@ -21,7 +20,7 @@ public final class EvalQueryWorkloadProvider extends QueryWorkloadProvider {
     final Boolean isPrintResult;
     GremlinLangScriptEngine gremlinLangEngine = null;
     Bytecode gremlinEvalBytecode = null;
-    Terminator terminator = Terminator.toList;
+    Terminator terminator = Terminator.none;
     boolean requiresIdFormat = false;
     final IdManager idManager;
     ThreadLocal<Bytecode> bytecodeThreadLocal;
@@ -29,10 +28,12 @@ public final class EvalQueryWorkloadProvider extends QueryWorkloadProvider {
     final Pattern funcPattern = Pattern.compile("^\\s*(?<stmt>.+)\\.(?<func>[^(]+)\\(\\s*\\)\\s*$");
 
     enum Terminator {
+        none,
         next,
         toList,
         iterate,
-        toSet
+        toSet,
+        hasNext
     }
 
     public EvalQueryWorkloadProvider(WorkloadProvider provider,
@@ -40,6 +41,7 @@ public final class EvalQueryWorkloadProvider extends QueryWorkloadProvider {
                                      String gremlinScript,
                                      IdManager idManager) {
         super(provider, ags, gremlinScript);
+        logger = getLogger();
         this.idManager = idManager;
 
         Matcher matcher = funcPattern.matcher(gremlinScript);
@@ -48,29 +50,35 @@ public final class EvalQueryWorkloadProvider extends QueryWorkloadProvider {
             switch (terminatorString) {
                 case "next":
                     terminator = Terminator.next;
+                    gremlinScript = matcher.group("stmt");
                     break;
                 case "tolist":
                     terminator = Terminator.toList;
+                    gremlinScript = matcher.group("stmt");
                     break;
                 case "iterate":
                     terminator = Terminator.iterate;
+                    gremlinScript = matcher.group("stmt");
                     break;
                 case "toset":
                     terminator = Terminator.toSet;
+                    gremlinScript = matcher.group("stmt");
+                    break;
+                case "hasnext":
+                    terminator = Terminator.hasNext;
+                    gremlinScript = matcher.group("stmt");
                     break;
                 default:
-                    throw new IllegalArgumentException(String.format("Error Unknown terminator function \"%s\" in Gremlin script \"%s\"\n",
-                            terminatorString,
-                            gremlinScript));
+                    terminator = Terminator.toList;
+                    System.err.println("Defaulting to Terminator Step 'toList'...");
+                    logger.Print("EvalQueryWorkloadProvider",false, "Defaulting to Terminator Step 'toList'...");
             }
-            gremlinScript = matcher.group("stmt");
         }
         if (gremlinScript.contains("%s")) {
             requiresIdFormat = true;
         }
 
         final String[] parts = gremlinScript.split("\\.");
-        logger = getLogger();
         this.gremlinString = gremlinScript.replace("'","\"");
         this.traversalSource = parts[0];
         isPrintResult = isPrintResult();
@@ -179,6 +187,9 @@ public final class EvalQueryWorkloadProvider extends QueryWorkloadProvider {
             switch (terminator) {
                 case next:
                     resultTraversal.next();
+                    break;
+                case hasNext:
+                    resultTraversal.hasNext();
                     break;
                 case iterate:
                     resultTraversal.iterate();
