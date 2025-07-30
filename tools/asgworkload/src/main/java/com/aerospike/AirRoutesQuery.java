@@ -8,8 +8,9 @@ import static org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__.values
 public class AirRoutesQuery extends QueryWorkloadProvider {
 
     public AirRoutesQuery(final WorkloadProvider provider,
-                          final AGSGraphTraversal ags) {
-        super(provider, ags);
+                          final AGSGraphTraversal ags,
+                          final IdManager idManager) {
+        super(provider, ags, idManager);
     }
 
     /**
@@ -52,7 +53,7 @@ public class AirRoutesQuery extends QueryWorkloadProvider {
      */
     @Override
     public Pair<Boolean,Object> call() throws Exception {
-        G().V(3).out().limit(5).path().by(values("code","city").fold()).toList();
+        G().V( getVId() ).out().limit(5).path().by(values("code","city").fold()).toList();
         return new Pair<>(true,null);
     }
 
@@ -64,9 +65,10 @@ public class AirRoutesQuery extends QueryWorkloadProvider {
     public void preCall() {}
 
     /*
-    Called after the actual workload is executed passing the value type T from the workload.
+    Called after the actual workload is executed passing the value from the workload.
+        The success param is true if the workload was recorded and exception will be not-null if an exciton occurred during workload execution.
     This is called within the scheduler and is NOT part of the workload measurement.
      */
     @Override
-    public void postCall(Object ignored0, Boolean ignored1, Throwable ignored2) {}
+    public void postCall(Object value, Boolean success, Throwable error) {}
 }

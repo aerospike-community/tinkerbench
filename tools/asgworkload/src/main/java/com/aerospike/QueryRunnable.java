@@ -47,6 +47,11 @@ public interface QueryRunnable extends AGSGraphTraversal,
     QueryRunnable PrintSummary();
 
     /*
+    Returns a vertex Id from the IDManger or null
+     */
+    Object getVId();
+
+    /*
     Returns the description of the query.
      */
     String getDescription();
@@ -72,8 +77,8 @@ public interface QueryRunnable extends AGSGraphTraversal,
     void preCall();
 
     /*
-    Called after the actual workload is executed passing the value type T from the workload.
-        success is true if the workload was recorded and exception will be not-null if an exciton occurred.
+    Called after the actual workload is executed passing the value from the workload.
+        The success param is true if the workload was recorded and exception will be not-null if an exciton occurred during workload execution.
     This is called within the scheduler and is NOT part of the workload measurement.
      */
     void postCall(Object value, Boolean success, Throwable exception);

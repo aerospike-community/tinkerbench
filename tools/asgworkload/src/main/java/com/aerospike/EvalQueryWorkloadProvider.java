@@ -25,7 +25,7 @@ public final class EvalQueryWorkloadProvider extends QueryWorkloadProvider {
     final IdManager idManager;
     ThreadLocal<Bytecode> bytecodeThreadLocal;
 
-    final Pattern funcPattern = Pattern.compile("^\\s*(?<stmt>.+)\\.(?<func>[^(]+)\\(\\s*\\)\\s*$");
+    final Pattern funcPattern = Pattern.compile("^\\s*(?<stmt>.+)\\.(?<func>[^(]+)\\(\\s*\\)\\s*$", Pattern.CASE_INSENSITIVE);
 
     enum Terminator {
         none,
@@ -36,11 +36,11 @@ public final class EvalQueryWorkloadProvider extends QueryWorkloadProvider {
         hasNext
     }
 
-    public EvalQueryWorkloadProvider(WorkloadProvider provider,
-                                     AGSGraphTraversal ags,
+    public EvalQueryWorkloadProvider(final WorkloadProvider provider,
+                                     final AGSGraphTraversal ags,
                                      String gremlinScript,
-                                     IdManager idManager) {
-        super(provider, ags, gremlinScript);
+                                     final IdManager idManager) {
+        super(provider, ags, idManager, gremlinScript);
         logger = getLogger();
         this.idManager = idManager;
 

@@ -8,6 +8,7 @@ public class Helpers {
     public static QueryRunnable GetQuery(String queryName,
                                          WorkloadProvider provider,
                                          AGSGraphTraversal graphTraversal,
+                                         IdManager idManager,
                                          boolean debug) throws ClassNotFoundException, NoSuchMethodException, SecurityException, InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException {
 
         final LogSource logger = LogSource.getInstance();
@@ -17,11 +18,11 @@ public class Helpers {
             logger.PrintDebug("GetQuery", "Creating Instance %s", queryName);
 
             Class<?> queryClass = Class.forName("com.aerospike." + queryName);
-            Constructor<?> constructor = queryClass.getConstructor(WorkloadProvider.class, AGSGraphTraversal.class);
+            Constructor<?> constructor = queryClass.getConstructor(WorkloadProvider.class, AGSGraphTraversal.class, IdManager.class);
             logger.PrintDebug("GetQuery", "Created  Class %s", queryClass.getName());
 
             // Instantiate the class by providing arguments to the constructor
-            Object instance = constructor.newInstance(provider, graphTraversal);
+            Object instance = constructor.newInstance(provider, graphTraversal, idManager);
 
             logger.PrintDebug ("SetQuery", "Created  Instance %s", instance.toString());
 
@@ -41,4 +42,46 @@ public class Helpers {
         }
     }
 
+    public static String GetShortClassName(final String className) {
+        if(className == null) return "";
+
+        String[] parts = className.trim().split("\\.");
+        return parts[parts.length - 1];
+    }
+
+    public static String GetShortErrorMsg(final String errMsg) {
+        return GetShortErrorMsg(errMsg, 0);
+    }
+
+    public static String GetShortErrorMsg(final String errMsg,
+                                          final int msgLength) {
+        if(errMsg == null) return "";
+
+        String[] msgParts = errMsg.split(":");
+        StringBuilder sb = new StringBuilder();
+
+        for (String msgPart : msgParts) {
+            msgPart = msgPart.trim();
+            if(msgPart.startsWith("java.")
+                || msgPart.startsWith("com.")
+                || msgPart.startsWith("org.")) {
+                sb.append(GetShortClassName(msgPart));
+                sb.append(": ");
+            } else if (msgPart.contains("Please refer to troubleshooting or contact support if problem persists.")) {
+                sb.append(msgPart.replaceAll("Please refer to troubleshooting.+problem persists.", " "));
+                sb.append(": ");
+            }
+            else {
+                sb.append(msgPart);
+                sb.append(": ");
+            }
+        }
+
+        if(msgLength > 0 && sb.length() >= msgLength) {
+            sb.replace(msgLength-3, msgLength, "...");
+            sb.setLength(msgLength);
+        }
+
+        return sb.toString().trim();
+    }
 }

@@ -13,11 +13,14 @@ public abstract class QueryWorkloadProvider implements QueryRunnable {
     private final LogSource logger = LogSource.getInstance();
     private final boolean isPrintResult;
     private final String workloadName;
+    private final IdManager idManager;
 
     public QueryWorkloadProvider(final WorkloadProvider provider,
-                                 final AGSGraphTraversal ags) {
+                                 final AGSGraphTraversal ags,
+                                 final IdManager idManager) {
         this.provider = provider;
         this.agsGraphTraversal = ags;
+        this.idManager = idManager;
         this.isPrintResult = provider.getCliArgs().printResult;
         this.workloadName = null;
 
@@ -26,10 +29,12 @@ public abstract class QueryWorkloadProvider implements QueryRunnable {
 
     public QueryWorkloadProvider(final WorkloadProvider provider,
                                  final AGSGraphTraversal ags,
+                                 final IdManager idManager,
                                  final String workloadName) {
         this.workloadName = workloadName;
         this.provider = provider;
         this.agsGraphTraversal = ags;
+        this.idManager = idManager;
         this.isPrintResult = provider.getCliArgs().printResult;
 
         this.provider.setQuery(this);
@@ -89,6 +94,12 @@ public abstract class QueryWorkloadProvider implements QueryRunnable {
     public GraphTraversalSource G() {
         return this.agsGraphTraversal.G();
     }
+
+    /*
+    Returns a vertex Id from the IDManger or null
+     */
+    @Override
+    public Object getVId() { return this.idManager == null ? null : this.idManager.getId(); }
 
     /**
      * @return the AGS cluster instance

@@ -22,6 +22,8 @@ public class IdSampler implements  IdManager {
 
     @Override
     public Object getId() {
-        return sampledIds.get(random.nextInt(sampledIds.size()));
+        return sampledIds == null
+                ? null
+                : sampledIds.get(random.nextInt(sampledIds.size()));
     }
 }

@@ -140,7 +140,10 @@ public final class OpenTelemetryExporter implements com.aerospike.OpenTelemetry 
 
         Resource resource =
                 Resource.getDefault()
-                        .merge(Resource.builder().put(SERVICE_NAME, "PrometheusExporterAerospikeWL").build());
+                        .merge(Resource
+                                .builder()
+                                .put(SERVICE_NAME, "PrometheusExporterAerospikeWL")
+                                .build());
 
         return OpenTelemetrySdk.builder()
                 /*.setTracerProvider(
@@ -271,10 +274,8 @@ public final class OpenTelemetryExporter implements com.aerospike.OpenTelemetry 
     public void addException(Exception exception) {
         if(this.closed.get()) { return; }
 
-        String exceptionType = exception.getClass().getName().replaceFirst("com\\.aerospike\\.client\\.AerospikeException\\$", "");
-        exceptionType = exceptionType.replaceFirst("com\\.aerospike\\.client\\.", "");
-
-        String message = exception.getMessage();
+        final String exceptionType = Helpers.GetShortClassName(exception.getClass().getName());
+        final String message = Helpers.GetShortErrorMsg(exception.getMessage(), 160);
 
         this.addException(exceptionType, message);
     }

@@ -12,7 +12,8 @@ public class Main extends  AGSWorkloadArgs {
                                         Duration targetRunDuration,
                                         AGSWorkloadArgs args,
                                         boolean isWarmUp) {
-        args.idManager.init(agsGraphTraversal.G());
+        if(!args.testMode)
+            args.idManager.init(agsGraphTraversal.G());
         try (final WorkloadProvider workload = new WorkloadProviderScheduler(openTel,
                                                                             targetRunDuration,
                                                                             isWarmUp,
@@ -28,6 +29,7 @@ public class Main extends  AGSWorkloadArgs {
                                                     : Helpers.GetQuery(args.queryNameOrString,
                                                                         workload,
                                                                         agsGraphTraversal,
+                                                                        args.idManager,
                                                                         args.debug);
             if (mainInstance.abortRun.get())
                 return;

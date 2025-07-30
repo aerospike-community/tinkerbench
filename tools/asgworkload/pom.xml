@@ -6,7 +6,7 @@
 
     <groupId>com.aerospike</groupId>
     <artifactId>asgworkload</artifactId>
-    <version>1.7.0</version>
+    <version>1.8.0</version>
 
     <name>AGS Workload</name>
     <description>Aerospike Graph Workload Generator</description>
@@ -25,11 +25,6 @@
     </properties>
 
     <dependencies>
-        <dependency>
-            <groupId>org.apache.tinkerpop</groupId>
-            <artifactId>gremlin-groovy</artifactId>
-            <version>${tinkerpop.version}</version>
-        </dependency>
         <dependency>
             <groupId>org.apache.tinkerpop</groupId>
             <artifactId>tinkergraph-gremlin</artifactId>

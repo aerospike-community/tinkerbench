@@ -14,6 +14,7 @@ import picocli.CommandLine.ParseResult;
 import java.io.IOException;
 import java.net.URL;
 import java.time.Duration;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Enumeration;
@@ -22,6 +23,8 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.jar.Attributes;
 import java.util.jar.Manifest;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @Command(name = "agsworkload",
         mixinStandardHelpOptions = true,
@@ -48,8 +51,8 @@ public abstract class AGSWorkloadArgs  implements Callable<Integer> {
 
     @Option(names = {"-d", "--duration"},
             converter = DurationConverter.class,
-            description = "The Time duration (wall clock) of the workload. it  uses the ISO 8601 duration format (e.g., PT1H30M for 1 hour 30 minutes, PT20.30S represents a duration of 20 seconds and 300 milliseconds). Default is ${DEFAULT-VALUE}",
-            defaultValue = "PT15M")
+            description = "The Time duration (wall clock) of the workload. The format can be in Hour(s)|H|Hr(s), Minute(s)|M|Min(s), and/or Second(s)|S|Sec(s), ISO 8601 format (PT1H2M3.5S), or just an integer value which represents seconds. Example: 1h30s -> One hours and 30 seconds; 45 -> 45 seconds... Default is ${DEFAULT-VALUE}",
+            defaultValue = "15M")
     Duration duration;
 
     @Option(names = {"-c", "--callsPerSec"},
@@ -69,8 +72,8 @@ public abstract class AGSWorkloadArgs  implements Callable<Integer> {
 
     @Option(names = {"-wu", "--WarmupDuration"},
             converter = DurationConverter.class,
-            description = "The warmup time duration (not wall clock)  using ISO 8601 duration format (e.g., PT1H30M for 1 hour 30 minutes, PT20.30S represents a duration of 20 seconds and 300 milliseconds). Zero duration disabled warmup. Default is ${DEFAULT-VALUE}",
-            defaultValue = "PT0M")
+            description = "The warmup time duration (wall clock). A zero duration will disable the warmup. The format can be in Hour(s)|H|Hr(s), Minute(s)|M|Min(s), and/or Second(s)|S|Sec(s), ISO 8601 format (PT1H2M3.5S), or just an integer value which represents seconds. Example: 1h30s -> One hours and 30 seconds; 45 -> 45 seconds... Default is ${DEFAULT-VALUE}",
+            defaultValue = "0")
     Duration warmupDuration;
 
     @Option(names = {"-p", "--parallelize"},
@@ -80,8 +83,8 @@ public abstract class AGSWorkloadArgs  implements Callable<Integer> {
 
     @Option(names = {"-sd","--shutdown"},
             converter = DurationConverter.class,
-            description = "Timeout used to wait for worker and scheduler shutdown. The duration is based on the ISO 8601 format (e.g., PT3M for 3 minutes, PT20.30S represents a duration of 20 seconds and 300 milliseconds). Default is ${DEFAULT-VALUE}",
-            defaultValue = "PT15S")
+            description = "Timeout used to wait for worker and scheduler shutdown. The format can be in Hour(s)|H|Hr(s), Minute(s)|M|Min(s), and/or Second(s)|S|Sec(s), ISO 8601 format (PT1H2M3.5S), or just an integer value which represents seconds. Example: 1h30s -> One hours and 30 seconds; 45 -> 45 seconds... Default is ${DEFAULT-VALUE}",
+            defaultValue = "15S")
     Duration shutdownTimeout;
 
     @Option(names = {"--prometheusPort"},
@@ -96,7 +99,7 @@ public abstract class AGSWorkloadArgs  implements Callable<Integer> {
     @Option(names = {"-cw", "--CloseWait"},
             converter = DurationConverter.class,
             description = "Close wait interval upon application exit. This interval ensure all values are picked up by the Prometheus server. This should match the 'scrape_interval' in the PROM ymal file. Can be zero to disable wait. Default is ${DEFAULT-VALUE}",
-            defaultValue = "PT15S")
+            defaultValue = "15S")
     Duration closeWaitDuration;
 
     @Option(names = {"-id", "--IdManager"},
@@ -218,8 +221,8 @@ public abstract class AGSWorkloadArgs  implements Callable<Integer> {
 
         private final int nbrCores = Runtime.getRuntime().availableProcessors();
 
-        public int DefaultNbrSchedules() { return (int) Math.ceil(nbrCores * .5); }
-        public int DefaultNbrWorks() { return nbrCores; }
+        public int DefaultNbrSchedules() { return (int) Math.floor(nbrCores * .25); }
+        public int DefaultNbrWorks() { return (int) Math.ceil(nbrCores * .5); }
 
         @Override
         public String defaultValue(CommandLine.Model.ArgSpec argSpec) throws Exception {
@@ -265,13 +268,44 @@ public abstract class AGSWorkloadArgs  implements Callable<Integer> {
     }
 
     static final class DurationConverter implements CommandLine.ITypeConverter<Duration> {
+
+        final Pattern timePattern = Pattern.compile("(?:(?<hour>\\d+(\\.\\d+)?)\\s*(?:hours?|hrs?|h))?\\s*(?:(?<min>\\d+(\\.\\d+)?)\\s*(?:minutes?|mins?|m))?\\s*(?:(?<sec>\\d+(\\.\\d+)?)\\s*(?:seconds?|secs?|s))?",
+                                                        Pattern.CASE_INSENSITIVE);
+
+        public static int isNumeric(String str) {
+            if (str == null || str.isEmpty()) {
+                return 0;
+            }
+            try {
+                return Integer.parseInt(str);
+            } catch (NumberFormatException e) {
+                return -1;
+            }
+        }
+
         @Override
         public Duration convert(String value) throws Exception {
             if(value.startsWith("PT") || value.startsWith("pt")) {
-                return Duration.parse(value);
+                return Duration.parse(value.toUpperCase());
             }
-
-            return Duration.parse("PT" + value.toUpperCase());
+            int dSec = isNumeric(value);
+            if(dSec >= 0)
+                return Duration.ofSeconds(dSec);
+            Matcher m = timePattern.matcher(value);
+            if(m.matches()) {
+                String isoTimeStr = "PT";
+                if(m.group("hour") != null) {
+                    isoTimeStr += m.group("hour") + "H";
+                }
+                if(m.group("min") != null) {
+                    isoTimeStr += m.group("min") + "M";
+                }
+                if(m.group("sec") != null) {
+                    isoTimeStr += m.group("sec") + "S";
+                }
+                return Duration.parse(isoTimeStr);
+            }
+            throw new DateTimeParseException("Text cannot be parsed to a Duration. Must be in a form of #H#M#S where # is a number.", value, 0);
         }
     }
 

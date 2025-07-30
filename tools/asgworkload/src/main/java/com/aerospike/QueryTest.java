@@ -9,8 +9,9 @@ public class QueryTest implements QueryRunnable {
     private final WorkloadProvider provider;
     private final boolean isPrintResults;
 
-    public QueryTest(WorkloadProvider provider,
-                     AGSGraphTraversal ags) {
+    public QueryTest(final WorkloadProvider provider,
+                     final AGSGraphTraversal ignored0,
+                     final IdManager ignored1) {
         this.provider = provider;
         this.provider.setQuery(this);
         this.isPrintResults = provider.getCliArgs().printResult;
@@ -68,11 +69,19 @@ public class QueryTest implements QueryRunnable {
     }
 
     /**
+     * @return
+     */
+    @Override
+    public Object getVId() {
+        return null;
+    }
+
+    /**
      * @return true to indicate to execute the workload and false to abort.
      */
     @Override
     public boolean preProcess() {
-        System.out.println("PreProcess QueryTest");
+        System.out.println("\n**** PreProcess QueryTest");
         System.out.println(provider);
         return true;
     }
@@ -82,7 +91,7 @@ public class QueryTest implements QueryRunnable {
      */
     @Override
     public void postProcess() {
-        System.out.println("PostProcess QueryTest");
+        System.out.println("\n*****PostProcess QueryTest");
         System.out.println(provider);
     }
 

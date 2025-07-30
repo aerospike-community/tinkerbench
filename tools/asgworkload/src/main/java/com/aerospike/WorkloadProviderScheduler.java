@@ -2,6 +2,7 @@ package com.aerospike;
 
 import org.HdrHistogram.*;
 
+import org.apache.tinkerpop.gremlin.process.traversal.util.TraversalInterruptedException;
 import org.javatuples.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,6 +28,8 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
     private final int schedulers;
     private final ExecutorService schedulerPool;
     private final ExecutorService workerPool;
+    CountDownLatch shutdownLatch = new CountDownLatch(1);
+
     private final Duration targetRunDuration;
     private final Duration shutdownTimeout;
     private final AtomicInteger pendingCount = new AtomicInteger();
@@ -319,7 +322,7 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
         if(status == WorkloadStatus.Running)
             return this;
 
-        throw new RuntimeException("Cannot Start an Workload in state " + status);
+        throw new RuntimeException("Cannot Start a Workload in state " + status);
     }
 
     /*
@@ -398,39 +401,47 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
 
             while (!schedulerPool.isTerminated()
                         && !schedulerPool.isShutdown()) {
-                Thread.onSpinWait();
-                // TODO: Maybe use latch w/ scheduled thing here to avoid extra cpu.
-                if(LocalDateTime.now().isAfter(exitTime)) {
-                    if(abortNextTimeout) {
-                        abortRun.set(true);
-                        System.err.printf("\tStopping %s due to Abort Signalled...\n",
-                                            warmup ? "warmup" : "workload");
-                        schedulerPool.shutdownNow();
-                        workerPool.shutdownNow();
-                        result = false;
-                        break;
-                    }
-                    terminateWorkers.set(true);
-                    System.out.printf("\tStopping %s due to Timeout... Waiting Completion...\n",
-                                            warmup ? "warmup" : "workload");
-                    schedulerPool.shutdown();
-                    workerPool.shutdown();
-                    try {
+                try {
+                    shutdownLatch.await(shutdownTimeout.toSeconds(), TimeUnit.SECONDS);
+
+                    if(LocalDateTime.now().isAfter(exitTime)) {
+                        if(abortNextTimeout) {
+                            abortRun.set(true);
+                            System.err.printf("\tStopping %s due to Abort Signalled...\n",
+                                                warmup ? "warmup" : "workload");
+                            schedulerPool.shutdownNow();
+                            workerPool.shutdownNow();
+                            result = false;
+                            break;
+                        }
+                        terminateWorkers.set(true);
+                        System.out.printf("\tStopping %s due to Timeout... Waiting Completion...\n",
+                                                warmup ? "warmup" : "workload");
+                        schedulerPool.shutdown();
+                        workerPool.shutdown();
                         if(workerPool.awaitTermination(shutdownTimeout.toSeconds(), TimeUnit.SECONDS)
-                            &&  schedulerPool.awaitTermination(shutdownTimeout.toSeconds(), TimeUnit.SECONDS))
+                                &&  schedulerPool.awaitTermination(shutdownTimeout.toSeconds(), TimeUnit.SECONDS))
                         {
                             break;
                         };
-                    } catch (InterruptedException ignored) { }
-                    abortNextTimeout = true;
-                    exitTime =  LocalDateTime.now()
-                                    .plus(shutdownTimeout);
+                        abortNextTimeout = true;
+                        exitTime =  LocalDateTime.now()
+                                        .plus(shutdownTimeout);
+                    }
+                }
+                catch (InterruptedException ignored) {
+                    break;
                 }
             }
 
             setStatus(WorkloadStatus.Completed);
             if (queryRunnable != null) {
+                System.out.printf("Running Post-process for %s %s %s...",
+                        warmup ? "Warmup" : "Workload",
+                        queryRunnable.WorkloadType().toString(),
+                        queryRunnable.Name());
                 queryRunnable.postProcess();
+                System.out.println(" Completed");
             }
         }
         System.out.printf("\t%s Status %s\n",
@@ -461,19 +472,25 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
         printStream.printf("\tStatus: %s\n", abortRun.get()
                                                 ? getStatus() +" (Signaled)"
                                                 : getStatus());
-        printStream.printf("\tRun Duration: %s\n", rtDuration);
-        printStream.printf("\tMean Calls/Second: %,.2f\n", getCallsPerSecond());
-        printStream.printf("\tMean Errors/Second: %,.2f\n", getErrorsPerSecond());
-        printStream.printf("\tSuccesses: %,d\n", successCount);
-        printStream.printf("\tSuccesses Duration: %s\n", successDuration);
-        printStream.printf("\tErrors: %,d\n", errorCount);
-        printStream.printf("\tErrors Duration: %s\n", errorDuration);
-        printStream.printf("\tAborted: %,d\n", abortedCount);
-        printStream.printf("\tTotals: %,d\n", totalCount);
-        printStream.printf("\tTotal Execution Time: %s\n", excutionDuration);
+        printStream.printf("\tRuntime Duration: %s\n", rtDuration);
+
+        printStream.println("\tSuccessful Operations");
+        printStream.printf("\t\tMean OPS: %,.2f\n", getCallsPerSecond());
+        printStream.printf("\t\tOperations: %,d\n", successCount);
+        printStream.printf("\t\tTotal Operation Duration: %s\n", successDuration);
+
+        printStream.println("\tOperation Errors");
+        printStream.printf("\t\tMean OPS: %,.2f\n", getErrorsPerSecond());
+        printStream.printf("\t\tErrors: %,d\n", errorCount);
+        printStream.printf("\t\tTotal Errors Duration: %s\n", errorDuration);
+
+        printStream.printf("\tTotal Operations Execution Time: %s\n", excutionDuration);
+
+        printStream.printf("\tAborted Operations: %,d\n", abortedCount);
+        printStream.printf("\tTotal Number of All Operations: %,d\n", totalCount);
 
         if(errorCount > 0) {
-            printStream.println("Errors:");
+            printStream.println("Error Summary:");
 
             Map<String, List<Exception>> errors = getErrors()
                     .stream()
@@ -487,20 +504,21 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
                     if (entry.getValue().size() == sameMsgs.size()) {
                         printStream.printf("\tCnt: %d\tException: %s\t'%s'\n",
                                 entry.getValue().size(),
-                                entry.getKey(),
-                                entry.getValue().get(0).getMessage());
+                                Helpers.GetShortClassName(entry.getKey()),
+                                Helpers.GetShortErrorMsg(entry.getValue().get(0).getMessage()));
                     } else {
                         printStream.printf("\tCnt: %d\tException: %s:\n",
                                 entry.getValue().size(),
-                                entry.getKey());
+                                Helpers.GetShortClassName(entry.getKey()));
                         for (Map.Entry<String, List<Exception>> sameMsg : sameMsgs.entrySet()) {
                             printStream.printf("\t\tCnt: %d\tMsg: '%s'\n",
-                                    sameMsgs.size(),
-                                    sameMsg.getKey());
+                                    sameMsg.getValue().size(),
+                                    Helpers.GetShortErrorMsg(sameMsg.getKey()));
                         }
                     }
                 } catch (Exception ignored) {
-                    printStream.printf("\t%s\n", entry.toString());
+                    printStream.printf("\t%s\n",
+                                        Helpers.GetShortErrorMsg(entry.toString()));
                 }
             }
         }
@@ -583,7 +601,9 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
                 totCallDuration.addAndGet(latency);
                 errorDuration.addAndGet(latency);
             }
-            logger.error(String.format("Workload %s",queryRunnable.Name()), e);
+            logger.error(String.format("%s %s",
+                                        isWarmup() ? "Warmup" : "Workload",
+                                        queryRunnable.Name()), e);
             if(openTelemetry != null)
                 openTelemetry.addException((Exception)e);
         }
@@ -598,10 +618,10 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
             try {
                 queryRunnable.preCall();
                 startCall = System.nanoTime();
-                final Pair<Boolean,Object> recordResult = queryRunnable.call();
+                final Pair<Boolean, Object> recordResult = queryRunnable.call();
                 final long duration = System.nanoTime() - startCall;
                 resultValue = recordResult.getValue1();
-                if(!terminateWorkers.get()) {
+                if (!terminateWorkers.get()) {
                     if (recordResult.getValue0()) {
                         Success(duration);
                         success = true;
@@ -613,18 +633,35 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
                 }
             } catch (InterruptedException e) {
                 abortedCount.incrementAndGet();
+            } catch (TraversalInterruptedException e) {
+                final long duration = System.nanoTime() - startCall;
+                if(terminateWorkers.get()) {
+                    abortedCount.incrementAndGet();
+                } else {
+                    lastError = e;
+                    Error(startCall == 0 ? 0 : duration,
+                            e);
+                }
             } catch (CompletionException e) {
                 final long duration = System.nanoTime() - startCall;
                 lastError = e.getCause();
-                Error(duration, lastError);
+                Error(startCall == 0 ? 0 : duration,
+                        lastError);
             } catch (Exception e) {
                 final long duration = System.nanoTime() - startCall;
                 lastError = e;
-                Error(duration, e);
+                Error(startCall == 0 ? 0 : duration,
+                        e);
             } finally {
-                queryRunnable.postCall(resultValue,
+                try {
+                    queryRunnable.postCall(resultValue,
                                             success,
                                             lastError);
+                } catch (Exception e) {
+                    if(!terminateWorkers.get()) {
+                        Error(0, e);
+                    }
+                }
                 pendingCount.decrementAndGet();
             }
         }
@@ -676,6 +713,7 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
         }
         schedulerPool.shutdownNow();
         workerPool.shutdownNow();
+        shutdownLatch.countDown();
         logger.PrintDebug("WorkloadProviderScheduler",
                         "Aborting Workers %s",
                         queryRunnable);
