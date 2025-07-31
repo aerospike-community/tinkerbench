@@ -2,6 +2,7 @@ package com.aerospike;
 
 import org.HdrHistogram.*;
 
+import org.apache.tinkerpop.gremlin.driver.exception.ResponseException;
 import org.apache.tinkerpop.gremlin.process.traversal.util.TraversalInterruptedException;
 import org.javatuples.Pair;
 import org.slf4j.Logger;
@@ -13,6 +14,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Vector;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -52,6 +54,11 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
     private final OpenTelemetry openTelemetry;
     private final AGSWorkloadArgs cliArgs;
 
+    private final LogSource logger = LogSource.getInstance();
+
+    private final List<Future<?>> schedulerFutures = new Vector<>();
+
+    private Progressbar progressbar = null;
     private QueryRunnable queryRunnable = null;
 
     private LocalDateTime startDateTime = null;
@@ -59,35 +66,44 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
     private LocalDateTime stopDateTime = null;
     private long stopTimeNanos = 0;
 
-    private final LogSource logger = LogSource.getInstance();
-
-    private final List<Future<?>> schedulerFutures = new Vector<>();
-
-    private void setStatus(WorkloadStatus workloadStatus) {
-
-        if(this.status != workloadStatus) {
-            this.status = workloadStatus;
-
-            if (workloadStatus == WorkloadStatus.Running && startDateTime == null) {
-                startTimeNanos = System.nanoTime();
-                startDateTime = LocalDateTime.now();
-            }
-            else if (startDateTime != null
-                        && stopDateTime == null
-                        && (workloadStatus == WorkloadStatus.Completed
-                                || workloadStatus == WorkloadStatus.PendingShutdown
-                                || workloadStatus == WorkloadStatus.Shutdown)) {
-                stopTimeNanos = System.nanoTime();
-                stopDateTime = LocalDateTime.now();
-            }
-
-            if (openTelemetry != null)
-                openTelemetry.setConnectionState(workloadStatus.toString());
-
-            logger.PrintDebug("WorkloadProviderScheduler", "New Status %s for %s",
-                                workloadStatus,
-                                queryRunnable);
+    public WorkloadProviderScheduler(OpenTelemetry openTelemetry,
+                                     Duration targetRunDuration,
+                                     boolean warmup,
+                                     AGSWorkloadArgs cliArgs) {
+        this.abortRun = cliArgs.abortRun;
+        this.terminateRun = cliArgs.terminateRun;
+        this.errorThreshold = cliArgs.errorsAbort;
+        this.targetRunDuration =  targetRunDuration == null
+                ? cliArgs.duration
+                : targetRunDuration;
+        this.callsPerSecond = cliArgs.callsPerSecond;
+        this.shutdownTimeout = cliArgs.shutdownTimeout;
+        this.schedulers = cliArgs.schedulers;
+        this.openTelemetry = openTelemetry == null ? new OpenTelemetryDummy() : openTelemetry;
+        this.cliArgs = cliArgs;
+        this.warmup = warmup;
+        {
+            // A Histogram covering the range from 1 nsec to target duration with 3 decimal point resolution:
+            final Duration higestDuration = this.targetRunDuration.plusMinutes(1);
+            this.histogram = new AtomicHistogram(higestDuration.toNanos(), 3);
         }
+
+        schedulerPool = Executors.newFixedThreadPool(this.schedulers);
+        workerPool = Executors.newFixedThreadPool(cliArgs.workers);
+
+        setStatus(WorkloadStatus.Initialized);
+    }
+
+    public WorkloadProviderScheduler(OpenTelemetry openTelemetry,
+                                     Duration targetRunDuration,
+                                     boolean warmup,
+                                     AGSWorkloadArgs cliArgs,
+                                     QueryRunnable query) {
+        this(openTelemetry,
+                targetRunDuration,
+                warmup,
+                cliArgs);
+        this.setQuery(query);
     }
 
     /*
@@ -95,6 +111,7 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
      */
     public boolean isWarmup() { return warmup; }
 
+    public boolean isAborted() { return abortRun.get(); }
     /*
     The number of defined Schedulers.
      */
@@ -193,46 +210,6 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
 
     public AGSWorkloadArgs getCliArgs() { return cliArgs; }
 
-    public WorkloadProviderScheduler(OpenTelemetry openTelemetry,
-                                     Duration targetRunDuration,
-                                     boolean warmup,
-                                     AGSWorkloadArgs cliArgs) {
-        this.abortRun = cliArgs.abortRun;
-        this.terminateRun = cliArgs.terminateRun;
-        this.errorThreshold = cliArgs.errorsAbort;
-        this.targetRunDuration =  targetRunDuration == null
-                                    ? cliArgs.duration
-                                    : targetRunDuration;
-        this.callsPerSecond = cliArgs.callsPerSecond;
-        this.shutdownTimeout = cliArgs.shutdownTimeout;
-        this.schedulers = cliArgs.schedulers;
-        this.openTelemetry = openTelemetry == null ? new OpenTelemetryDummy() : openTelemetry;
-        this.cliArgs = cliArgs;
-        this.warmup = warmup;
-        {
-            // A Histogram covering the range from 1 nsec to target duration with 3 decimal point resolution:
-            final Duration higestDuration = this.targetRunDuration.plusMinutes(1);
-            this.histogram = new AtomicHistogram(higestDuration.toNanos(), 3);
-        }
-
-        schedulerPool = Executors.newFixedThreadPool(this.schedulers);
-        workerPool = Executors.newFixedThreadPool(cliArgs.workers);
-
-        setStatus(WorkloadStatus.Initialized);
-    }
-
-    public WorkloadProviderScheduler(OpenTelemetry openTelemetry,
-                                     Duration targetRunDuration,
-                                     boolean warmup,
-                                     AGSWorkloadArgs cliArgs,
-                                     QueryRunnable query) {
-        this(openTelemetry,
-                targetRunDuration,
-                warmup,
-                cliArgs);
-        this.setQuery(query);
-    }
-
     /*
     Set's the query that will be executed by the work load scheduler.
     If the value is null or changed, the scheduler is closed and reset.
@@ -299,11 +276,16 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
                 }
             }
             System.out.println(" Completed");
+            if(progressbar != null) {
+                progressbar.close();
+                progressbar = null;
+            }
             schedulerFutures.clear();
             System.out.printf("Starting %s for %s %s\n",
                                 warmup ? "Warmup" : "Workload",
                                 queryRunnable.WorkloadType().toString(),
                                 queryRunnable.Name());
+
             final long targetDuration = System.nanoTime() + targetRunDuration.toNanos();
 
             for (int i = 0; i < schedulers; i++) {
@@ -340,6 +322,11 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
         if(status == WorkloadStatus.Shutdown
                 || status == WorkloadStatus.PendingShutdown)
             return;
+
+        if(progressbar != null) {
+            progressbar.close();
+            progressbar = null;
+        }
 
         boolean alreadyCompleted = status == WorkloadStatus.Completed;
 
@@ -394,6 +381,8 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
         if(status == WorkloadStatus.Running) {
             result = true;
             System.out.println("\tAwaiting for Completion...");
+            progressbar = new Progressbar(this);
+            progressbar.start();
             LocalDateTime exitTime = LocalDateTime.now()
                                             .plus(targetRunDuration)
                                             .plus(shutdownTimeout);
@@ -434,6 +423,10 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
                 }
             }
 
+            if(progressbar != null) {
+                progressbar.close();
+                progressbar = null;
+            }
             setStatus(WorkloadStatus.Completed);
             if (queryRunnable != null) {
                 System.out.printf("Running Post-process for %s %s %s...",
@@ -448,6 +441,30 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
                             warmup ? "Warmup" : "Workload",
                             status);
         return result;
+    }
+
+    private static String getErrorMessage(Throwable error, int depth) {
+
+        if(error == null) { return "<Null>"; }
+        String errMsg = error.getMessage();
+        if(errMsg == null) {
+            if(depth > 50)
+                return error.toString();
+            if(error instanceof ResponseException re) {
+                String msg = re.getMessage();
+                Optional<String> value = re.getRemoteStackTrace();
+                return String.format("%s: %sRemoteStackTrace: %s",
+                                        re.getClass().getName(),
+                                        msg == null ? "" : msg + " ",
+                                        value.orElse(""));
+            }
+            return getErrorMessage(error.getCause(), depth + 1);
+        }
+        return errMsg;
+    }
+
+    private static String getErrorMessage(Throwable error) {
+       return getErrorMessage(error, 0);
     }
 
     public WorkloadProvider PrintSummary(PrintStream printStream) {
@@ -500,7 +517,7 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
                 try {
                     Map<String, List<Exception>> sameMsgs = entry.getValue()
                             .stream()
-                            .collect(Collectors.groupingBy(Throwable::getMessage));
+                            .collect(Collectors.groupingBy(WorkloadProviderScheduler::getErrorMessage));
                     if (entry.getValue().size() == sameMsgs.size()) {
                         printStream.printf("\tCnt: %d\tException: %s\t'%s'\n",
                                 entry.getValue().size(),
@@ -517,8 +534,9 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
                         }
                     }
                 } catch (Exception ignored) {
-                    printStream.printf("\t%s\n",
-                                        Helpers.GetShortErrorMsg(entry.toString()));
+                    printStream.printf("\tCnt: %d\t%s:\n",
+                            entry.getValue().size(),
+                            Helpers.GetShortErrorMsg(entry.getKey()));
                 }
             }
         }
@@ -578,6 +596,33 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
                                 stopDateTime == null ? "N/A" : dtFormatter.format(stopDateTime),
                                 rtDuration,
                                 reminding);
+    }
+
+    private void setStatus(WorkloadStatus workloadStatus) {
+
+        if(this.status != workloadStatus) {
+            this.status = workloadStatus;
+
+            if (workloadStatus == WorkloadStatus.Running && startDateTime == null) {
+                startTimeNanos = System.nanoTime();
+                startDateTime = LocalDateTime.now();
+            }
+            else if (startDateTime != null
+                        && stopDateTime == null
+                        && (workloadStatus == WorkloadStatus.Completed
+                            || workloadStatus == WorkloadStatus.PendingShutdown
+                            || workloadStatus == WorkloadStatus.Shutdown)) {
+                stopTimeNanos = System.nanoTime();
+                stopDateTime = LocalDateTime.now();
+            }
+
+            if (openTelemetry != null)
+                openTelemetry.setConnectionState(workloadStatus.toString());
+
+            logger.PrintDebug("WorkloadProviderScheduler", "New Status %s for %s",
+                    workloadStatus,
+                    queryRunnable);
+        }
     }
 
     private final class Handler implements Runnable {
@@ -663,6 +708,7 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
                     }
                 }
                 pendingCount.decrementAndGet();
+                progressbar.step();
             }
         }
     }
@@ -694,6 +740,7 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
                 && !abortRun.get())
         {
             abortRun.set(true);
+            progressbar.stop();
             System.err.printf("\tStopping %s due %d Errors for %s...\n",
                                 warmup ? "warmup" : "workload",
                                 errorCount.get(),
@@ -707,6 +754,7 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
         setStatus(WorkloadStatus.WaitingCompletion);
         if(!waitingSchedulerShutdown.get()) {
             waitingSchedulerShutdown.set(true);
+            progressbar.stop();
             System.out.printf("\tStopping %s due to %s...\n",
                     warmup ? "warmup" : "workload",
                     abortRun.get() ? "Signal" : "Duration Reached");

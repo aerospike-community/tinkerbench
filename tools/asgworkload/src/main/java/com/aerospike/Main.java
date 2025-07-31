@@ -9,11 +9,11 @@ public class Main extends  AGSWorkloadArgs {
     private static void ExecuteWorkload(OpenTelemetry openTel,
                                         LogSource logger,
                                         AGSGraphTraversal agsGraphTraversal,
+                                        IdManager idManager,
                                         Duration targetRunDuration,
                                         AGSWorkloadArgs args,
                                         boolean isWarmUp) {
-        if(!args.testMode)
-            args.idManager.init(agsGraphTraversal.G());
+
         try (final WorkloadProvider workload = new WorkloadProviderScheduler(openTel,
                                                                             targetRunDuration,
                                                                             isWarmUp,
@@ -25,21 +25,21 @@ public class Main extends  AGSWorkloadArgs {
                                                     ? new EvalQueryWorkloadProvider(workload,
                                                                                     agsGraphTraversal,
                                                                                     args.queryNameOrString,
-                                                                                    args.idManager)
+                                                                                    idManager)
                                                     : Helpers.GetQuery(args.queryNameOrString,
                                                                         workload,
                                                                         agsGraphTraversal,
-                                                                        args.idManager,
+                                                                        idManager,
                                                                         args.debug);
             if (mainInstance.abortRun.get())
                 return;
 
             if (isWarmUp) {
-                System.out.println("Running WarmUp...");
-                logger.info("Running WarmUp...");
+                System.out.println("Preparing WarmUp...");
+                logger.info("Preparing WarmUp...");
             } else {
-                System.out.printf("Running workload %s...\n", args.queryNameOrString);
-                logger.info("Running WarmUp {}...", args.queryNameOrString);
+                System.out.printf("Preparing workload %s...\n", args.queryNameOrString);
+                logger.info("Preparing workload {}...", args.queryNameOrString);
             }
 
             workloadRunner
@@ -71,10 +71,14 @@ public class Main extends  AGSWorkloadArgs {
             final AGSGraphTraversalSource agsGraphTraversalSource
                             = new AGSGraphTraversalSource(this, openTel)) {
 
+            if(!this.testMode && !this.idManager.isInitialized())
+                this.idManager.init(agsGraphTraversalSource.G(), idSampleSize);
+
             if (!warmupDuration.isZero()) {
                 ExecuteWorkload(openTel,
                                     logger,
                                     agsGraphTraversalSource,
+                                    this.idManager,
                                     warmupDuration,
                                 this,
                             true);
@@ -84,6 +88,7 @@ public class Main extends  AGSWorkloadArgs {
                 ExecuteWorkload(openTel,
                         logger,
                         agsGraphTraversalSource,
+                        this.idManager,
                         duration,
                         this,
                         false);

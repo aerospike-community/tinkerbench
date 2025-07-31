@@ -12,6 +12,8 @@ public interface WorkloadProvider extends AutoCloseable {
      */
     public boolean isWarmup();
 
+    public boolean isAborted();
+
     /*
     The targeted calls-per-second.
      */

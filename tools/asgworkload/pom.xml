@@ -6,7 +6,7 @@
 
     <groupId>com.aerospike</groupId>
     <artifactId>asgworkload</artifactId>
-    <version>1.8.0</version>
+    <version>1.9.0</version>
 
     <name>AGS Workload</name>
     <description>Aerospike Graph Workload Generator</description>
@@ -22,9 +22,12 @@
         <slf4j.version>2.0.17</slf4j.version>
         <logback.version>1.5.18</logback.version>
         <hdrhistogram.version>2.2.2</hdrhistogram.version>
+        <progressbar.version>0.10.1</progressbar.version>
     </properties>
 
     <dependencies>
+
+        <!-- Tinkerpop -->
         <dependency>
             <groupId>org.apache.tinkerpop</groupId>
             <artifactId>tinkergraph-gremlin</artifactId>
@@ -67,7 +70,7 @@
             <!-- https://github.com/remkop/picocli/tree/main/src/main/java/picocli -->
         </dependency>
 
-        <!-- Open Telemetry. -->
+        <!-- Open Telemetry -->
         <dependency>
             <groupId>io.opentelemetry</groupId>
             <artifactId>opentelemetry-api</artifactId>
@@ -99,6 +102,15 @@
             <groupId>org.hdrhistogram</groupId>
             <artifactId>HdrHistogram</artifactId>
             <version>${hdrhistogram.version}</version>
+        </dependency>
+
+        <!-- progressbar -->
+        <dependency>
+            <groupId>me.tongfei</groupId>
+            <artifactId>progressbar</artifactId>
+            <version>${progressbar.version}</version>
+            <!-- https://tongfei.me/progressbar/ -->
+            <!-- https://github.com/ctongfei/progressbar -->
         </dependency>
     </dependencies>
 

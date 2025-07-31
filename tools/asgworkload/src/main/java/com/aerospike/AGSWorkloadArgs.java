@@ -108,6 +108,11 @@ public abstract class AGSWorkloadArgs  implements Callable<Integer> {
             defaultValue = "com.aerospike.IdSampler")
     IdManager idManager;
 
+    @Option(names = {"-sample", "--IdSampleSize"},
+            description = "The Id sample size used by the IdManager. Default is ${DEFAULT-VALUE}",
+            defaultValue = "500000")
+    int idSampleSize;
+
     @Option(names = {"-e","--Errors"},
             description = "The number of errors reached when the workload is aborted. Default is ${DEFAULT-VALUE}",
             defaultValue = "150")
