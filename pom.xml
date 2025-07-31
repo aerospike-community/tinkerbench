@@ -74,7 +74,7 @@
                     <archive>
                         <manifest>
                             <addClasspath>true</addClasspath>
-                            <mainClass>com.aerospike.tinkerbench.cli.CLI</mainClass>
+                            <mainClass>com.aerospike.tinkerbench.gremlin.GremlinQueryClient</mainClass>
                         </manifest>
                     </archive>
                     <descriptorRefs>

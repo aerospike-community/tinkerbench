@@ -31,7 +31,8 @@ import static org.apache.tinkerpop.gremlin.process.traversal.AnonymousTraversalS
 public class GremlinQueryClient {
 
     public static void main(String[] args) {
-        if (args.length < 2) {
+        if (args.length != 8) {
+            System.out.println("Usage: java GremlinQueryClient --url <server-url> --query <query> [--count <count>] [--warmup <warmupCount>]");
             System.exit(1);
         }
 
