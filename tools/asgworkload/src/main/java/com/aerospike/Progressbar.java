@@ -14,9 +14,11 @@ public class Progressbar implements AutoCloseable {
     private final ProgressBarConsumer consoleConsumer;
     private final AtomicLong lastPrint = new AtomicLong(0);
     private final AtomicBoolean closed = new AtomicBoolean(false);
+    private final boolean isDebug;
 
     public Progressbar(WorkloadProvider workload) {
         this.workloadProvider = workload;
+        this.isDebug = workload.isDebug();
 
         consoleConsumer = new ConsoleProgressBarConsumer(System.out);
         this.underlyingProgressBar = new ProgressBarBuilder()
@@ -36,6 +38,9 @@ public class Progressbar implements AutoCloseable {
         this.underlyingProgressBar.step();
         if(msg != null) {
             this.underlyingProgressBar.setExtraMessage(msg);
+        }
+        if(isDebug) {
+            System.out.println();
         }
     }
 
@@ -79,6 +84,9 @@ public class Progressbar implements AutoCloseable {
 
         if(msg != null) {
             rateMsg += "; " + msg;
+        }
+        if(isDebug) {
+            rateMsg += String.format("%n");
         }
         this.underlyingProgressBar.setExtraMessage(rateMsg);
     }

@@ -112,6 +112,9 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
     public boolean isWarmup() { return warmup; }
 
     public boolean isAborted() { return abortRun.get(); }
+
+    public boolean isDebug() { return logger.isDebug(); }
+
     /*
     The number of defined Schedulers.
      */
@@ -228,6 +231,7 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
                                     queryRunnable.Name(),
                                     queryRunnable.WorkloadType().toString(),
                                     targetRunDuration,
+                                    pendingCount.get(),
                                     warmup,
                                     null);
             }
@@ -281,7 +285,7 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
                 progressbar = null;
             }
             schedulerFutures.clear();
-            System.out.printf("Starting %s for %s %s\n",
+            System.out.printf("Starting %s for %s %s%n",
                                 warmup ? "Warmup" : "Workload",
                                 queryRunnable.WorkloadType().toString(),
                                 queryRunnable.Name());
@@ -331,7 +335,7 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
         boolean alreadyCompleted = status == WorkloadStatus.Completed;
 
         if(queryRunnable != null) {
-            System.out.printf("Pending Shutdown for %s %s\n",
+            System.out.printf("Pending Shutdown for %s %s%n",
                     queryRunnable.WorkloadType().toString(),
                     queryRunnable.Name());
         }
@@ -356,7 +360,7 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
         }
 
         if(queryRunnable != null) {
-            System.out.printf("Shutdown for %s %s %s Completed\n",
+            System.out.printf("Shutdown for %s %s %s Completed%n",
                     warmup ? "Warmup" : "Workload",
                     queryRunnable.WorkloadType().toString(),
                     queryRunnable.Name());
@@ -396,7 +400,7 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
                     if(LocalDateTime.now().isAfter(exitTime)) {
                         if(abortNextTimeout) {
                             abortRun.set(true);
-                            System.err.printf("\tStopping %s due to Abort Signalled...\n",
+                            System.err.printf("\tStopping %s due to Abort Signalled...%n",
                                                 warmup ? "warmup" : "workload");
                             schedulerPool.shutdownNow();
                             workerPool.shutdownNow();
@@ -404,7 +408,7 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
                             break;
                         }
                         terminateWorkers.set(true);
-                        System.out.printf("\tStopping %s due to Timeout... Waiting Completion...\n",
+                        System.out.printf("\tStopping %s due to Timeout... Waiting Completion...%n",
                                                 warmup ? "warmup" : "workload");
                         schedulerPool.shutdown();
                         workerPool.shutdown();
@@ -437,7 +441,7 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
                 System.out.println(" Completed");
             }
         }
-        System.out.printf("\t%s Status %s\n",
+        System.out.printf("\t%s Status %s%n",
                             warmup ? "Warmup" : "Workload",
                             status);
         return result;
@@ -470,7 +474,7 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
     public WorkloadProvider PrintSummary(PrintStream printStream) {
 
         if(queryRunnable == null) {
-            printStream.printf("No %s Summary available.\n",
+            printStream.printf("No %s Summary available.%n",
                                 warmup ? "Warmup" : "Workload");
             return this;
         }
@@ -483,28 +487,28 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
         final int abortedCount = getAbortedCount();
         final int totalCount = successCount + errorCount + abortedCount;
 
-        printStream.printf("%s Summary for %s:\n",
+        printStream.printf("%s Summary for %s:%n",
                             warmup ? "Warmup " : "Workload",
                             queryRunnable.Name());
-        printStream.printf("\tStatus: %s\n", abortRun.get()
+        printStream.printf("\tStatus: %s%n", abortRun.get()
                                                 ? getStatus() +" (Signaled)"
                                                 : getStatus());
-        printStream.printf("\tRuntime Duration: %s\n", rtDuration);
+        printStream.printf("\tRuntime Duration: %s%n", rtDuration);
 
         printStream.println("\tSuccessful Operations");
-        printStream.printf("\t\tMean OPS: %,.2f\n", getCallsPerSecond());
-        printStream.printf("\t\tOperations: %,d\n", successCount);
-        printStream.printf("\t\tTotal Operation Duration: %s\n", successDuration);
+        printStream.printf("\t\tMean OPS: %,.2f%n", getCallsPerSecond());
+        printStream.printf("\t\tOperations: %,d%n", successCount);
+        printStream.printf("\t\tTotal Operation Duration: %s%n", successDuration);
 
         printStream.println("\tOperation Errors");
-        printStream.printf("\t\tMean OPS: %,.2f\n", getErrorsPerSecond());
-        printStream.printf("\t\tErrors: %,d\n", errorCount);
-        printStream.printf("\t\tTotal Errors Duration: %s\n", errorDuration);
+        printStream.printf("\t\tMean OPS: %,.2f%n", getErrorsPerSecond());
+        printStream.printf("\t\tErrors: %,d%n", errorCount);
+        printStream.printf("\t\tTotal Errors Duration: %s%n", errorDuration);
 
-        printStream.printf("\tTotal Operations Execution Time: %s\n", excutionDuration);
+        printStream.printf("\tTotal Operations Execution Time: %s%n", excutionDuration);
 
-        printStream.printf("\tAborted Operations: %,d\n", abortedCount);
-        printStream.printf("\tTotal Number of All Operations: %,d\n", totalCount);
+        printStream.printf("\tAborted Operations: %,d%n", abortedCount);
+        printStream.printf("\tTotal Number of All Operations: %,d%n", totalCount);
 
         if(errorCount > 0) {
             printStream.println("Error Summary:");
@@ -519,30 +523,39 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
                             .stream()
                             .collect(Collectors.groupingBy(WorkloadProviderScheduler::getErrorMessage));
                     if (entry.getValue().size() == sameMsgs.size()) {
-                        printStream.printf("\tCnt: %d\tException: %s\t'%s'\n",
+                        printStream.printf("\tCnt: %d\tException: %s\t'%s'%n",
                                 entry.getValue().size(),
                                 Helpers.GetShortClassName(entry.getKey()),
-                                Helpers.GetShortErrorMsg(entry.getValue().get(0).getMessage()));
+                                Helpers.GetShortErrorMsg(entry.getValue().get(0).getMessage(),
+                                                            0,
+                                                            "%n\t\t\t",
+                                                            " "));
                     } else {
-                        printStream.printf("\tCnt: %d\tException: %s:\n",
+                        printStream.printf("\tCnt: %d\tException: %s:%n",
                                 entry.getValue().size(),
                                 Helpers.GetShortClassName(entry.getKey()));
                         for (Map.Entry<String, List<Exception>> sameMsg : sameMsgs.entrySet()) {
-                            printStream.printf("\t\tCnt: %d\tMsg: '%s'\n",
+                            printStream.printf("\t\tCnt: %d\tMsg: '%s'%n",
                                     sameMsg.getValue().size(),
-                                    Helpers.GetShortErrorMsg(sameMsg.getKey()));
+                                    Helpers.GetShortErrorMsg(sameMsg.getKey(),
+                                                    0,
+                                                    "%n\t\t\t",
+                                                    " "));
                         }
                     }
                 } catch (Exception ignored) {
-                    printStream.printf("\tCnt: %d\t%s:\n",
+                    printStream.printf("\tCnt: %d\t%s:%n",
                             entry.getValue().size(),
-                            Helpers.GetShortErrorMsg(entry.getKey()));
+                            Helpers.GetShortErrorMsg(entry.getKey(),
+                                                0,
+                                                "%n\t\t\t",
+                                                " "));
                 }
             }
         }
         printStream.println();
         if(!warmup) {
-            printStream.printf("Recorded latencies [in ms] for %s\n",
+            printStream.printf("Recorded latencies [in ms] for %s%n",
                     queryRunnable.Name());
             histogram.outputPercentileDistribution(printStream, Helpers.NS_TO_MS);
             printStream.println();
@@ -646,8 +659,8 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
                 totCallDuration.addAndGet(latency);
                 errorDuration.addAndGet(latency);
             }
-            logger.Print("WorkloadProviderScheduler.Handler",
-                            e);
+            logger.PrintDebug("WorkloadProviderScheduler.Handler",
+                                e);
             logger.error(String.format("%s %s",
                                         isWarmup() ? "Warmup" : "Workload",
                                         queryRunnable.Name()), e);
@@ -661,6 +674,7 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
             boolean success = false;
             Throwable lastError = null;
             pendingCount.incrementAndGet();
+            openTelemetry.incrPendingTransCounter();
 
             try {
                 queryRunnable.preCall();
@@ -710,6 +724,7 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
                     }
                 }
                 pendingCount.decrementAndGet();
+                openTelemetry.decrPendingTransCounter();
                 progressbar.step();
             }
         }
@@ -743,7 +758,7 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
         {
             abortRun.set(true);
             progressbar.stop();
-            System.err.printf("\tStopping %s due %d Errors for %s...\n",
+            System.err.printf("\tStopping %s due %d Errors for %s...%n",
                                 warmup ? "warmup" : "workload",
                                 errorCount.get(),
                                 queryRunnable.Name());
@@ -757,7 +772,7 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
         if(!waitingSchedulerShutdown.get()) {
             waitingSchedulerShutdown.set(true);
             progressbar.stop();
-            System.out.printf("\tStopping %s due to %s...\n",
+            System.out.printf("\tStopping %s due to %s...%n",
                     warmup ? "warmup" : "workload",
                     abortRun.get() ? "Signal" : "Duration Reached");
         }

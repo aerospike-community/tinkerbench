@@ -20,13 +20,17 @@ public final class OpenTelemetryDummy  implements OpenTelemetry {
                       String workloadName,
                       String workloadType,
                       Duration targetDuration,
+                      long pendingActions,
                       boolean warmup,
                       StringBuilder otherInfo) { }
 
     @SuppressWarnings("unused")
     @Override
-    public void incrTransCounter() {
+    public void incrPendingTransCounter() {
     }
+
+    @Override
+    public void decrPendingTransCounter() {}
 
     @SuppressWarnings("unused")
     @Override

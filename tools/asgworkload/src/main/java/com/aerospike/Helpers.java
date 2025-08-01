@@ -1,5 +1,9 @@
 package com.aerospike;
 
+import org.javatuples.Pair;
+
+import java.lang.management.ManagementFactory;
+import java.lang.management.RuntimeMXBean;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 
@@ -57,26 +61,49 @@ public class Helpers {
     }
 
     public static String GetShortErrorMsg(final String errMsg,
-                                          final int msgLength) {
+                                         final int msgLength) {
+        return GetShortErrorMsg(errMsg, msgLength, null, null);
+    }
+
+    public static String GetShortErrorMsg(final String errMsg,
+                                          final int msgLength,
+                                          final String prefix,
+                                          final String breakPrefix) {
         if(errMsg == null) return "";
 
         String[] msgParts = errMsg.split(":");
         StringBuilder sb = new StringBuilder();
+        int cnt = 0;
+
+        if(prefix != null) sb.append(prefix);
 
         for (String msgPart : msgParts) {
+            cnt++;
             msgPart = msgPart.trim();
             if(msgPart.startsWith("java.")
                 || msgPart.startsWith("com.")
                 || msgPart.startsWith("org.")) {
+                if(prefix != null) sb.append(prefix);
                 sb.append(GetShortClassName(msgPart));
-                sb.append(": ");
+                if(breakPrefix != null) {
+                    sb.append(":");
+                    sb.append(breakPrefix.repeat(cnt));
+                } else {
+                    sb.append(": ");
+                }
             } else if (msgPart.contains("Please refer to troubleshooting or contact support if problem persists.")) {
                 sb.append(msgPart.replaceAll("Please refer to troubleshooting.+problem persists.", " "));
                 sb.append(": ");
             }
             else {
+                if(prefix != null) sb.append(prefix);
                 sb.append(msgPart);
-                sb.append(": ");
+                if(breakPrefix != null) {
+                    sb.append(":");
+                    sb.append(breakPrefix.repeat(cnt));
+                } else {
+                    sb.append(": ");
+                }
             }
         }
 
@@ -86,5 +113,20 @@ public class Helpers {
         }
 
         return sb.toString().trim();
+    }
+
+    public static Pair<String,String> GetPidThreadId() {
+        String pidString = "<pid>";
+        String threadId = "<thread>";
+        try {
+            RuntimeMXBean runtimeBean = ManagementFactory.getRuntimeMXBean();
+            String jvmName = runtimeBean.getName();
+            pidString = jvmName.split("@")[0]; // Extract PID from the name string
+        } catch (Exception ignored) { }
+        try {
+            threadId = Long.toString(Thread.currentThread().threadId());
+        } catch (Exception ignored) { }
+
+        return Pair.with(pidString, threadId);
     }
 }

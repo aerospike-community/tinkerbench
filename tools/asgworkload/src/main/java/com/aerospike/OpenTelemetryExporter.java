@@ -37,6 +37,7 @@ public final class OpenTelemetryExporter implements com.aerospike.OpenTelemetry 
     private final LongGauge openTelemetryInfoGauge;
     private final LongCounter openTelemetryExceptionCounter;
     private final LongCounter openTelemetryTransactionCounter;
+    private final LongUpDownCounter openTelemetryPendingCounter;
     private final DoubleHistogram openTelemetryLatencyMSHistogram;
     private final DoubleHistogram openTelemetryLatencyUSHistogram;
 
@@ -90,6 +91,12 @@ public final class OpenTelemetryExporter implements com.aerospike.OpenTelemetry 
         //                .counterBuilder(METRIC_NAME + ".related.errors")
         //                .setDescription("Aerospike Workload Related Errors")
         //                .build();
+
+        this.openTelemetryPendingCounter =
+                openTelemetryMeter
+                        .upDownCounterBuilder(METRIC_NAME + ".pending.run.queue")
+                        .setDescription("The number of pending Gremlin actions.")
+                        .build();
 
         this.openTelemetryLatencyMSHistogram =
                 openTelemetryMeter
@@ -170,10 +177,10 @@ public final class OpenTelemetryExporter implements com.aerospike.OpenTelemetry 
             LocalDateTime now = LocalDateTime.now();
             String formattedDateTime = now.format(LogSource.DateFormatter);
 
-            System.out.printf("%s %s\n", formattedDateTime, msg);
+            System.out.printf("%s %s%n", formattedDateTime, msg);
         }
         else {
-            System.out.printf("%s\n", msg);
+            System.out.printf("%s%n", msg);
         }
     }
 
@@ -216,13 +223,14 @@ public final class OpenTelemetryExporter implements com.aerospike.OpenTelemetry 
         this.openTelemetryInfoGauge.set(counter,
                                         attributes.build());
 
-       this.printDebug(String.format("Info Gauge %d", hbCnt.get()));
+        logger.PrintDebug("OpenTelemetry", "Info Gauge %d", counter);
     }
 
     public void Reset(AGSWorkloadArgs args,
                       String workloadName,
                       String workloadType,
                       Duration targetDuration,
+                      long pendingActions,
                       boolean warmup,
                       StringBuilder otherInfo) {
 
@@ -263,6 +271,11 @@ public final class OpenTelemetryExporter implements com.aerospike.OpenTelemetry 
                         AttributeKey.longKey("durationMillis"), targetDuration.toMillis()
                 );
 
+        if(pendingActions > 0)
+            this.pendingTransCounter(pendingActions * -1);
+        else
+            this.pendingTransCounter(0);
+
         this.updateInfoGauge(true);
     }
 
@@ -296,7 +309,7 @@ public final class OpenTelemetryExporter implements com.aerospike.OpenTelemetry 
 
         this.openTelemetryExceptionCounter.add(1, attributes.build());
 
-        this.printDebug("Exception Counter Add " + exceptionType);
+        this.logger.PrintDebug("OpenTelemetry", "Exception Counter %s", exceptionType);
     }
 
     @Override
@@ -315,21 +328,30 @@ public final class OpenTelemetryExporter implements com.aerospike.OpenTelemetry 
         this.openTelemetryLatencyUSHistogram.record((double) elapsedNanos / Helpers.NS_TO_US, attrsBuilt);
         this.openTelemetryTransactionCounter.add(1, attrsBuilt);
 
-        this.printDebug("Elapsed Time Record  " + workloadName + " " + wlType, true);
+        this.logger.PrintDebug("OpenTelemetry", "Elapsed Time Record  %s %s", workloadName, wlType);
     }
 
-    @Override
-    public void incrTransCounter() {
-
+    private void pendingTransCounter(long amt) {
         if(this.closed.get()) { return; }
 
         AttributesBuilder attributes = Attributes.builder();
         attributes.putAll(this.hbAttributes[0]);
         attributes.put("startTimeMillis", this.startTimeMillis);
+        attributes.put("targetdurationMills", this.targetDuration.toMillis());
 
-        this.openTelemetryTransactionCounter.add(1, attributes.build());
+        this.openTelemetryPendingCounter.add(amt, attributes.build());
 
-        this.printDebug("Transaction Counter Add " + workloadName + " " + wlType, true);
+        this.logger.PrintDebug("OpenTelemetry", "Transaction Pending Counter %d %s %s",amt, workloadName, wlType);
+    }
+
+    @Override
+    public void incrPendingTransCounter() {
+        this.pendingTransCounter(1);
+    }
+
+    @Override
+    public void decrPendingTransCounter() {
+        this.pendingTransCounter(-1);
     }
 
     @Override
@@ -431,7 +453,7 @@ public final class OpenTelemetryExporter implements com.aerospike.OpenTelemetry 
     }
 
     public String printConfiguration() {
-        return String.format("Open Telemetry Enabled at %s\n\tPrometheus Exporter using Port %d\n\tClose wait interval %d ms\n\tScope Name: '%s'\n\tMetric Prefix Name: '%s'",
+        return String.format("Open Telemetry Enabled at %s%n\tPrometheus Exporter using Port %d%n\tClose wait interval %d ms%n\tScope Name: '%s'%n\tMetric Prefix Name: '%s'",
                 this.startLocalDateTime.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME),
                 this.prometheusPort,
                 this.closeWaitMS,

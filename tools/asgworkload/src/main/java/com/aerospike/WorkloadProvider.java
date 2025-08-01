@@ -14,6 +14,8 @@ public interface WorkloadProvider extends AutoCloseable {
 
     public boolean isAborted();
 
+    public boolean isDebug();
+
     /*
     The targeted calls-per-second.
      */

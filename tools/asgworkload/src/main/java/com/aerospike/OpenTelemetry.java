@@ -9,6 +9,7 @@ public interface OpenTelemetry extends AutoCloseable {
                       String workloadName,
                       String workloadType,
                       Duration targetDuration,
+                      long pendingActions,
                       boolean warmup,
                       StringBuilder otherInfo);
 
@@ -17,7 +18,8 @@ public interface OpenTelemetry extends AutoCloseable {
 
     void recordElapsedTime(long elapsedNanos);
 
-    void incrTransCounter();
+    void incrPendingTransCounter();
+    void decrPendingTransCounter();
 
     void setWorkloadName(String workLoadType, String workloadName, boolean warmup);
     void setConnectionState(String connectionState);

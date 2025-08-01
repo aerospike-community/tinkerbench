@@ -1,5 +1,6 @@
 package com.aerospike;
 
+import org.javatuples.Pair;
 import org.slf4j.LoggerFactory;
 
 import java.io.ByteArrayOutputStream;
@@ -88,7 +89,13 @@ public final class LogSource {
 
         LocalDateTime now = LocalDateTime.now();
         String formattedDateTime = now.format(DateFormatter);
-        String fmtMsg = String.format("%s INFO %s %s%n", name, formattedDateTime, msg)
+        Pair<?,?> pidThread = Helpers.GetPidThreadId();
+        String fmtMsg = String.format("%s INFO %s %s %s %s%n",
+                                        formattedDateTime,
+                                        pidThread.getValue0(),
+                                        pidThread.getValue1(),
+                                        name,
+                                        msg)
                             .replace("%", "%%");
 
         if(err) {
@@ -103,8 +110,11 @@ public final class LogSource {
 
         LocalDateTime now = LocalDateTime.now();
         String formattedDateTime = now.format(DateFormatter);
-        String fmtMsg = String.format("%s ERROR %s %s: %s%n",
+        Pair<?,?> pidThread = Helpers.GetPidThreadId();
+        String fmtMsg = String.format("%s ERROR %s %s %s %s: %s%n",
                                         formattedDateTime,
+                                        pidThread.getValue0(),
+                                        pidThread.getValue1(),
                                         name,
                                         ex.getClass().getSimpleName(),
                                         ex.getMessage())
@@ -143,7 +153,13 @@ public final class LogSource {
         if(debugEnabled) {
             LocalDateTime now = LocalDateTime.now();
             String formattedDateTime = now.format(DateFormatter);
-            String fmtMsg = String.format("%s DEBUG %s %s\n", formattedDateTime, name, msg)
+            Pair<?,?> pidThread = Helpers.GetPidThreadId();
+            String fmtMsg = String.format("%s DEBUG %s %s %s %s%n",
+                            formattedDateTime,
+                            pidThread.getValue0(),
+                            pidThread.getValue1(),
+                            name,
+                            msg)
                             .replace("%", "%%");
 
             System.out.printf(fmtMsg);
@@ -155,8 +171,11 @@ public final class LogSource {
         if(debugEnabled) {
             LocalDateTime now = LocalDateTime.now();
             String formattedDateTime = now.format(DateFormatter);
-            String fmtMsg = String.format("%s DEBUG %s %s: %s%n",
+            Pair<?,?> pidThread = Helpers.GetPidThreadId();
+            String fmtMsg = String.format("%s DEBUG %s %s %s %s: %s%n",
                                             formattedDateTime,
+                                            pidThread.getValue0(),
+                                            pidThread.getValue1(),
                                             name,
                                             ex.getClass().getSimpleName(),
                                             ex.getMessage())
