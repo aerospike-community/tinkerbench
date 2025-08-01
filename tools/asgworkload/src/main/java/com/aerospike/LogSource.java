@@ -88,7 +88,8 @@ public final class LogSource {
 
         LocalDateTime now = LocalDateTime.now();
         String formattedDateTime = now.format(DateFormatter);
-        String fmtMsg = String.format("%s INFO %s %s%n", name, formattedDateTime, msg);
+        String fmtMsg = String.format("%s INFO %s %s%n", name, formattedDateTime, msg)
+                            .replace("%", "%%");
 
         if(err) {
             System.err.printf(fmtMsg);
@@ -103,10 +104,11 @@ public final class LogSource {
         LocalDateTime now = LocalDateTime.now();
         String formattedDateTime = now.format(DateFormatter);
         String fmtMsg = String.format("%s ERROR %s %s: %s%n",
-                name,
-                formattedDateTime,
-                ex.getClass().getSimpleName(),
-                ex.getMessage());
+                                        formattedDateTime,
+                                        name,
+                                        ex.getClass().getSimpleName(),
+                                        ex.getMessage())
+                            .replace("%","%%");
         System.err.printf(fmtMsg);
     }
 
@@ -141,7 +143,8 @@ public final class LogSource {
         if(debugEnabled) {
             LocalDateTime now = LocalDateTime.now();
             String formattedDateTime = now.format(DateFormatter);
-            String fmtMsg = String.format("%s DEBUG %s %s\n", name, formattedDateTime, msg);
+            String fmtMsg = String.format("%s DEBUG %s %s\n", formattedDateTime, name, msg)
+                            .replace("%", "%%");
 
             System.out.printf(fmtMsg);
             logger4j.debug(fmtMsg);
@@ -153,10 +156,11 @@ public final class LogSource {
             LocalDateTime now = LocalDateTime.now();
             String formattedDateTime = now.format(DateFormatter);
             String fmtMsg = String.format("%s DEBUG %s %s: %s%n",
-                    name,
-                    formattedDateTime,
-                    ex.getClass().getSimpleName(),
-                    ex.getMessage());
+                                            formattedDateTime,
+                                            name,
+                                            ex.getClass().getSimpleName(),
+                                            ex.getMessage())
+                            .replace("%","%%");
             System.err.printf(fmtMsg);
         }
     }

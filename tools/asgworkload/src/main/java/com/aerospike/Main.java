@@ -72,7 +72,7 @@ public class Main extends  AGSWorkloadArgs {
                             = new AGSGraphTraversalSource(this, openTel)) {
 
             if(!this.testMode && !this.idManager.isInitialized())
-                this.idManager.init(agsGraphTraversalSource.G(), idSampleSize);
+                this.idManager.init(agsGraphTraversalSource.G(), idSampleSize, labelSample);
 
             if (!warmupDuration.isZero()) {
                 ExecuteWorkload(openTel,

@@ -83,7 +83,7 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
         this.cliArgs = cliArgs;
         this.warmup = warmup;
         {
-            // A Histogram covering the range from 1 nsec to target duration with 3 decimal point resolution:
+            // A Histogram covering the range from 1 ms to target duration with 3 decimal point resolution:
             final Duration higestDuration = this.targetRunDuration.plusMinutes(1);
             this.histogram = new AtomicHistogram(higestDuration.toNanos(), 3);
         }
@@ -542,9 +542,9 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
         }
         printStream.println();
         if(!warmup) {
-            printStream.printf("Recorded latencies [in usec] for %s\n",
+            printStream.printf("Recorded latencies [in ms] for %s\n",
                     queryRunnable.Name());
-            histogram.outputPercentileDistribution(printStream, 1000.0);
+            histogram.outputPercentileDistribution(printStream, Helpers.NS_TO_MS);
             printStream.println();
             printStream.println();
         }
@@ -646,6 +646,8 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
                 totCallDuration.addAndGet(latency);
                 errorDuration.addAndGet(latency);
             }
+            logger.Print("WorkloadProviderScheduler.Handler",
+                            e);
             logger.error(String.format("%s %s",
                                         isWarmup() ? "Warmup" : "Workload",
                                         queryRunnable.Name()), e);

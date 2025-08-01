@@ -5,6 +5,9 @@ import java.lang.reflect.InvocationTargetException;
 
 public class Helpers {
 
+    public static final double NS_TO_MS = 1000000D;
+    public static final double NS_TO_US = 1000D;
+
     public static QueryRunnable GetQuery(String queryName,
                                          WorkloadProvider provider,
                                          AGSGraphTraversal graphTraversal,

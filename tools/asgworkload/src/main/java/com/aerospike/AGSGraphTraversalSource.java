@@ -21,7 +21,7 @@ public final class AGSGraphTraversalSource  implements AGSGraphTraversal, Closea
         this.openTelemetry = openTelemetry;
 
         logger.PrintDebug("AGS",
-                        "Creating Cluster Hosts %s on port %d...%n",
+                        "Creating Cluster Hosts %s on port %d..\n",
                             String.join(",", args.agsHosts),
                             args.port);
 

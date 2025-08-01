@@ -16,38 +16,71 @@ public class IdSampler implements  IdManager {
     }
 
     @Override
-    public void init(GraphTraversalSource g, int sampleSize) {
+    public void init(GraphTraversalSource g, int sampleSize, String label) {
 
-        try {
-            sampledIds = g.V().limit(sampleSize).id().toList();
-        } catch (CompletionException ignored) {
-            //TODO: Really need to rework this to avoid AGS exceptions around large sample sizes...
-            System.out.printf("Retrying Id Sample Size of %,d\n", sampleSize);
+        if(sampleSize <= 0) {
+            sampledIds = null;
+        } else {
             try {
-                Thread.sleep(1000);
-            } catch (InterruptedException ignored2) {}
-            final int portion = sampleSize / 10;
-            List<Object> portionLst = g.V().range(0, portion).id().toList();
-
-            sampledIds = new ArrayList<Object>(sampleSize);
-            sampledIds.addAll(portionLst);
-
-            for (int i = 1; i < 10; i++) {
-                final int startRange = portion * i;
-                final int endRange = startRange + portion;
+                sampledIds = label == null || label.isEmpty()
+                                ? g.V()
+                                    .limit(sampleSize)
+                                    .id()
+                                    .toList()
+                                : g.V()
+                                    .hasLabel(label)
+                                    .id()
+                                    .limit(sampleSize)
+                                    .toList();
+            } catch (CompletionException ignored) {
+                //TODO: Really need to rework this to avoid AGS exceptions around large sample sizes...
+                System.out.printf("Retrying Id Sample Size of %,d\n", sampleSize);
                 try {
-                    Thread.sleep(500);
-                } catch (InterruptedException ignored2) {}
-                portionLst = g.V().range(startRange, endRange).id().toList();
+                    Thread.sleep(1000);
+                } catch (InterruptedException ignored2) {
+                }
+                final int portion = sampleSize / 10;
+                List<Object> portionLst = label == null || label.isEmpty()
+                                            ? g.V()
+                                                .range(0, portion)
+                                                .id()
+                                                .toList()
+                                            : g.V()
+                                                .hasLabel(label)
+                                                .id()
+                                                .range(0, portion)
+                                                .toList();
+
+
+                sampledIds = new ArrayList<Object>(sampleSize);
                 sampledIds.addAll(portionLst);
+
+                for (int i = 1; i < 10; i++) {
+                    final int startRange = portion * i;
+                    final int endRange = startRange + portion;
+                    try {
+                        Thread.sleep(500);
+                    } catch (InterruptedException ignored2) {
+                    }
+                    portionLst = label == null || label.isEmpty()
+                                    ? g.V()
+                                        .range(startRange, endRange)
+                                        .id()
+                                        .toList()
+                                    : g.V()
+                                        .hasLabel(label)
+                                        .id()
+                                        .range(startRange, endRange)
+                                        .toList();
+                    sampledIds.addAll(portionLst);
+                }
             }
         }
-
     }
 
     @Override
     public void init(GraphTraversalSource g) {
-        init(g, ID_SAMPLE_SIZE);
+        init(g, ID_SAMPLE_SIZE, null);
     }
 
     @Override

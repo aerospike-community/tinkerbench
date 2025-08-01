@@ -4,7 +4,7 @@ import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSo
 
 public interface IdManager {
     void init(GraphTraversalSource g);
-    void init(GraphTraversalSource g, int sampleSize);
+    void init(GraphTraversalSource g, int sampleSize, String label);
 
     boolean isInitialized();
     Object getId();

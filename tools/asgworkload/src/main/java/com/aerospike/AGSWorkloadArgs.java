@@ -109,9 +109,13 @@ public abstract class AGSWorkloadArgs  implements Callable<Integer> {
     IdManager idManager;
 
     @Option(names = {"-sample", "--IdSampleSize"},
-            description = "The Id sample size used by the IdManager. Default is ${DEFAULT-VALUE}",
+            description = "The Id sample size used by the IdManager. Zero to disable. Default is ${DEFAULT-VALUE}",
             defaultValue = "500000")
     int idSampleSize;
+
+    @Option(names = {"-label", "--IdSampleLabel"},
+            description = "The Label used to obtain Id samples used by the IdManager. Null to disable. Default is ${DEFAULT-VALUE}")
+    String labelSample;
 
     @Option(names = {"-e","--Errors"},
             description = "The number of errors reached when the workload is aborted. Default is ${DEFAULT-VALUE}",
@@ -377,7 +381,7 @@ public abstract class AGSWorkloadArgs  implements Callable<Integer> {
             }
 
             Object value = opt.getValue();
-            if(value.getClass().isArray())
+            if(value != null && value.getClass().isArray())
                 value = Arrays.toString((String[]) value);
             optionLst.add(String.format("\t%s: %s%s%n",
                                             argKeyword,
@@ -429,7 +433,7 @@ public abstract class AGSWorkloadArgs  implements Callable<Integer> {
             }
 
             Object value = opt.getValue();
-            if(value.getClass().isArray())
+            if(value != null && value.getClass().isArray())
                 value = Arrays.toString((String[]) value);
             args.add(String.format("%s: %s%s",
                         argKeyword,

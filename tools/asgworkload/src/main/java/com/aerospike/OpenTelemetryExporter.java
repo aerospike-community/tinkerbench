@@ -24,8 +24,6 @@ public final class OpenTelemetryExporter implements com.aerospike.OpenTelemetry 
 
     private final String SCOPE_NAME = "com.aerospike.workload";
     private final String METRIC_NAME = "aerospike.workload.ags";
-    private static final double NS_TO_MS = 1000000D;
-    private static final double NS_TO_US = 1000D;
 
     private final int prometheusPort;
     private String workloadName;
@@ -162,11 +160,9 @@ public final class OpenTelemetryExporter implements com.aerospike.OpenTelemetry 
 
     private void printDebug(String msg, boolean limited) {
         logger.PrintDebug("OPENTEL", msg, limited);
-        logger.getLogger4j().debug("OPENTEL: {}", msg);
     }
     private void printDebug(String msg) {
         logger.PrintDebug("OPENTEL", msg);
-        logger.getLogger4j().debug("OPENTEL: {}", msg);
     }
     private void printMsg(String msg, boolean includeTimestamp) {
 
@@ -174,10 +170,10 @@ public final class OpenTelemetryExporter implements com.aerospike.OpenTelemetry 
             LocalDateTime now = LocalDateTime.now();
             String formattedDateTime = now.format(LogSource.DateFormatter);
 
-            System.out.printf("%s %s%n", formattedDateTime, msg);
+            System.out.printf("%s %s\n", formattedDateTime, msg);
         }
         else {
-            System.out.printf("%s%n", msg);
+            System.out.printf("%s\n", msg);
         }
     }
 
@@ -315,8 +311,8 @@ public final class OpenTelemetryExporter implements com.aerospike.OpenTelemetry 
 
         final Attributes attrsBuilt = attributes.build();
 
-        this.openTelemetryLatencyMSHistogram.record((double) elapsedNanos / NS_TO_MS, attrsBuilt);
-        this.openTelemetryLatencyUSHistogram.record((double) elapsedNanos / NS_TO_US, attrsBuilt);
+        this.openTelemetryLatencyMSHistogram.record((double) elapsedNanos / Helpers.NS_TO_MS, attrsBuilt);
+        this.openTelemetryLatencyUSHistogram.record((double) elapsedNanos / Helpers.NS_TO_US, attrsBuilt);
         this.openTelemetryTransactionCounter.add(1, attrsBuilt);
 
         this.printDebug("Elapsed Time Record  " + workloadName + " " + wlType, true);
