@@ -2,6 +2,7 @@ package com.aerospike;
 
 import org.apache.tinkerpop.gremlin.driver.exception.ResponseException;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
+import org.apache.tinkerpop.gremlin.process.traversal.step.map.MatchStep;
 
 import java.util.*;
 import java.util.concurrent.CompletionException;
@@ -10,28 +11,55 @@ public class IdSampler implements  IdManager {
     private static final int ID_SAMPLE_SIZE = 500_000;
     private List<Object> sampledIds = null;
     final Random random = new Random();
+    private final LogSource logger = LogSource.getInstance();
 
     public IdSampler() {
         // Constructor can be used for initialization if needed
     }
 
+    private static List<Object> getSampledIds(final GraphTraversalSource g,
+                                                final String label,
+                                                final int sampleSize,
+                                                final int start,
+                                                final int end) {
+        if(start == 0 && end == 0) {
+            return label == null || label.isEmpty()
+                    ? g.V()
+                        .limit(sampleSize)
+                        .id()
+                        .toList()
+                    : g.V()
+                        .hasLabel(label)
+                        .id()
+                        .limit(sampleSize)
+                        .toList();
+        }
+
+        return label == null || label.isEmpty()
+                ? g.V()
+                    .range(0, end)
+                    .id()
+                    .toList()
+                : g.V()
+                    .hasLabel(label)
+                    .id()
+                    .range(0, end)
+                    .toList();
+    }
+
     @Override
-    public void init(GraphTraversalSource g, int sampleSize, String label) {
+    public void init(final GraphTraversalSource g,
+                     final int sampleSize,
+                     String label) {
 
         if(sampleSize <= 0) {
             sampledIds = null;
+            logger.PrintDebug("IdSampler", "IdSampler disabled");
         } else {
             try {
-                sampledIds = label == null || label.isEmpty()
-                                ? g.V()
-                                    .limit(sampleSize)
-                                    .id()
-                                    .toList()
-                                : g.V()
-                                    .hasLabel(label)
-                                    .id()
-                                    .limit(sampleSize)
-                                    .toList();
+                logger.PrintDebug("IdSampler", "Trying to obtain Samples: Label: '%s'", label);
+
+                sampledIds = getSampledIds(g, label, sampleSize, 0, 0);
             } catch (CompletionException ignored) {
                 //TODO: Really need to rework this to avoid AGS exceptions around large sample sizes...
                 System.out.printf("Retrying Id Sample Size of %,d\n", sampleSize);
@@ -40,18 +68,8 @@ public class IdSampler implements  IdManager {
                 } catch (InterruptedException ignored2) {
                 }
                 final int portion = sampleSize / 10;
-                List<Object> portionLst = label == null || label.isEmpty()
-                                            ? g.V()
-                                                .range(0, portion)
-                                                .id()
-                                                .toList()
-                                            : g.V()
-                                                .hasLabel(label)
-                                                .id()
-                                                .range(0, portion)
-                                                .toList();
-
-
+                List<Object> portionLst = getSampledIds(g, label, sampleSize,
+                                                    0, portion);
                 sampledIds = new ArrayList<Object>(sampleSize);
                 sampledIds.addAll(portionLst);
 
@@ -62,24 +80,28 @@ public class IdSampler implements  IdManager {
                         Thread.sleep(500);
                     } catch (InterruptedException ignored2) {
                     }
-                    portionLst = label == null || label.isEmpty()
-                                    ? g.V()
-                                        .range(startRange, endRange)
-                                        .id()
-                                        .toList()
-                                    : g.V()
-                                        .hasLabel(label)
-                                        .id()
-                                        .range(startRange, endRange)
-                                        .toList();
+                    portionLst = getSampledIds(g, label, sampleSize,
+                                                startRange, endRange);
                     sampledIds.addAll(portionLst);
                 }
+            }
+            logger.PrintDebug("IdSampler", "Obtain Samples: Label: '%s' Count: %d", label, sampledIds.size());
+
+            if(sampledIds.isEmpty()) {
+                String msg = label == null || label.isEmpty()
+                                ? "No Vertex Ids returned and at least one Id is required! Maybe you need to disable Id Sampling?"
+                                : String.format("No Vertex Ids returned for label '%s'. At least one Id is required! Is this label correct or maybe you need to disable Id Sampling?",
+                                                label);
+                logger.Print("IdSampler", true, msg);
+                logger.error(msg);
+
+                throw new ArrayIndexOutOfBoundsException(msg);
             }
         }
     }
 
     @Override
-    public void init(GraphTraversalSource g) {
+    public void init(final GraphTraversalSource g) {
         init(g, ID_SAMPLE_SIZE, null);
     }
 

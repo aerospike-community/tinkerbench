@@ -6,6 +6,8 @@ import java.lang.management.ManagementFactory;
 import java.lang.management.RuntimeMXBean;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class Helpers {
 
@@ -128,5 +130,42 @@ public class Helpers {
         } catch (Exception ignored) { }
 
         return Pair.with(pidString, threadId);
+    }
+
+    private static final Pattern numericPattern = Pattern.compile("^-?\\d+(?<decimal>\\.\\d+)?$");
+
+    public static Pair<Boolean, Boolean> isNumeric(final String strNum) {
+        Matcher matcher = null;
+
+        if ((strNum != null
+                && !strNum.isEmpty())
+                && (matcher = numericPattern.matcher(strNum.trim())).matches()) {
+            return Pair.with(true,
+                            matcher.group("decimal") != null);
+        }
+
+        return Pair.with(false,false);
+    }
+
+    public static Object toProperGremlinObject(final String str) {
+
+        Pair<Boolean, Boolean> isNumeric = isNumeric(str);
+        if(isNumeric.getValue0()) {
+            if(isNumeric.getValue1())
+                return Float.parseFloat(str);
+            return Integer.parseInt(str);
+        }
+
+        return toProperGremlinString(str);
+    }
+
+    public static String toProperGremlinString(final String str) {
+        if(str == null) return null;
+
+        String trimmedStr = str.trim()
+                                .replace("'", "\"");
+        if(!trimmedStr.startsWith("\""))
+            return String.format("\"%s\"", trimmedStr);
+        return str;
     }
 }

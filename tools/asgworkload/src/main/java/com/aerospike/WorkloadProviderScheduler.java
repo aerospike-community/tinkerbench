@@ -511,6 +511,8 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
         printStream.printf("\tTotal Number of All Operations: %,d%n", totalCount);
 
         if(errorCount > 0) {
+            final String preFix = String.format("%n\t\t\t");
+
             printStream.println("Error Summary:");
 
             Map<String, List<Exception>> errors = getErrors()
@@ -528,7 +530,7 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
                                 Helpers.GetShortClassName(entry.getKey()),
                                 Helpers.GetShortErrorMsg(entry.getValue().get(0).getMessage(),
                                                             0,
-                                                            "%n\t\t\t",
+                                                            preFix,
                                                             " "));
                     } else {
                         printStream.printf("\tCnt: %d\tException: %s:%n",
@@ -539,7 +541,7 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
                                     sameMsg.getValue().size(),
                                     Helpers.GetShortErrorMsg(sameMsg.getKey(),
                                                     0,
-                                                    "%n\t\t\t",
+                                                                preFix,
                                                     " "));
                         }
                     }
@@ -548,7 +550,7 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
                             entry.getValue().size(),
                             Helpers.GetShortErrorMsg(entry.getKey(),
                                                 0,
-                                                "%n\t\t\t",
+                                                preFix,
                                                 " "));
                 }
             }

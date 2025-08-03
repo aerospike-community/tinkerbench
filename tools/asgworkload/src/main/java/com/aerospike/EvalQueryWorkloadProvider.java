@@ -20,14 +20,14 @@ public final class EvalQueryWorkloadProvider extends QueryWorkloadProvider {
     final String traversalSource;
     final LogSource logger;
     final Boolean isPrintResult;
-    Terminator terminator = Terminator.none;
+    Terminator terminator = Terminator.toList;
     final String formatDefinedId;
     final boolean formatIdRequired;
     final IdManager idManager;
     ThreadLocal<Bytecode> bytecodeThreadLocal;
 
     final Pattern funcPattern = Pattern.compile("^\\s*(?<stmt>.+)\\.(?<func>[^(]+)\\(\\s*\\)\\s*$", Pattern.CASE_INSENSITIVE);
-    ///This is a much more complete regex to parse the Gremlin string. This will allow a advance Id Manager based on String format params...
+    ///This is a much more complete regex to parse the Gremlin string. This will allow an advance Id Manager based on String format params...
     final Pattern fmtargPattern = Pattern.compile("(?<arg>(?<begin>['\"][^%]*)?%(?<opts>(?:\\\\d+\\\\$)?(?:[-#+ 0,(<]*)?(?:\\\\d*)?(?:\\\\.\\\\d*)?(?:[tT])?)(?:[a-zA-Z])(?<end>[^)'\"]*['\"])?)");
 
     enum Terminator {
@@ -46,6 +46,8 @@ public final class EvalQueryWorkloadProvider extends QueryWorkloadProvider {
         super(provider, ags, idManager, gremlinScript);
         logger = getLogger();
         this.idManager = idManager;
+
+        gremlinScript = gremlinScript.replace("'", "\"");
 
         Matcher matcher = funcPattern.matcher(gremlinScript);
         if (matcher.find()) {
@@ -77,8 +79,6 @@ public final class EvalQueryWorkloadProvider extends QueryWorkloadProvider {
                     logger.Print("EvalQueryWorkloadProvider",false, "Defaulting to Terminator Step 'toList'...");
             }
         }
-
-        gremlinScript = gremlinScript.replace("'","\"");
 
         final String[] parts = gremlinScript.split("\\.");
         Object sampleId;
