@@ -15,7 +15,6 @@ import java.util.regex.Pattern;
 public final class EvalQueryWorkloadProvider extends QueryWorkloadProvider {
 
     final GremlinLangScriptEngine engine;
-    final Bindings bindings;
     final String gremlinString;
     final String traversalSource;
     final LogSource logger;
@@ -25,6 +24,7 @@ public final class EvalQueryWorkloadProvider extends QueryWorkloadProvider {
     final boolean formatIdRequired;
     final IdManager idManager;
     ThreadLocal<Bytecode> bytecodeThreadLocal;
+    ThreadLocal<Bindings> bindingsThreadLocal;
 
     final Pattern funcPattern = Pattern.compile("^\\s*(?<stmt>.+)\\.(?<func>[^(]+)\\(\\s*\\)\\s*$", Pattern.CASE_INSENSITIVE);
     ///This is a much more complete regex to parse the Gremlin string. This will allow an advance Id Manager based on String format params...
@@ -129,8 +129,6 @@ public final class EvalQueryWorkloadProvider extends QueryWorkloadProvider {
         engine = new GremlinLangScriptEngine();
 
         logger.PrintDebug("EvalQueryWorkloadProvider", "Binding to g");
-        bindings = engine.createBindings();
-        bindings.put(traversalSource, G());
 
         try {
             logger.PrintDebug("EvalQueryWorkloadProvider", "Generating Bytecode for \"%s\"", gremlinString);
@@ -141,9 +139,19 @@ public final class EvalQueryWorkloadProvider extends QueryWorkloadProvider {
             }
 
             final Object finalSampleId = sampleId;
+
+            bindingsThreadLocal = ThreadLocal.withInitial(() -> {
+                final Bindings bindings = engine.createBindings();
+                bindings.put(traversalSource, G());
+                return bindings;
+            });
+
             bytecodeThreadLocal = ThreadLocal.withInitial(() -> {
                 try {
-                    return ((DefaultGraphTraversal<?, ?>) engine.eval(String.format(gremlinString, finalSampleId), bindings)).getBytecode();
+                    return ((DefaultGraphTraversal<?, ?>)
+                                engine.eval(String.format(gremlinString, finalSampleId),
+                                            bindingsThreadLocal.get()))
+                                            .getBytecode();
                 } catch (ScriptException e) {
                     throw new RuntimeException(e);
                 }
@@ -223,7 +231,7 @@ public final class EvalQueryWorkloadProvider extends QueryWorkloadProvider {
 
         // If close not performed, there seems to be a leak according to the profiler
         final Traversal.Admin<?,?> resultTraversal = engine.eval(bytecodeThreadLocal.get(),
-                                                                            bindings,
+                                                                            bindingsThreadLocal.get(),
                                                                             traversalSource);
         if (isPrintResult) {
             resultTraversal.forEachRemaining(this::PrintResult);
@@ -245,6 +253,7 @@ public final class EvalQueryWorkloadProvider extends QueryWorkloadProvider {
                     resultTraversal.toList();
                     break;
                 default:
+                    logger.Print("EvalQueryWorkloadProvider", true, "Unknown terminator: '%s'", terminator);
                     throw new IllegalStateException("This should never happen: Unknown terminator " + terminator);
             }
         }
