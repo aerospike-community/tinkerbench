@@ -26,10 +26,16 @@ public final class AGSGraphTraversalSource  implements AGSGraphTraversal, Closea
                             args.port);
 
         try {
-            final Cluster.Builder clusterBuilder = Cluster.build();
-            clusterBuilder.port(args.port).enableSsl(false);
-            for (String host : args.agsHosts) {
-                clusterBuilder.addContactPoint(host);
+            final Cluster.Builder clusterBuilder = args.clusterConfigurationFile == null
+                                                    ? Cluster.build()
+                                                    : Cluster.build(args.clusterConfigurationFile);
+
+            if( args.clusterConfigurationFile == null) {
+                clusterBuilder.port(args.port);
+
+                for (String host : args.agsHosts) {
+                    clusterBuilder.addContactPoint(host);
+                }
             }
 
             if (args.testMode)
@@ -45,10 +51,20 @@ public final class AGSGraphTraversalSource  implements AGSGraphTraversal, Closea
             else {
                 GraphTraversalSource gdb = traversal().withRemote(DriverRemoteConnection.using(cluster));
 
-                if (args.parallelize > 0) {
-                    gdb = gdb.with("aerospike.graph.parallelize",
-                            args.parallelize);
+                if(args.gremlinConfigOptions != null) {
+                    for(GraphConfigOptions opt : args.gremlinConfigOptions) {
+                        gdb = gdb.with(opt.getKey(),
+                                        opt.getValue());
+                    }
                 }
+
+                if(args.asConfigOptions != null) {
+                    for(GraphConfigOptions opt : args.asConfigOptions) {
+                        gdb = gdb.with(opt.getKey(),
+                                opt.getValue());
+                    }
+                }
+
                 this.g = gdb;
             }
         }

@@ -1,5 +1,6 @@
 package com.aerospike;
 
+import org.apache.commons.beanutils.converters.FileConverter;
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
@@ -11,6 +12,8 @@ import picocli.CommandLine.Model.OptionSpec;
 import picocli.CommandLine.Model.PositionalParamSpec;
 import picocli.CommandLine.ParseResult;
 
+import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.URL;
 import java.time.Duration;
@@ -70,16 +73,26 @@ public abstract class AGSWorkloadArgs  implements Callable<Integer> {
             defaultValue = "8182")
     int port;
 
+    @Option(names = {"-b", "--clusterBuildConfigFile"},
+            converter = FileExistConverter.class,
+            description = "A Cluster Build Configuration File. Default is ${DEFAULT-VALUE}")
+    File clusterConfigurationFile;
+
     @Option(names = {"-wu", "--WarmupDuration"},
             converter = DurationConverter.class,
             description = "The warmup time duration (wall clock). A zero duration will disable the warmup. The format can be in Hour(s)|H|Hr(s), Minute(s)|M|Min(s), and/or Second(s)|S|Sec(s), ISO 8601 format (PT1H2M3.5S), or just an integer value which represents seconds. Example: 1h30s -> One hours and 30 seconds; 45 -> 45 seconds... Default is ${DEFAULT-VALUE}",
             defaultValue = "0")
     Duration warmupDuration;
 
-    @Option(names = {"-p", "--parallelize"},
-            description = "Passed to Aerospike Graph Parallelize option. Default is ${DEFAULT-VALUE}",
-            defaultValue = "0")
-    int parallelize;
+    @Option(names = {"-g", "--gremlin"},
+            converter = GraphConfigOptionsConverter.class,
+            description = "Aerospike or Gremlin configuration options.%nMust be in the of 'PropertyName=PropertyValue'.%nExample: -g evaluationTimeout=30000%n-g aerospike.client.policy.maxRetries=2%nYou can specify this command multiple time (one per option).%nDefault is ${DEFAULT-VALUE}")
+    GraphConfigOptions[] gremlinConfigOptions;
+
+    @Option(names = {"-as", "--aerospike"},
+            converter = AerospikeConfigOptionsConverter.class,
+            description = "Aerospike ONLY configuration options.%nYou are not required to include the 'aerospike' prefix to the options.%nMust be in the of 'PropertyName=PropertyValue'.%nExample: -as graph.parallelize=10%n-as client.policy.maxRetries=2%nYou can specify this command multiple time (one per option).%nDefault is ${DEFAULT-VALUE}")
+    GraphConfigOptions[] asConfigOptions;
 
     @Option(names = {"-sd","--shutdown"},
             converter = DurationConverter.class,
@@ -320,7 +333,7 @@ public abstract class AGSWorkloadArgs  implements Callable<Integer> {
 
     static final class IdManagerConverter implements CommandLine.ITypeConverter<IdManager> {
         @Override
-        public IdManager convert(String value) throws Exception {
+        public IdManager convert(String value) throws IllegalArgumentException {
             try {
                 Class<?> idManagerClass = Class.forName(value);
                 if (IdManager.class.isAssignableFrom(idManagerClass)) {
@@ -334,6 +347,48 @@ public abstract class AGSWorkloadArgs  implements Callable<Integer> {
         }
     }
 
+    static final class FileExistConverter implements CommandLine.ITypeConverter<File> {
+        @Override
+        public File convert(String value) throws IllegalArgumentException, FileNotFoundException {
+            if(value == null || value.isEmpty()) { return null; }
+
+            File file;
+            try {
+               file = new File(value);
+            } catch (Exception e) {
+                throw new IllegalArgumentException("Failed to instantiate a file from: " + value, e);
+            }
+            if(!file.exists()) {
+                throw new FileNotFoundException("File " + value + " does not exist.");
+            }
+            return file;
+        }
+    }
+
+    static final class GraphConfigOptionsConverter implements CommandLine.ITypeConverter<GraphConfigOptions> {
+        @Override
+        public GraphConfigOptions convert(String value) throws IllegalArgumentException, FileNotFoundException {
+            if(value == null || value.isEmpty()) { return null; }
+
+            return GraphConfigOptions.Create(value);
+        }
+    }
+
+    static final class AerospikeConfigOptionsConverter implements CommandLine.ITypeConverter<GraphConfigOptions> {
+        @Override
+        public GraphConfigOptions convert(String value) throws IllegalArgumentException, FileNotFoundException {
+            if(value == null || value.isEmpty()) { return null; }
+
+            if(value.startsWith("aerospike")) {
+                return GraphConfigOptions.Create(value);
+            } else if (value.charAt(0) == '.') {
+                return GraphConfigOptions.Create("aerospike" +value);
+            }
+            return GraphConfigOptions.Create("aerospike." + value);
+        }
+    }
+
+
     String[] getVersions(Boolean onlyApplicationVersion) {
         ManifestVersionProvider provider = new ManifestVersionProvider();
         try {
@@ -342,6 +397,11 @@ public abstract class AGSWorkloadArgs  implements Callable<Integer> {
         catch (Exception e) {
             return onlyApplicationVersion ? new String[] {"N/A"} : new String[0];
         }
+    }
+
+    private void validate() {
+
+
     }
 
     /*
@@ -381,8 +441,9 @@ public abstract class AGSWorkloadArgs  implements Callable<Integer> {
             }
 
             Object value = opt.getValue();
-            if(value != null && value.getClass().isArray())
-                value = Arrays.toString((String[]) value);
+            if(value != null && value.getClass().isArray()) {
+                value = Arrays.toString((Object[]) value);
+            }
             optionLst.add(String.format("\t%s: %s%s%n",
                                             argKeyword,
                                             value,
@@ -412,7 +473,7 @@ public abstract class AGSWorkloadArgs  implements Callable<Integer> {
             String argKeyword = argPos.paramLabel();
             Object value = argPos.getValue();
             if(value.getClass().isArray())
-                value = Arrays.toString((String[]) value);
+                value = Arrays.toString((Object[]) value);
 
             args.add(String.format("%s (Position %s): %s",
                                     argKeyword,
@@ -434,7 +495,7 @@ public abstract class AGSWorkloadArgs  implements Callable<Integer> {
 
             Object value = opt.getValue();
             if(value != null && value.getClass().isArray())
-                value = Arrays.toString((String[]) value);
+                value = Arrays.toString((Object[]) value);
             args.add(String.format("%s: %s%s",
                         argKeyword,
                         value,

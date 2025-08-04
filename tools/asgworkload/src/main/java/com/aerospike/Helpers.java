@@ -6,6 +6,10 @@ import java.lang.management.ManagementFactory;
 import java.lang.management.RuntimeMXBean;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -167,5 +171,69 @@ public class Helpers {
         if(!trimmedStr.startsWith("\""))
             return String.format("\"%s\"", trimmedStr);
         return str;
+    }
+
+    private static final List<String> validbools = Arrays.asList("true", "false");
+
+    public static Object DetermineValue(final String item) {
+        Pair<Boolean, Boolean> isNumeric = isNumeric(item);
+        String type = "String";
+
+        if(isNumeric.getValue0()) {
+            if(isNumeric.getValue1())
+                type = "float";
+            else 
+                type = "int";
+        } else if (validbools.contains(item.toLowerCase())) {
+            type = "boolean";
+        }
+
+        return DetermineValue(item, type);
+    }
+
+    public static Object DetermineValue(final String item,
+                                        final String type) {
+        return DetermineValue(item, type, null);
+    }
+
+    public static Object DetermineValue(final String item,
+                                         final String type,
+                                         final String subtype) {
+        try {
+            switch(type.toLowerCase().trim()) {
+                case "list": {
+                    String[] items = item
+                            .substring(1,item.length() - 1)
+                            .split(",");
+                    List<Object> list = new ArrayList<>();
+                    for(String item2 : items) {
+                        list.add(DetermineValue(item2, subtype, null));
+                    }
+                    if(list.isEmpty()
+                            || list.stream().anyMatch(Objects::isNull)) {
+                        return null;
+                    }
+                    return list;
+                }
+                case "string":
+                    return item;
+                case "float":
+                    return Float.parseFloat(item);
+                case "double":
+                    return Double.parseDouble(item);
+                case "integer":
+                case "int":
+                    return Integer.parseInt(item);
+                case "long":
+                    return Long.parseLong(item);
+                case "boolean":
+                case "bool":
+                    return Boolean.parseBoolean(item);
+                default:
+                    return Class.forName(item);
+            }
+
+        } catch (Exception ignored) {}
+        return null;
     }
 }

@@ -18,12 +18,6 @@
       "version": "11.3.0"
     },
     {
-      "type": "panel",
-      "id": "heatmap",
-      "name": "Heatmap",
-      "version": ""
-    },
-    {
       "type": "datasource",
       "id": "prometheus",
       "name": "Prometheus",
@@ -1606,7 +1600,7 @@
       },
       "gridPos": {
         "h": 12,
-        "w": 5,
+        "w": 6,
         "x": 0,
         "y": 34
       },
@@ -1688,92 +1682,6 @@
       ],
       "title": "Percentiles",
       "type": "stat"
-    },
-    {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${DS_PROMETHEUS}"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "custom": {
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            },
-            "scaleDistribution": {
-              "type": "linear"
-            }
-          }
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 12,
-        "w": 19,
-        "x": 5,
-        "y": 34
-      },
-      "id": 4,
-      "options": {
-        "calculate": false,
-        "cellGap": 1,
-        "cellValues": {
-          "unit": "locale"
-        },
-        "color": {
-          "exponent": 0.5,
-          "fill": "dark-orange",
-          "mode": "scheme",
-          "reverse": false,
-          "scale": "exponential",
-          "scheme": "RdYlBu",
-          "steps": 64
-        },
-        "exemplars": {
-          "color": "rgba(255,0,255,0.7)"
-        },
-        "filterValues": {
-          "le": 1e-9
-        },
-        "legend": {
-          "show": true
-        },
-        "rowsFrame": {
-          "layout": "auto"
-        },
-        "tooltip": {
-          "mode": "single",
-          "showColorScale": false,
-          "yHistogram": false
-        },
-        "yAxis": {
-          "axisPlacement": "left",
-          "reverse": false,
-          "unit": "ms"
-        }
-      },
-      "pluginVersion": "11.3.0",
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${DATASOURCE}"
-          },
-          "disableTextWrap": false,
-          "editorMode": "builder",
-          "expr": "sum by(le) (aerospike_workload_ags_lng_latency_milliseconds_bucket{instance=~\"$client\", workload=~\"$workload\", wltype=~\"$workloadtype\"})",
-          "fullMetaSearch": false,
-          "includeNullMetadata": true,
-          "legendFormat": "__auto",
-          "range": true,
-          "refId": "A",
-          "useBackend": false
-        }
-      ],
-      "title": "Call Latency",
-      "type": "heatmap"
     },
     {
       "datasource": {
@@ -2027,7 +1935,6 @@
       "type": "timeseries"
     }
   ],
-  "refresh": "10s",
   "schemaVersion": 40,
   "tags": [],
   "templating": {
@@ -2109,13 +2016,13 @@
     ]
   },
   "time": {
-    "from": "now-5m",
-    "to": "now"
+    "from": "2025-08-04T15:14:40.952Z",
+    "to": "2025-08-04T15:22:34.286Z"
   },
   "timepicker": {},
   "timezone": "browser",
   "title": "Aerospike Workload",
   "uid": "besk2xu6dpp1ca",
-  "version": 25,
+  "version": 26,
   "weekStart": ""
 }
