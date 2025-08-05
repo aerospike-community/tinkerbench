@@ -23,8 +23,9 @@ public final class EvalQueryWorkloadProvider extends QueryWorkloadProvider {
     final String formatDefinedId;
     final boolean formatIdRequired;
     final IdManager idManager;
+    final Bindings bindings;
     ThreadLocal<Bytecode> bytecodeThreadLocal;
-    ThreadLocal<Bindings> bindingsThreadLocal;
+    //ThreadLocal<Bindings> bindingsThreadLocal;
 
     final Pattern funcPattern = Pattern.compile("^\\s*(?<stmt>.+)\\.(?<func>[^(]+)\\(\\s*\\)\\s*$", Pattern.CASE_INSENSITIVE);
     ///This is a much more complete regex to parse the Gremlin string. This will allow an advance Id Manager based on String format params...
@@ -122,13 +123,12 @@ public final class EvalQueryWorkloadProvider extends QueryWorkloadProvider {
                             terminator,
                             isWarmup() ? "Warmup" : "Workload");
 
-        logger.PrintDebug("EvalQueryWorkloadProvider", "Creating ScriptEngineManager for Source \"%s\" using Query \"%s\"",
-                                    traversalSource,
-                                    gremlinString);
         logger.PrintDebug("EvalQueryWorkloadProvider", "Getting GremlinLangScriptEngine Engine");
         engine = new GremlinLangScriptEngine();
 
         logger.PrintDebug("EvalQueryWorkloadProvider", "Binding to g");
+        bindings = engine.createBindings();
+        bindings.put(traversalSource, G());
 
         try {
             logger.PrintDebug("EvalQueryWorkloadProvider", "Generating Bytecode for \"%s\"", gremlinString);
@@ -140,17 +140,18 @@ public final class EvalQueryWorkloadProvider extends QueryWorkloadProvider {
 
             final Object finalSampleId = sampleId;
 
+            /*
             bindingsThreadLocal = ThreadLocal.withInitial(() -> {
                 final Bindings bindings = engine.createBindings();
                 bindings.put(traversalSource, G());
                 return bindings;
-            });
+            }); */
 
             bytecodeThreadLocal = ThreadLocal.withInitial(() -> {
                 try {
                     return ((DefaultGraphTraversal<?, ?>)
                                 engine.eval(String.format(gremlinString, finalSampleId),
-                                            bindingsThreadLocal.get()))
+                                            bindings))
                                             .getBytecode();
                 } catch (ScriptException e) {
                     throw new RuntimeException(e);
@@ -231,7 +232,7 @@ public final class EvalQueryWorkloadProvider extends QueryWorkloadProvider {
 
         // If close not performed, there seems to be a leak according to the profiler
         final Traversal.Admin<?,?> resultTraversal = engine.eval(bytecodeThreadLocal.get(),
-                                                                            bindingsThreadLocal.get(),
+                                                                            bindings,
                                                                             traversalSource);
         if (isPrintResult) {
             resultTraversal.forEachRemaining(this::PrintResult);
