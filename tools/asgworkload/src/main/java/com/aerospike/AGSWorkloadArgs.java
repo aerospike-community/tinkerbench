@@ -38,8 +38,8 @@ public abstract class AGSWorkloadArgs  implements Callable<Integer> {
 
     @Parameters(description = "The Gremlin query string to run or a predefined Query. "
                                 + "If a query string is provided, and Id Vertices Manager (--IdManager) is enabled, "
-                                + "you can place a '%s' or '%d' as an vertices placeholder in the string. "
-                                + "Example: 'g.V(%d).out().limit(5).path().by(values('code','city').fold()).tolist()'")
+                                + "you can place a '%%s' or '%%d' as an vertices placeholder in the string. "
+                                + "Example: 'g.V(%%d).out().limit(5).path().by(values('code','city').fold()).tolist()'")
     String queryNameOrString;
 
     @Option(names = {"-s", "--schedulers"},
