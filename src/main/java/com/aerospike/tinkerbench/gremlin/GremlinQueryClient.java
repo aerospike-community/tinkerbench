@@ -229,7 +229,7 @@ public class GremlinQueryClient {
             final Bindings bindings = gremlinLangEngine.createBindings();
             bindings.put("g", g);
             final Traversal t = ((DefaultGraphTraversal<?, ?>) gremlinLangEngine.eval(actualQuery, bindings));
-            System.out.println("Running query: " + query + terminator);
+            System.out.println("Running query: " + query + terminator + " (g = g.withComputer())");
             Instant start = Instant.now();
             runQuery(t, terminator);
             return Duration.between(start, Instant.now());
