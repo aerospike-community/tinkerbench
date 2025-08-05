@@ -1,3 +1,43 @@
 Manifest-Version: 1.0
 Main-Class: com.aerospike.Main
+Class-Path: netty-transport-4.1.101.Final.jar netty-transport-classes-kq
+ ueue-4.1.101.Final.jar netty-codec-redis-4.1.101.Final.jar opentelemetr
+ y-semconv-1.34.0.jar picocli-4.7.7.jar netty-codec-memcache-4.1.101.Fin
+ al.jar netty-codec-dns-4.1.101.Final.jar jline-terminal-3.24.1.jar nett
+ y-handler-proxy-4.1.101.Final.jar netty-transport-sctp-4.1.101.Final.ja
+ r opentelemetry-exporter-logging-1.52.0.jar jcl-over-slf4j-1.7.25.jar n
+ etty-transport-classes-epoll-4.1.101.Final.jar logback-core-1.5.18.jar 
+ netty-codec-mqtt-4.1.101.Final.jar prometheus-metrics-model-1.3.8.jar n
+ etty-codec-http-4.1.101.Final.jar netty-transport-native-kqueue-4.1.101
+ .Final-osx-aarch_64.jar netty-codec-smtp-4.1.101.Final.jar javapoet-1.1
+ 3.0.jar opentelemetry-sdk-trace-1.52.0.jar netty-all-4.1.101.Final.jar 
+ prometheus-metrics-exporter-common-1.3.8.jar netty-codec-4.1.101.Final.
+ jar netty-codec-http2-4.1.101.Final.jar netty-resolver-dns-4.1.101.Fina
+ l.jar commons-text-1.10.0.jar netty-resolver-dns-classes-macos-4.1.101.
+ Final.jar prometheus-metrics-config-1.3.8.jar netty-codec-socks-4.1.101
+ .Final.jar javatuples-1.2.jar antlr4-runtime-4.9.1.jar commons-configur
+ ation2-2.9.0.jar opentelemetry-sdk-1.52.0.jar commons-lang3-3.12.0.jar 
+ netty-resolver-dns-native-macos-4.1.101.Final-osx-x86_64.jar gremlin-sh
+ aded-3.7.3.jar netty-handler-4.1.101.Final.jar hppc-0.7.1.jar netty-cod
+ ec-haproxy-4.1.101.Final.jar netty-buffer-4.1.101.Final.jar opentelemet
+ ry-sdk-common-1.52.0.jar netty-common-4.1.101.Final.jar prometheus-metr
+ ics-exposition-textformats-1.3.8.jar gremlin-language-3.7.3.jar netty-h
+ andler-ssl-ocsp-4.1.101.Final.jar commons-beanutils-1.9.4.jar netty-tra
+ nsport-udt-4.1.101.Final.jar opentelemetry-exporter-common-1.52.0.jar H
+ drHistogram-2.2.2.jar snakeyaml-2.0.jar netty-codec-stomp-4.1.101.Final
+ .jar logback-classic-1.5.18.jar opentelemetry-context-1.52.0.jar netty-
+ transport-native-epoll-4.1.101.Final-linux-x86_64.jar opentelemetry-exp
+ orter-prometheus-1.52.0-alpha.jar opentelemetry-sdk-metrics-1.52.0.jar 
+ opentelemetry-common-1.52.0.jar opentelemetry-sdk-extension-autoconfigu
+ re-spi-1.52.0.jar progressbar-0.10.1.jar netty-transport-native-kqueue-
+ 4.1.101.Final-osx-x86_64.jar opentelemetry-sdk-logs-1.52.0.jar netty-tr
+ ansport-rxtx-4.1.101.Final.jar opentelemetry-api-1.52.0.jar gremlin-uti
+ l-3.7.3.jar netty-codec-xml-4.1.101.Final.jar jline-native-3.24.1.jar n
+ etty-resolver-dns-native-macos-4.1.101.Final-osx-aarch_64.jar netty-tra
+ nsport-native-unix-common-4.1.101.Final.jar exp4j-0.4.8.jar slf4j-api-2
+ .0.17.jar tinkergraph-gremlin-3.7.3.jar commons-logging-1.2.jar netty-r
+ esolver-4.1.101.Final.jar prometheus-metrics-exporter-httpserver-1.3.8.
+ jar gremlin-core-3.7.3.jar netty-transport-native-epoll-4.1.101.Final-l
+ inux-aarch_64.jar commons-collections-3.2.2.jar gremlin-driver-3.7.3.ja
+ r
 

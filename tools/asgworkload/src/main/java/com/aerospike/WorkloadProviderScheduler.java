@@ -265,8 +265,8 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
                         logger.PrintDebug("WorkloadProviderScheduler",
                                         "Pre-Process returned false and workload %s NOT executed",
                                             this.queryRunnable);
-                        logger.getLogger4j().warn("Pre-Process returned false and workload {} NOT executed",
-                                                    this.queryRunnable);
+                        logger.warn("Pre-Process returned false and workload {} NOT executed",
+                                    this.queryRunnable);
                         return this;
                     }
                 }
@@ -400,18 +400,22 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
                     if(LocalDateTime.now().isAfter(exitTime)) {
                         if(abortNextTimeout) {
                             abortRun.set(true);
-                            System.err.printf("\tStopping %s due to Abort Signalled...%n",
-                                                warmup ? "warmup" : "workload");
                             schedulerPool.shutdownNow();
                             workerPool.shutdownNow();
+                            System.err.printf("\tStopping %s due to Abort Signalled...%n",
+                                                warmup ? "warmup" : "workload");
+                            logger.warn("\tStopping %s due to Abort Signalled...",
+                                            warmup ? "warmup" : "workload");
                             result = false;
                             break;
                         }
                         terminateWorkers.set(true);
-                        System.out.printf("\tStopping %s due to Timeout... Waiting Completion...%n",
-                                                warmup ? "warmup" : "workload");
                         schedulerPool.shutdown();
                         workerPool.shutdown();
+                        System.out.printf("\tStopping %s due to Timeout... Waiting Completion...%n",
+                                            warmup ? "warmup" : "workload");
+                        logger.info("\tStopping %s due to Timeout...",
+                                        warmup ? "warmup" : "workload");
                         if(workerPool.awaitTermination(shutdownTimeout.toSeconds(), TimeUnit.SECONDS)
                                 &&  schedulerPool.awaitTermination(shutdownTimeout.toSeconds(), TimeUnit.SECONDS))
                         {

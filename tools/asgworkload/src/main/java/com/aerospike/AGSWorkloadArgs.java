@@ -1,5 +1,6 @@
 package com.aerospike;
 
+import org.javatuples.Pair;
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
@@ -161,55 +162,53 @@ public abstract class AGSWorkloadArgs  implements Callable<Integer> {
 
             final String title = getClass().getPackage().getImplementationTitle();
             final String version = getClass().getPackage().getImplementationVersion();
-            boolean fndMainInfo = true;
 
             if (title != null && version != null) {
-                versions.add(title + " version " + version);
-                fndMainInfo = false;
+                versions.add(title + " version \"" + version + "\"");
             }
             else {
-                getVersionsFromMetaInf(CommandLine.class.getClassLoader().getResources("MANIFEST.MF"),
-                                        versions,
-                                        fndMainInfo);
-                fndMainInfo = versions.isEmpty();
+                getVersionsFromMetaInf(AGSWorkloadArgs.class.getClassLoader().getResources("META-INF/MANIFEST.MF"),
+                                        "AGS Workload",
+                                        "com.aerospike.Main",
+                                        versions);
+                if(versions.isEmpty()) {
+                    versions.add("AGS Workload");
+                }
             }
 
             getVersionsFromMetaInf(CommandLine.class.getClassLoader().getResources("META-INF/MANIFEST.MF"),
-                                    versions,
-                                    fndMainInfo);
+                                    "Apache TinkerPop",
+                                    "tinkergraph-gremlin",
+                                    versions);
 
             return versions.toArray(new String[0]);
         }
 
         private void getVersionsFromMetaInf(Enumeration<URL> resources,
-                                            List<String> versions,
-                                            boolean fndMainInfo) {
+                                            String packageName,
+                                            String className,
+                                            List<String> versions) {
 
             while (resources.hasMoreElements()) {
                 URL url = resources.nextElement();
 
                 try {
                     Manifest manifest = new Manifest(url.openStream());
-                    if (isApplicableManifest(manifest, "Apache TinkerPop")
-                            || (fndMainInfo && isApplicableManifest(manifest, "AGS Workload"))) {
+                    if ((packageName != null
+                                && isApplicableManifest(manifest, packageName))
+                            || (className != null
+                                    && isApplicableClass(manifest, className))) {
                         Attributes attr = manifest.getMainAttributes();
-                        versions.add(get(attr, "Implementation-Title") +
-                                        " version \"" +
-                                        get(attr, "Implementation-Version") +
-                                        "\"");
-                    } else if (fndMainInfo && isApplicableClass(manifest, "com.aerospike.Main")) {
-                        Attributes attr = manifest.getMainAttributes();
-                        String aTitle = (String) get(attr, "Implementation-Title");
-                        if(aTitle == null) {
-                            aTitle = "AGS Workload";
+                        Object title = get(attr, "Implementation-Title");
+                        Object version = get(attr, "Implementation-Version");
+                        if (title != null && version != null) {
+                            versions.add(title + " version \"" +  version +  "\"");
                         }
-                        String aVersion = (String) get(attr, "Implementation-Version");
-                        if(aVersion == null) {
-                            aVersion = (String) get(attr, "Manifest-Version");
+                    } else {
+                        Pair<String,String> result = isClassPath(manifest, className);
+                        if (result != null) {
+                            versions.add(result.getValue0() + " version \"" +  result.getValue1() +  "\"");
                         }
-                        versions.add(aTitle + " version \"" +
-                                aVersion + "\"");
-                        fndMainInfo = false;
                     }
                 } catch (IOException ex) {
                     versions.add("Unable to read from " + url + ": " + ex);
@@ -232,6 +231,22 @@ public abstract class AGSWorkloadArgs  implements Callable<Integer> {
                 classValue = get(attributes, "Main-Class");
             }
             return classValue != null && classValue.equals(className);
+        }
+
+        private Pair<String,String> isClassPath(Manifest manifest,
+                                                String className) {
+            Attributes attributes = manifest.getMainAttributes();
+            Object classValue = get(attributes, "Class-Path");
+
+            if (classValue != null) {
+                Pattern pattern = Pattern.compile(String.format("%s-(?<ver>\\d+\\.\\d+(?:\\.\\d+))\\.jar", className));
+                Matcher match = pattern.matcher((String)classValue);
+                if (match.find()) {
+                    return new Pair<>(className, match.group("ver"));
+                }
+            }
+
+            return null;
         }
 
         private static Object get(Attributes attributes, String key) {

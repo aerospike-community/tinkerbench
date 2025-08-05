@@ -152,9 +152,13 @@
                 <configuration>
                     <archive>
                         <manifest>
+                            <addClasspath>true</addClasspath>
+                            <mainClass>com.aerospike.Main</mainClass>
+                        </manifest>
+                        <manifestEntries>
                             <addDefaultImplementationEntries>true</addDefaultImplementationEntries>
                             <addDefaultSpecificationEntries>true</addDefaultSpecificationEntries>
-                        </manifest>
+                        </manifestEntries>
                     </archive>
                 </configuration>
             </plugin>
@@ -173,6 +177,8 @@
                 <configuration>
                     <archive>
                         <manifest>
+                            <addDefaultImplementationEntries>true</addDefaultImplementationEntries>
+                            <addDefaultSpecificationEntries>true</addDefaultSpecificationEntries>
                             <addClasspath>true</addClasspath>
                             <mainClass>com.aerospike.Main</mainClass>
                         </manifest>
