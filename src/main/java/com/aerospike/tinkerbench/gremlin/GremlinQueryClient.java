@@ -31,8 +31,15 @@ import static org.apache.tinkerpop.gremlin.process.traversal.AnonymousTraversalS
 public class GremlinQueryClient {
 
     public static void main(String[] args) {
+
+        try (final FileWriter file = new FileWriter(String.format("benchmark-result-%s.json", System.currentTimeMillis()))) {
+            System.out.println("Writing json file");
+            file.write("f");
+        } catch (final Exception e) {
+            e.printStackTrace();
+        }
         if (args.length != 8) {
-            System.out.println("Usage: java GremlinQueryClient --url <server-url> --query <query> [--count <count>] [--warmup <warmupCount>]");
+            System.out.println("Usage: java -jar <jar> --url <server-url> --query <query> [--count <count>] [--warmup <warmupCount>]");
             System.exit(1);
         }
 
@@ -105,10 +112,14 @@ public class GremlinQueryClient {
         final String[] queries = query.split("\\|");
         final Cluster cluster = getCluster(serverUrl);
         final DriverRemoteConnection connection = DriverRemoteConnection.using(cluster);
-        final GraphTraversalSource g = traversal().withRemote(connection);
+        final GraphTraversalSource g = traversal().withRemote(connection).withComputer();
         try {
             final Map<String, List<Duration>> warmupResults = new HashMap<>();
             for (String actualQuery : queries) {
+                if (actualQuery.contains(".withComputer")) {
+                    // Remove withComputer piece
+                    actualQuery = actualQuery.replace(".withComputer()", "");
+                }
                 for (int i = 0; i < warmupCount; i++) {
                     final Duration d = performQuery(g, actualQuery);
                     if (d != null) {
@@ -120,6 +131,10 @@ public class GremlinQueryClient {
 
             final Map<String, List<Duration>> actualResults = new HashMap<>();
             for (String actualQuery : queries) {
+                if (actualQuery.contains(".withComputer")) {
+                    // Remove withComputer piece
+                    actualQuery = actualQuery.replace(".withComputer()", "");
+                }
                 for (int i = 0; i < count; i++) {
                     final Duration d = performQuery(g, actualQuery);
                     if (d != null) {
@@ -291,109 +306,6 @@ public class GremlinQueryClient {
         HostInfo(String host, int port) {
             this.host = host;
             this.port = port;
-        }
-    }
-
-    public void executeQuery(String serverUrl, String query, boolean verbose, int timeoutSeconds) throws Exception {
-
-        String host;
-        int port = 8182;
-        // Parse URL to extract host and port
-        if (serverUrl.startsWith("ws://")) {
-            serverUrl = serverUrl.substring(5);
-        } else if (serverUrl.startsWith("wss://")) {
-            serverUrl = serverUrl.substring(6);
-        }
-        
-        if (serverUrl.contains(":")) {
-            String[] parts = serverUrl.split(":");
-            host = parts[0];
-            try {
-                port = Integer.parseInt(parts[1]);
-            } catch (final NumberFormatException e) {
-                throw new IllegalArgumentException("Invalid port in URL: " + parts[1]);
-            }
-        } else {
-            host = serverUrl;
-        }
-
-
-
-        if (verbose) {
-            System.out.println("Connecting to Gremlin server at " + host + ":" + port);
-            System.out.println("Query: " + query);
-            System.out.println("Timeout: " + timeoutSeconds + " seconds");
-            System.out.println("----------------------------------------");
-        }
-
-        Cluster cluster = null;
-        Client client = null;
-
-        try {
-            // Build cluster connection
-            cluster = Cluster.build()
-                    .addContactPoint(host)
-                    .port(port)
-                    .maxWaitForConnection(timeoutSeconds * 1000)
-                    .maxContentLength(65536)
-                    .create();
-
-            // Create client
-            client = cluster.connect();
-
-            if (verbose) {
-                System.out.println("Connected successfully!");
-            }
-
-            // Execute query
-            long startTime = System.currentTimeMillis();
-            CompletableFuture<ResultSet> futureResult = client.submitAsync(query);
-            
-            try {
-                ResultSet resultSet = futureResult.get(timeoutSeconds, TimeUnit.SECONDS);
-                List<Result> results = resultSet.all().get(timeoutSeconds, TimeUnit.SECONDS);
-                long endTime = System.currentTimeMillis();
-
-                // Print results
-                System.out.println("Query executed successfully!");
-                System.out.println("Execution time: " + (endTime - startTime) + " ms");
-                System.out.println("Results count: " + results.size());
-                System.out.println("----------------------------------------");
-
-                if (results.isEmpty()) {
-                    System.out.println("No results returned");
-                } else {
-                    for (int i = 0; i < results.size(); i++) {
-                        Result result = results.get(i);
-                        System.out.printf("[%d] %s%n", i + 1, result.toString());
-                    }
-                }
-
-            } catch (java.util.concurrent.TimeoutException e) {
-                System.err.println("Query timed out after " + timeoutSeconds + " seconds");
-                throw e;
-            }
-
-        } finally {
-            // Clean up connections
-            if (client != null) {
-                try {
-                    client.close();
-                } catch (Exception e) {
-                    if (verbose) {
-                        System.err.println("Warning: Error closing client: " + e.getMessage());
-                    }
-                }
-            }
-            if (cluster != null) {
-                try {
-                    cluster.close();
-                } catch (Exception e) {
-                    if (verbose) {
-                        System.err.println("Warning: Error closing cluster: " + e.getMessage());
-                    }
-                }
-            }
         }
     }
 } 
