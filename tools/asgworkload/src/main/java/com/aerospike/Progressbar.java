@@ -100,6 +100,7 @@ public class Progressbar implements AutoCloseable {
         if(!workloadProvider.isAborted()){
             if(this.underlyingProgressBar.getCurrent() < this.underlyingProgressBar.getMax()) {
                 this.underlyingProgressBar.step();
+                this.underlyingProgressBar.refresh();
             }
         }
         if(msg != null) {

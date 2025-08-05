@@ -169,14 +169,6 @@ public final class EvalQueryWorkloadProvider extends QueryWorkloadProvider {
                 return null;
             });
 
-            logger.PrintDebug("EvalQueryWorkloadProvider",
-                                "Generated Gremlin Bytecode: %s",
-                                    bytecodeThreadLocal.toString());
-
-            logger.PrintDebug("EvalQueryWorkloadProvider",
-                            "Creating GremlinLangScriptEngine...");
-
-
         } catch (Exception e) {
             System.err.printf("ERROR: could not evaluate gremlin script \"%s\". Error: %s\n",
                     gremlinString,
@@ -230,7 +222,7 @@ public final class EvalQueryWorkloadProvider extends QueryWorkloadProvider {
     }
 
     @Override
-    public boolean preProcess() throws InterruptedException {
+    public boolean preProcess() {
         return true;
     }
 
