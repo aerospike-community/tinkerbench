@@ -25,7 +25,6 @@ public final class EvalQueryWorkloadProvider extends QueryWorkloadProvider {
     final IdManager idManager;
     final Bindings bindings;
     ThreadLocal<Bytecode> bytecodeThreadLocal;
-    //ThreadLocal<Bindings> bindingsThreadLocal;
 
     final Pattern funcPattern = Pattern.compile("^\\s*(?<stmt>.+)\\.(?<func>[^(]+)\\(\\s*\\)\\s*$", Pattern.CASE_INSENSITIVE);
     ///This is a much more complete regex to parse the Gremlin string. This will allow an advance Id Manager based on String format params...
@@ -139,14 +138,6 @@ public final class EvalQueryWorkloadProvider extends QueryWorkloadProvider {
             }
 
             final Object finalSampleId = sampleId;
-
-            /*
-            bindingsThreadLocal = ThreadLocal.withInitial(() -> {
-                final Bindings bindings = engine.createBindings();
-                bindings.put(traversalSource, G());
-                return bindings;
-            }); */
-
             bytecodeThreadLocal = ThreadLocal.withInitial(() -> {
                 try {
                     return ((DefaultGraphTraversal<?, ?>)
@@ -154,8 +145,28 @@ public final class EvalQueryWorkloadProvider extends QueryWorkloadProvider {
                                             bindings))
                                             .getBytecode();
                 } catch (ScriptException e) {
+                    System.err.printf("ERROR: could not evaluate gremlin script \"%s\". Error: %s\n",
+                                        gremlinString,
+                                        e.getMessage());
+                    logger.error(String.format("ERROR: could not evaluate gremlin script \"%s\". Error: %s\n",
+                                                gremlinString,
+                                                e.getMessage()),
+                                    e);
+                    getOpenTelemetry().addException(e);
+                    provider.getCliArgs()
+                            .abortRun.set(true);
+                } catch (Exception e) {
+                    System.err.printf("ERROR: could not evaluate gremlin script \"%s\". Error: %s\n",
+                            gremlinString,
+                            e.getMessage());
+                    logger.error(String.format("ERROR: could not evaluate gremlin script \"%s\". Error: %s\n",
+                                    gremlinString,
+                                    e.getMessage()),
+                            e);
+                    getOpenTelemetry().addException(e);
                     throw new RuntimeException(e);
                 }
+                return null;
             });
 
             logger.PrintDebug("EvalQueryWorkloadProvider",
