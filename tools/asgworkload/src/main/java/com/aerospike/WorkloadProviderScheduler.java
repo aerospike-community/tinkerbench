@@ -568,12 +568,17 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
 
     public WorkloadProvider PrintSummary() {
 
+        try {
+            Thread.sleep(1000);
+        } catch (InterruptedException ignored) { }
+
         if(logger.getLogger4j().isInfoEnabled()) {
             try (LogSource.Stream logStream = new LogSource.Stream(logger)) {
                 PrintSummary(logStream.getPrintStream());
                 logStream.info();
             }
         }
+        System.out.flush();
         return PrintSummary(System.out);
     }
 

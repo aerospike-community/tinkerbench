@@ -1,6 +1,5 @@
 package com.aerospike;
 
-import org.apache.commons.beanutils.converters.FileConverter;
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
@@ -18,16 +17,14 @@ import java.io.IOException;
 import java.net.URL;
 import java.time.Duration;
 import java.time.format.DateTimeParseException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Enumeration;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.jar.Attributes;
 import java.util.jar.Manifest;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 @Command(name = "agsworkload",
         mixinStandardHelpOptions = true,
@@ -39,17 +36,20 @@ public abstract class AGSWorkloadArgs  implements Callable<Integer> {
     @Spec
     CommandSpec commandlineSpec;
 
-    @Parameters(description = "The query string to run or a predefined Query.")
+    @Parameters(description = "The Gremlin query string to run or a predefined Query. "
+                                + "If a query string is provided, and Id Vertices Manager (--IdManager) is enabled, "
+                                + "you can place a '%s' or '%d' as an vertices placeholder in the string. "
+                                + "Example: 'g.V(%d).out().limit(5).path().by(values('code','city').fold()).tolist()'")
     String queryNameOrString;
 
     @Option(names = {"-s", "--schedulers"},
             converter = SchedulerConverter.class,
-            description = "The number of Schedulers to use. A value of -1 will use the default. Default is ${DEFAULT-VALUE}")
+            description = "The number of Schedulers to use. A value of -1 will use the default based on the number of cores. Default is ${DEFAULT-VALUE}")
     int schedulers;
 
     @Option(names = {"-w", "--workers"},
             converter = WorkerConverter.class,
-            description = "The number of working threads per scheduler. A value of -1 will use the default. Default is ${DEFAULT-VALUE}")
+            description = "The number of working threads per scheduler. A value of -1 will use the default based on the number of cores. Default is ${DEFAULT-VALUE}")
     int workers;
 
     @Option(names = {"-d", "--duration"},
@@ -122,12 +122,12 @@ public abstract class AGSWorkloadArgs  implements Callable<Integer> {
     IdManager idManager;
 
     @Option(names = {"-sample", "--IdSampleSize"},
-            description = "The Id sample size used by the IdManager. Zero to disable. Default is ${DEFAULT-VALUE}",
+            description = "The Id sample size of vertices used by the IdManager. Zero to disable. Default is ${DEFAULT-VALUE}",
             defaultValue = "500000")
     int idSampleSize;
 
     @Option(names = {"-label", "--IdSampleLabel"},
-            description = "The Label used to obtain Id samples used by the IdManager. Null to disable. Default is ${DEFAULT-VALUE}")
+            description = "The Label used to obtain Id samples used by the IdManager. Null to disable and get vertices based on the Id sample size. Default is ${DEFAULT-VALUE}")
     String labelSample;
 
     @Option(names = {"-e","--Errors"},
@@ -399,9 +399,100 @@ public abstract class AGSWorkloadArgs  implements Callable<Integer> {
         }
     }
 
-    private void validate() {
 
+    private boolean missing(List<?> list) {
+        return list == null || list.isEmpty();
+    }
 
+    private boolean missing(String value) {
+        return value == null || value.isEmpty();
+    }
+
+    private boolean missing(File value) {
+        return value == null;
+    }
+
+    public void validate() {
+
+        if(missing(queryNameOrString)){
+            throw new CommandLine.ParameterException(commandlineSpec.commandLine(),
+                    "Argument Query string or Query Name ('queryNameOrString') cannot be null");
+        }
+
+        if(duration.isZero() || duration.isNegative()) {
+            throw new CommandLine.ParameterException(commandlineSpec.commandLine(),
+                    "Argument duration cannot be zero or negative.");
+        }
+
+        if(warmupDuration.isNegative()) {
+            throw new CommandLine.ParameterException(commandlineSpec.commandLine(),
+                    "Argument warmup cannot be negative.");
+        }
+
+        if(closeWaitDuration.isZero() || closeWaitDuration.isNegative()) {
+            throw new CommandLine.ParameterException(commandlineSpec.commandLine(),
+                    "Argument Close Wait cannot be zero or negative.");
+        }
+
+        if(shutdownTimeout.isZero() || shutdownTimeout.isNegative()) {
+            throw new CommandLine.ParameterException(commandlineSpec.commandLine(),
+                    "Argument Shutdown duration cannot be zero or negative.");
+        }
+
+        if(callsPerSecond <= 0) {
+            throw new CommandLine.ParameterException(commandlineSpec.commandLine(),
+                    "Argument Call-per-Second cannot be zero or negative.");
+        }
+
+        if(port <= 0) {
+            throw new CommandLine.ParameterException(commandlineSpec.commandLine(),
+                    "Argument AGS port cannot be zero or negative.");
+        }
+
+        if(errorsAbort <= 0) {
+            throw new CommandLine.ParameterException(commandlineSpec.commandLine(),
+                    "Argument number of Errors to Abort cannot be zero or negative.");
+        }
+
+        if (labelSample != null
+                   && labelSample.equalsIgnoreCase("null")) {
+            labelSample = null;
+        }
+        if (labelSample != null
+                && labelSample.isEmpty()) {
+            labelSample = null;
+        }
+
+        if(!missing(clusterConfigurationFile) && !clusterConfigurationFile.exists()) {
+            throw new CommandLine.ParameterException(commandlineSpec.commandLine(),
+                    "File " + clusterConfigurationFile + " doesn't exist for option 'clusterBuildConfigFile'");
+        }
+
+        ParseResult pr = commandlineSpec.commandLine().getParseResult();
+        Map<String,OptionSpec> opts = commandlineSpec
+                                    .options()
+                                    .stream()
+                                    .collect(Collectors.toMap(OptionSpec::longestName, o -> o));
+
+        if(!missing(clusterConfigurationFile)) {
+            OptionSpec item = opts.get("ags");
+            boolean usesDefaultValue= !pr.hasMatchedOption(item);
+
+            if(!usesDefaultValue) {
+                throw new CommandLine.ParameterException(commandlineSpec.commandLine(),
+                        "Cluster build configuration file was provided but the AGS Host(s) was/were also provided. "
+                        + "You can only supply the config file or the AGS host argument(s), not both!");
+            }
+
+            item = opts.get("port");
+            usesDefaultValue= !pr.hasMatchedOption(item);
+
+            if(!usesDefaultValue) {
+                throw new CommandLine.ParameterException(commandlineSpec.commandLine(),
+                        "Cluster build configuration file was provided but AGS port number was also provided. "
+                                + "You can only supply the config file or the AGS port argument, not both!");
+            }
+        }
     }
 
     /*

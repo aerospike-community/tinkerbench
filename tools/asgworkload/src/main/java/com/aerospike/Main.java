@@ -62,6 +62,7 @@ public class Main extends  AGSWorkloadArgs {
     }
 
     public Integer call() throws Exception {
+        validate();
         PrintArguments(false);
 
         LogSource logger = new LogSource(debug);
