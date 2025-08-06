@@ -32,12 +32,6 @@ public class GremlinQueryClient {
 
     public static void main(String[] args) {
 
-        try (final FileWriter file = new FileWriter(String.format("benchmark-result-%s.json", System.currentTimeMillis()))) {
-            System.out.println("Writing json file");
-            file.write("f");
-        } catch (final Exception e) {
-            e.printStackTrace();
-        }
         if (args.length != 8) {
             System.out.println("Usage: java -jar <jar> --url <server-url> --query <query> [--count <count>] [--warmup <warmupCount>]");
             System.exit(1);
