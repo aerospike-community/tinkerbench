@@ -18,7 +18,6 @@ import java.util.Optional;
 import java.util.Vector;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
@@ -34,12 +33,9 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
 
     private final Duration targetRunDuration;
     private final Duration shutdownTimeout;
-    private final AtomicInteger pendingCount = new AtomicInteger();
-    private final AtomicInteger abortedCount = new AtomicInteger();
-    private final AtomicInteger successCount = new AtomicInteger();
-    private final AtomicInteger errorCount = new AtomicInteger();
-    private final AtomicLong totCallDuration = new AtomicLong();
-    private final AtomicLong successDuration = new AtomicLong();
+    private final AtomicLong pendingCount = new AtomicLong();
+    private final AtomicLong abortedCount = new AtomicLong();
+    private final AtomicLong successfulDuration = new AtomicLong();
     private final AtomicLong errorDuration = new AtomicLong();
     private final AtomicBoolean abortRun;
     private final AtomicBoolean terminateRun;
@@ -125,13 +121,13 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
      */
     public int getTargetCallsPerSecond() { return callsPerSecond; }
     /*
-    The target duration of executing the workload.
+    The targeted duration of executing the workload.
      */
     public Duration getTargetRunDuration() { return targetRunDuration; }
     /*
-    The running execution duration which is not the "Wall Clock" duration.
+    The accumulative running duration of all operations (not the "Wall Clock" duration)
      */
-    public Duration getExecutingDuration() { return Duration.ofNanos(totCallDuration.get()); }
+    public Duration getAccumDuration() { return Duration.ofNanos(successfulDuration.get() + errorDuration.get()); }
     /*
     The "Wall Clock" Running duration.
      */
@@ -146,20 +142,30 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
     /*
     The number of pending calls.
      */
-    public int getPendingCount() { return pendingCount.get(); }
+    public long getPendingCount() { return pendingCount.get(); }
     /*
     Number of calls aborted
      */
-    public int getAbortedCount() { return abortedCount.get(); }
+    public long getAbortedCount() { return abortedCount.get(); }
+    /*
+    The amount of time accumulative taken for successful executions (not wall clock)
+     */
+    public Duration getAccumSuccessDuration() {
+       return Duration.ofNanos(successfulDuration.get());
+    }
     /*
     The number of success calls.
      */
-    public int getSuccessCount() { return successCount.get();}
+    public long getSuccessCount() { return histogram.getTotalCount();}
+    /*
+   The amount of time accumulative taken for error execution state (not wall clock)
+    */
+    public Duration getAccumErrorDuration() { return Duration.ofNanos(errorDuration.get());}
 
     /*
     The number of errors encountered.
      */
-    public int getErrorCount() { return errorCount.get(); }
+    public long getErrorCount() { return errors.size(); }
 
     /*
     The collection of errors encountered.
@@ -182,17 +188,31 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
     public LocalDateTime getCompletionDateTime() { return stopDateTime; }
 
     /*
+    Returns the remaining time of the run based on the Targeted Run Duration.
+     */
+    public Duration getRemainingTime() {
+        if(startTimeNanos > 0) {
+            if(stopTimeNanos <= 0) {
+                return Duration.ofNanos(targetRunDuration.toNanos()
+                                            - (System.nanoTime() - startTimeNanos));
+            }
+            return Duration.ZERO;
+        }
+
+        return targetRunDuration;
+    }
+    /*
     Returns the current Success calls-per-second rate.
      */
     public double getCallsPerSecond() {
         if(startTimeNanos > 0) {
             if(stopTimeNanos <= 0) {
-                return successCount.doubleValue() / ((System.nanoTime() - startTimeNanos) / 1_000_000_000.0);
+                return histogram.getTotalCount() / ((System.nanoTime() - startTimeNanos) / 1_000_000_000.0);
             }
-            return successCount.doubleValue() / ((stopTimeNanos - startTimeNanos) / 1_000_000_000.0);
+            return histogram.getTotalCount() / ((stopTimeNanos - startTimeNanos) / 1_000_000_000.0);
         }
 
-        return successDuration.get() == 0L ? 0.0 : successCount.doubleValue() / (successDuration.doubleValue() / 1_000_000_000.0);
+        return 0;
     }
 
     /*
@@ -201,12 +221,12 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
     public double getErrorsPerSecond() {
         if(startTimeNanos > 0) {
             if(stopTimeNanos <= 0) {
-                return errorCount.doubleValue() / ((System.nanoTime() - startTimeNanos) / 1_000_000_000.0);
+                return getErrorCount() / ((System.nanoTime() - startTimeNanos) / 1_000_000_000.0);
             }
-            return errorCount.doubleValue() / ((stopTimeNanos - startTimeNanos) / 1_000_000_000.0);
+            return getErrorCount() / ((stopTimeNanos - startTimeNanos) / 1_000_000_000.0);
         }
 
-        return errorDuration.get() == 0L ? 0.0 : errorCount.doubleValue() / (errorDuration.doubleValue() / 1_000_000_000.0);
+        return 0;
     }
 
     public OpenTelemetry getOpenTelemetry() { return openTelemetry; }
@@ -482,14 +502,9 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
                                 warmup ? "Warmup" : "Workload");
             return this;
         }
-        final Duration rtDuration = getRunningDuration();
-        final Duration excutionDuration = Duration.ofNanos(totCallDuration.get());
-        final int successCount = getSuccessCount();
-        final Duration successDuration = Duration.ofNanos(this.successDuration.get());
-        final int errorCount = getErrorCount();
-        final Duration errorDuration = Duration.ofNanos(this.errorDuration.get());
-        final int abortedCount = getAbortedCount();
-        final int totalCount = successCount + errorCount + abortedCount;
+        final long totalCount = getSuccessCount()
+                                    + getErrorCount()
+                                    + getAbortedCount();
 
         printStream.printf("%s Summary for %s:%n",
                             warmup ? "Warmup " : "Workload",
@@ -497,24 +512,24 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
         printStream.printf("\tStatus: %s%n", abortRun.get()
                                                 ? getStatus() +" (Signaled)"
                                                 : getStatus());
-        printStream.printf("\tRuntime Duration: %s%n", rtDuration);
+        printStream.printf("\tRuntime Duration: %s%n", getRunningDuration());
 
         printStream.println("\tSuccessful Operations");
         printStream.printf("\t\tMean OPS: %,.2f%n", getCallsPerSecond());
-        printStream.printf("\t\tOperations: %,d%n", successCount);
-        printStream.printf("\t\tTotal Operation Duration: %s%n", successDuration);
+        printStream.printf("\t\tOperations: %,d%n", getSuccessCount());
+        printStream.printf("\t\tAccumulative Duration: %s%n", getAccumSuccessDuration());
 
         printStream.println("\tOperation Errors");
         printStream.printf("\t\tMean OPS: %,.2f%n", getErrorsPerSecond());
-        printStream.printf("\t\tErrors: %,d%n", errorCount);
-        printStream.printf("\t\tTotal Errors Duration: %s%n", errorDuration);
+        printStream.printf("\t\tErrors: %,d%n", getErrorCount());
+        printStream.printf("\t\tAccumulative Duration: %s%n", getAccumErrorDuration());
 
-        printStream.printf("\tTotal Operations Execution Time: %s%n", excutionDuration);
+        printStream.printf("\tAccumulative of all Operation Durations: %s%n", getAccumDuration());
 
-        printStream.printf("\tAborted Operations: %,d%n", abortedCount);
+        printStream.printf("\tAborted Operations: %,d%n", getAbortedCount());
         printStream.printf("\tTotal Number of All Operations: %,d%n", totalCount);
 
-        if(errorCount > 0) {
+        if(getErrorCount() > 0) {
             final String preFix = String.format("%n\t\t\t");
 
             printStream.println("Error Summary:");
@@ -591,35 +606,30 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
     @Override
     public String toString() {
 
-        if(totCallDuration.get() == 0)
+        if(startTimeNanos == 0)
         {
             return String.format("WorkloadProvider [type=%s, status=%s, call/sec=, pending=%,d, successes=%,d, errors=%,d,aborted=%d, start=, stop=, run_duration=0, run_reminding=%s]",
                     warmup ? "warmup" : "workload",
                     status,
-                    pendingCount.get(),
-                    successCount.get(),
-                    errorCount.get(),
-                    abortedCount.get(),
+                    getPendingCount(),
+                    getSuccessCount(),
+                    getErrorCount(),
+                    getAbortedCount(),
                     targetRunDuration);
         }
-
-        final Duration rtDuration = Duration.ofNanos(totCallDuration.get());
-        final Duration reminding = targetRunDuration.compareTo(rtDuration) > 0
-                                ? targetRunDuration.minus(rtDuration)
-                                : Duration.ZERO;
 
         return String.format("WorkloadProviderScheduler [type=%s, status=%s, call/sec=%,.2f, pending=%,d, successes=%,d, errors=%,d, aborted=%d, start=%s, stop=%s, run_duration=%s, run_reminding=%s]",
                                 warmup ? "warmup" : "workload",
                                 status,
                                 getCallsPerSecond(),
-                                pendingCount.get(),
-                                successCount.get(),
-                                errorCount.get(),
-                                abortedCount.get(),
+                                getPendingCount(),
+                                getSuccessCount(),
+                                getErrorCount(),
+                                getAbortedCount(),
                                 startDateTime == null ? "N/A" : dtFormatter.format(startDateTime),
                                 stopDateTime == null ? "N/A" : dtFormatter.format(stopDateTime),
-                                rtDuration,
-                                reminding);
+                                getAccumDuration(),
+                                getRemainingTime());
     }
 
     private void setStatus(WorkloadStatus workloadStatus) {
@@ -654,10 +664,8 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
         Handler() {  }
 
         private void Success(long latency) {
-            totCallDuration.addAndGet(latency);
-            successDuration.addAndGet(latency);
+            successfulDuration.addAndGet(latency);
             histogram.recordValue(latency);
-            successCount.incrementAndGet();
             if(openTelemetry != null) {
                 openTelemetry.recordElapsedTime(latency);
             }
@@ -665,9 +673,7 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
 
         private void Error(long latency, Throwable e) {
             errors.add((Exception) e);
-            errorCount.incrementAndGet();
             if(latency > 0) {
-                totCallDuration.addAndGet(latency);
                 errorDuration.addAndGet(latency);
             }
             logger.PrintDebug("WorkloadProviderScheduler.Handler",
@@ -750,7 +756,7 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
         long now;
 
         while ((now = System.nanoTime()) <= targetDurationNS
-                && errorCount.get() <= errorThreshold
+                && getErrorCount() <= errorThreshold
                 && !terminateWorkers.get()
                 && !abortRun.get()
                 && !terminateRun.get()) {
@@ -764,19 +770,19 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
 
         terminateWorkers.set(true);
 
-        if(errorCount.get() > errorThreshold
+        if(getErrorCount() > errorThreshold
                 && !abortRun.get())
         {
             abortRun.set(true);
             progressbar.stop();
             System.err.printf("\tStopping %s due %d Errors for %s...%n",
                                 warmup ? "warmup" : "workload",
-                                errorCount.get(),
+                                getErrorCount(),
                                 queryRunnable.Name());
             logger.warn("Stopping {} {} due to the number of errors ({})",
                             warmup ? "warmup" : "workload",
                             queryRunnable.Name(),
-                            errorCount.get());
+                            getErrorCount());
         }
 
         setStatus(WorkloadStatus.WaitingCompletion);

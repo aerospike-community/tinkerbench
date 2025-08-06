@@ -3,107 +3,126 @@ package com.aerospike;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 public interface WorkloadProvider extends AutoCloseable {
 
     /*
     Returns true if current run is a warmup.
      */
-    public boolean isWarmup();
+    boolean isWarmup();
 
-    public boolean isAborted();
+    boolean isAborted();
 
-    public boolean isDebug();
+    boolean isDebug();
 
     /*
     The targeted calls-per-second.
      */
-    public int getTargetCallsPerSecond();
+    int getTargetCallsPerSecond();
 
     /*
     The target duration of executing the workload.
      */
-    public Duration getTargetRunDuration();
+    Duration getTargetRunDuration();
 
     /*
     The running execution duration.
      */
-    public Duration getExecutingDuration();
+    Duration getAccumDuration();
 
     /*
     The number of pending calls.
      */
-    public int getPendingCount();
+    long getPendingCount();
 
     /*
     Number of calls aborted
      */
-    public int getAbortedCount();
+    long getAbortedCount();
+
+    /*
+    The amount of time accumulative taken for successful executions (not wall clock)
+     */
+    Duration getAccumSuccessDuration();
 
     /*
     The number of success calls.
      */
-    public int getSuccessCount();
+    long getSuccessCount();
 
     /*
     The number of errors encountered.
      */
-    public int getErrorCount();
+    long getErrorCount();
 
     /*
     The collection of errors encountered.
      */
-    public List<Exception> getErrors();
+    List<Exception> getErrors();
+
+    /*
+   The amount of time accumulative taken for error execution state (not wall clock)
+    */
+    Duration getAccumErrorDuration();
 
     /*
     Returns the Status of the workload scheduler.
      */
-    public WorkloadStatus getStatus();
+    WorkloadStatus getStatus();
 
     /*
     The start time of execution.
      */
-    public LocalDateTime getStartDateTime();
+    LocalDateTime getStartDateTime();
+
+    /*
+    The completion time
+     */
+    LocalDateTime getCompletionDateTime();
+
+    /*
+    Returns the remaining time of the run based on the Targeted Run Duration.
+     */
+    Duration getRemainingTime();
 
     /*
     Returns the current Success calls-per-second rate.
      */
-    public double getCallsPerSecond();
+    double getCallsPerSecond();
 
     /*
     Returns the current errors-per-second rate.
      */
-    public double getErrorsPerSecond();
+    double getErrorsPerSecond();
 
-    public OpenTelemetry getOpenTelemetry();
+    OpenTelemetry getOpenTelemetry();
 
-    public AGSWorkloadArgs getCliArgs();
+    AGSWorkloadArgs getCliArgs();
 
     /*
     Set's the query that will be executed by the work load scheduler.
     If the value is null or changed, the scheduler is closed and reset.
      */
-    public WorkloadProvider setQuery(QueryRunnable queryRunnable);
+    WorkloadProvider setQuery(QueryRunnable queryRunnable);
 
     /*
     Executes the Query, if one is defined.
     If the query was already ran (completed), it will be re-executed. If the workload was shutdown, a RuntimeException is thrown.
      */
-    public WorkloadProvider Start() throws RuntimeException;
+    WorkloadProvider Start() throws RuntimeException;
 
     /*
     Shuts-down the workload scheduler. If the workload is running, this will wait until completion.
     If the scheduler is already shutdown, it just returns.
      */
-    public WorkloadProvider Shutdown();
+    WorkloadProvider Shutdown();
 
     /*
     Blocks until all tasks have completed execution after a shutdown request, or the timeout occurs, or the current thread is interrupted, whichever happens first.
     Returns:
         true if this executor terminated and false if the timeout elapsed before termination or nothing is running.
      */
-    public boolean awaitTermination();
+    boolean awaitTermination();
 
-    public WorkloadProvider PrintSummary();
+    WorkloadProvider PrintSummary();
 }

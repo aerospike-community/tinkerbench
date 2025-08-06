@@ -39,7 +39,7 @@ public final class OpenTelemetryExporter implements com.aerospike.OpenTelemetry 
     private final LongCounter openTelemetryTransactionCounter;
     private final LongUpDownCounter openTelemetryPendingCounter;
     private final DoubleHistogram openTelemetryLatencyMSHistogram;
-    private final DoubleHistogram openTelemetryLatencyUSHistogram;
+    //private final DoubleHistogram openTelemetryLatencyUSHistogram;
 
     private final AtomicInteger hbCnt = new AtomicInteger();
     private final long startTimeMillis;
@@ -105,12 +105,12 @@ public final class OpenTelemetryExporter implements com.aerospike.OpenTelemetry 
                         .setUnit("ms")
                         .build();
 
-        this.openTelemetryLatencyUSHistogram =
-                openTelemetryMeter
-                        .histogramBuilder(METRIC_NAME + ".latency")
-                        .setDescription("Aerospike Workload Latencies (us)")
-                        .setUnit("microsecond")
-                        .build();
+        //this.openTelemetryLatencyUSHistogram =
+        //        openTelemetryMeter
+        //                .histogramBuilder(METRIC_NAME + ".latency")
+        //                .setDescription("Aerospike Workload Latencies (us)")
+        //                .setUnit("microsecond")
+        //                .build();
 
         this.openTelemetryTransactionCounter =
                 openTelemetryMeter
@@ -325,7 +325,7 @@ public final class OpenTelemetryExporter implements com.aerospike.OpenTelemetry 
         final Attributes attrsBuilt = attributes.build();
 
         this.openTelemetryLatencyMSHistogram.record((double) elapsedNanos / Helpers.NS_TO_MS, attrsBuilt);
-        this.openTelemetryLatencyUSHistogram.record((double) elapsedNanos / Helpers.NS_TO_US, attrsBuilt);
+        //this.openTelemetryLatencyUSHistogram.record((double) elapsedNanos / Helpers.NS_TO_US, attrsBuilt);
         this.openTelemetryTransactionCounter.add(1, attrsBuilt);
 
         this.logger.PrintDebug("OpenTelemetry", "Elapsed Time Record  %s %s", workloadName, wlType);
@@ -469,7 +469,7 @@ public final class OpenTelemetryExporter implements com.aerospike.OpenTelemetry 
                                 this.openTelemetryInfoGauge,
                                 this.openTelemetryTransactionCounter,
                                 this.openTelemetryExceptionCounter,
-                                this.openTelemetryLatencyUSHistogram,
+                                this.openTelemetryLatencyMSHistogram,
                                 this.closed.get());
     }
 }
