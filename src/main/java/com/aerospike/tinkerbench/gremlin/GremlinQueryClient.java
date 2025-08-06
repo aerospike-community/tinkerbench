@@ -10,6 +10,8 @@ import org.apache.tinkerpop.gremlin.process.traversal.Bytecode;
 import org.apache.tinkerpop.gremlin.process.traversal.Traversal;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.DefaultGraphTraversal;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
+import org.json.JSONArray;
+import org.json.JSONObject;
 
 import javax.script.Bindings;
 import java.io.FileWriter;
@@ -152,7 +154,7 @@ public class GremlinQueryClient {
     }
 
     private static void createOutputFile(final Map<String, List<Duration>> runResult) {
-        final List<Map<String, Object>> root = new ArrayList<>();
+        final JSONArray root = new JSONArray();
         for (final Map.Entry<String, List<Duration>> entry : runResult.entrySet()) {
             // Get error and statistics for each query
             String query = entry.getKey();
@@ -169,21 +171,14 @@ public class GremlinQueryClient {
             // get mean error at 999 confidence level
             double meanError = (maxMillis - minMillis) / 2.0;
             double average = (double) averageMillis;
-            Map<String, Object> obj = new HashMap<>();
+            final JSONObject obj = new JSONObject();
             obj.put("name", query);
             obj.put("unit", "s");
             obj.put("value", average);
             obj.put("range", meanError);
             obj.put("extra", "");
-            root.add(obj);
+            root.put(obj);
         }
-        root.forEach(resultMap -> {
-            System.out.println("result: ");
-            resultMap.forEach((k, v) -> {
-                System.out.printf("\t %s:  %s", k, v);
-                System.out.println();
-            });
-        });
         try (final FileWriter file = new FileWriter(String.format("benchmark-result-%s.json", System.currentTimeMillis()))) {
             System.out.println("Writing json file");
             file.write(root.toString());
