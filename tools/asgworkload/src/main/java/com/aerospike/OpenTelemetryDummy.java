@@ -23,6 +23,13 @@ public final class OpenTelemetryDummy  implements OpenTelemetry {
                       long pendingActions,
                       boolean warmup,
                       StringBuilder otherInfo) { }
+    @Override
+    public void setIdMgrGauge(final String mgrClass,
+                              final String label,
+                              final int requestedCnt,
+                              final int actualCnt,
+                              final long runtime) {
+    }
 
     @SuppressWarnings("unused")
     @Override
@@ -49,11 +56,6 @@ public final class OpenTelemetryDummy  implements OpenTelemetry {
 
     @Override
     public void close() throws Exception {
-    }
-
-    @SuppressWarnings("unused")
-    @Override
-    public void setWorkloadName(String workLoadType, String workloadName, boolean warmup) {
     }
 
     @SuppressWarnings("unused")

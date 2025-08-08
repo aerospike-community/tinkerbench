@@ -28,25 +28,23 @@ public final class OpenTelemetryExporter implements com.aerospike.OpenTelemetry 
     private final int prometheusPort;
     private String workloadName;
     private String connectionState;
-    private String wlType = "";
+    private String wlTypeStage = "";
     private final long pid = ProcessHandle.current().pid();
     private final int closeWaitMS;
 
     private final Attributes[] hbAttributes;
     private final OpenTelemetrySdk openTelemetrySdk;
     private final LongGauge openTelemetryInfoGauge;
+    private final LongGauge openTelemetryIdMgrGauge;
     private final LongCounter openTelemetryExceptionCounter;
-    private final LongCounter openTelemetryTransactionCounter;
     private final LongUpDownCounter openTelemetryPendingCounter;
     private final DoubleHistogram openTelemetryLatencyMSHistogram;
-    //private final DoubleHistogram openTelemetryLatencyUSHistogram;
 
     private final AtomicInteger hbCnt = new AtomicInteger();
     private final long startTimeMillis;
     private final LocalDateTime startLocalDateTime;
-    private long endTimeMillis;
+    private long endTimeSecs;
     private LocalDateTime endLocalDateTime;
-    private Duration targetDuration;
     private final AtomicBoolean closed = new AtomicBoolean(false);
 
     private final LogSource logger = LogSource.getInstance();
@@ -80,17 +78,18 @@ public final class OpenTelemetryExporter implements com.aerospike.OpenTelemetry 
                         .ofLongs()
                         .build();
 
+        this.openTelemetryIdMgrGauge =
+                openTelemetryMeter
+                        .gaugeBuilder(METRIC_NAME + ".idmgrinfo")
+                        .setDescription("Aerospike Workload Id Manager Information")
+                        .ofLongs()
+                        .build();
+
         this.openTelemetryExceptionCounter =
                 openTelemetryMeter
                     .counterBuilder(METRIC_NAME + ".exception")
                         .setDescription("Aerospike Workload Exception")
                         .build();
-
-        //this.openTelemetryErrorCounter =
-        //        openTelemetryMeter
-        //                .counterBuilder(METRIC_NAME + ".related.errors")
-        //                .setDescription("Aerospike Workload Related Errors")
-        //                .build();
 
         this.openTelemetryPendingCounter =
                 openTelemetryMeter
@@ -105,22 +104,7 @@ public final class OpenTelemetryExporter implements com.aerospike.OpenTelemetry 
                         .setUnit("ms")
                         .build();
 
-        //this.openTelemetryLatencyUSHistogram =
-        //        openTelemetryMeter
-        //                .histogramBuilder(METRIC_NAME + ".latency")
-        //                .setDescription("Aerospike Workload Latencies (us)")
-        //                .setUnit("microsecond")
-        //                .build();
-
-        this.openTelemetryTransactionCounter =
-                openTelemetryMeter
-                        .counterBuilder(METRIC_NAME + ".transaction")
-                        .setDescription("Aerospike Workload Transaction")
-                        .build();
-
         this.printDebug("SDK and Metrics Completed");
-        this.printDebug("Register to Counters");
-        this.printDebug("Updating Gauge");
 
         this.hbAttributes = new Attributes[4];
 
@@ -135,8 +119,7 @@ public final class OpenTelemetryExporter implements com.aerospike.OpenTelemetry 
 
         try {
             Thread.sleep(500);
-        } catch (InterruptedException ignored) {
-        }
+        } catch (InterruptedException ignored) {}
     }
 
     private OpenTelemetrySdk initOpenTelemetry() {
@@ -192,24 +175,20 @@ public final class OpenTelemetryExporter implements com.aerospike.OpenTelemetry 
 
         if(!force && this.closed.get()) { return; }
 
-        AttributesBuilder attributes = Attributes.builder();
+        final AttributesBuilder attributes = Attributes.builder();
 
-        //attributes.putAll(this.hbAttributes[0]);
-        //attributes.put("hbCount", this.hbCnt.incrementAndGet());
+        attributes.put("type", "static");
+        for (Attributes attrItem : this.hbAttributes) {
+            attributes.putAll(attrItem);
+        }
 
-        //if(initial) {
-            attributes.put("type", "static");
-            for (Attributes attrItem : this.hbAttributes) {
-                attributes.putAll(attrItem);
-            }
-        //}
         if(this.connectionState != null) {
             attributes.put("DBConnState", this.connectionState);
         }
-        if(this.endTimeMillis != 0) {
-            attributes.put("endTimeMillis", this.endTimeMillis);
+        if(this.endTimeSecs != 0) {
+            attributes.put("endTimeSecs", this.endTimeSecs);
             attributes.put("endLocalDateTime", this.endLocalDateTime.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
-            attributes.put("runDurationMillis", this.endTimeMillis - this.startTimeMillis);
+            attributes.put("runDurationSecs", Math.round(this.endTimeSecs - (this.startTimeMillis / 1000.0)));
         }
 
         long hCnt = (long) hbCnt.incrementAndGet();
@@ -217,13 +196,38 @@ public final class OpenTelemetryExporter implements com.aerospike.OpenTelemetry 
             hCnt = 0;
             hbCnt.set(0);
         }
-        long counter = (System.currentTimeMillis()
-                                * 100L)
-                            + hCnt ;
+        final long now = System.currentTimeMillis();
+        final long counter = (now * 100L)
+                                + hCnt ;
+
         this.openTelemetryInfoGauge.set(counter,
                                         attributes.build());
 
         logger.PrintDebug("OpenTelemetry", "Info Gauge %d", counter);
+    }
+
+    @Override
+    public void setIdMgrGauge(final String mgrClass,
+                                final String label,
+                                final int requestedCnt,
+                                final int actualCnt,
+                                final long runtimeMills) {
+        if(this.closed.get()) { return; }
+
+        final AttributesBuilder attributes = Attributes.builder();
+        attributes.putAll(this.hbAttributes[0]);
+        attributes.put("wlstage", "idMgr");
+        attributes.putAll(Attributes.of(
+                AttributeKey.stringKey("type"), "static",
+                AttributeKey.stringKey("manger_class"), mgrClass,
+                AttributeKey.stringKey("label"), label == null ? "NA" : label,
+                AttributeKey.longKey("requested_cnt"), (long) requestedCnt,
+                AttributeKey.longKey("actual_cnt"), (long) actualCnt,
+                AttributeKey.longKey("runtimems"), runtimeMills
+        ));
+
+        openTelemetryIdMgrGauge.set(System.currentTimeMillis(),
+                                    attributes.build());
     }
 
     public void Reset(AGSWorkloadArgs args,
@@ -234,26 +238,28 @@ public final class OpenTelemetryExporter implements com.aerospike.OpenTelemetry 
                       boolean warmup,
                       StringBuilder otherInfo) {
 
-        this.wlType = String.format("%s-%s",
-                                    warmup ? "Warmup" : "Workload",
-                                    workloadType == null ? "Initial" : workloadType);
+        this.wlTypeStage = String.format("%s-%s",
+                                            warmup ? "Warmup" : "Workload",
+                                            workloadType == null ? "Initial" : workloadType);
         this.workloadName = workloadName == null ? "Workload" : workloadName;
 
-        this.endTimeMillis = 0;
+        this.endTimeSecs = 0;
         this.endLocalDateTime = null;
-        this.targetDuration = targetDuration;
 
+        //These attributes commonly used by all events
+        // They uniquely  identify events to this run
         this.hbAttributes[0] =
                 Attributes.of(
                         AttributeKey.stringKey("workload"), this.workloadName,
-                        AttributeKey.stringKey("wltype"), this.wlType,
-                        AttributeKey.longKey("pid"), this.pid
+                        AttributeKey.stringKey("wlstage"), warmup ? "Warmup" : "Workload",
+                        AttributeKey.stringKey("wltype"), workloadType == null ? "Initial" : workloadType,
+                        AttributeKey.longKey("pid"), this.pid,
+                        AttributeKey.longKey("startTimeSecs"), Math.round(this.startTimeMillis / 1000.0)
                 );
-                //There are attributes commonly used for all events
+        //These attributes should be considered static
         this.hbAttributes[1] =
                 Attributes.of(
                         AttributeKey.stringKey("otherInfo"), otherInfo == null ? null : otherInfo.toString(),
-                        AttributeKey.longKey("startTimeMillis"), this.startTimeMillis,
                         AttributeKey.stringKey("startDateTime"), this.startLocalDateTime.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME),
                         AttributeKey.stringKey("AGSHost"), args.agsHosts[0]
                 );
@@ -268,7 +274,8 @@ public final class OpenTelemetryExporter implements com.aerospike.OpenTelemetry 
                         AttributeKey.longKey("schedulars"), (long) args.schedulers,
                         AttributeKey.longKey("workers"), (long) args.workers,
                         AttributeKey.stringKey("duration"), targetDuration.toString(),
-                        AttributeKey.longKey("durationMillis"), targetDuration.toMillis()
+                        AttributeKey.longKey("durationSecs"), targetDuration.toSeconds(),
+                        AttributeKey.longKey("errorlimit"), (long) args.errorsAbort
                 );
 
         if(pendingActions > 0)
@@ -277,6 +284,7 @@ public final class OpenTelemetryExporter implements com.aerospike.OpenTelemetry 
             this.pendingTransCounter(0);
 
         this.updateInfoGauge(true);
+
     }
 
     @Override
@@ -294,17 +302,16 @@ public final class OpenTelemetryExporter implements com.aerospike.OpenTelemetry 
 
         if(this.closed.get()) { return; }
 
-        //Ignore Cluser Closed exceptions when the app is terminating
+        //Ignore Cluster Closed exceptions when the app is terminating
         if((terminateRun.get() || abortRun.get()) && Objects.equals(message, "Cluster has been closed")) {
             return;
         }
 
-        AttributesBuilder attributes = Attributes.builder();
+        final AttributesBuilder attributes = Attributes.builder();
         attributes.putAll(this.hbAttributes[0]);
         attributes.putAll(Attributes.of(
                 AttributeKey.stringKey("exception_type"), exceptionType,
-                AttributeKey.stringKey("exception"), message,
-                AttributeKey.longKey("startTimeMillis"), this.startTimeMillis
+                AttributeKey.stringKey("exception"), message
         ));
 
         this.openTelemetryExceptionCounter.add(1, attributes.build());
@@ -316,32 +323,27 @@ public final class OpenTelemetryExporter implements com.aerospike.OpenTelemetry 
     public void recordElapsedTime(long elapsedNanos) {
         if(this.closed.get()) { return; }
 
-        AttributesBuilder attributes = Attributes.builder();
+        final AttributesBuilder attributes = Attributes.builder();
         attributes.putAll(this.hbAttributes[0]);
-
-        attributes.put("startTimeMillis", this.startTimeMillis);
-        attributes.put("targetdurationMills", this.targetDuration.toMillis());
 
         final Attributes attrsBuilt = attributes.build();
 
         this.openTelemetryLatencyMSHistogram.record((double) elapsedNanos / Helpers.NS_TO_MS, attrsBuilt);
         //this.openTelemetryLatencyUSHistogram.record((double) elapsedNanos / Helpers.NS_TO_US, attrsBuilt);
-        this.openTelemetryTransactionCounter.add(1, attrsBuilt);
+        //this.openTelemetryTransactionCounter.add(1, attrsBuilt);
 
-        this.logger.PrintDebug("OpenTelemetry", "Elapsed Time Record  %s %s", workloadName, wlType);
+        this.logger.PrintDebug("OpenTelemetry", "Elapsed Time Record  %s %s", workloadName, wlTypeStage);
     }
 
     private void pendingTransCounter(long amt) {
         if(this.closed.get()) { return; }
 
-        AttributesBuilder attributes = Attributes.builder();
+        final AttributesBuilder attributes = Attributes.builder();
         attributes.putAll(this.hbAttributes[0]);
-        attributes.put("startTimeMillis", this.startTimeMillis);
-        attributes.put("targetdurationMills", this.targetDuration.toMillis());
 
         this.openTelemetryPendingCounter.add(amt, attributes.build());
 
-        this.logger.PrintDebug("OpenTelemetry", "Transaction Pending Counter %d %s %s",amt, workloadName, wlType);
+        this.logger.PrintDebug("OpenTelemetry", "Transaction Pending Counter %d %s %s",amt, workloadName, wlTypeStage);
     }
 
     @Override
@@ -352,25 +354,6 @@ public final class OpenTelemetryExporter implements com.aerospike.OpenTelemetry 
     @Override
     public void decrPendingTransCounter() {
         this.pendingTransCounter(-1);
-    }
-
-    @Override
-    public void setWorkloadName(String workLoadType, String workloadName, boolean warmup) {
-        if(this.closed.get() | this.abortRun.get()) { return; }
-
-        wlType = String.format("%s-%s",
-                                warmup ? "Warmup" : "Workload",
-                                workLoadType);
-        this.workloadName = workloadName;
-
-        this.printDebug("Workload Name  " + workloadName + " Type " + workLoadType, false);
-
-        this.hbAttributes[0] = Attributes.of(
-                AttributeKey.stringKey("workload"), this.workloadName,
-                AttributeKey.stringKey("wltype"), this.wlType,
-                AttributeKey.longKey("pid"), this.pid
-        );
-        this.updateInfoGauge(false);
     }
 
     @Override
@@ -388,7 +371,7 @@ public final class OpenTelemetryExporter implements com.aerospike.OpenTelemetry 
         if(this.closed.get()) { return; }
 
         this.closed.set(true);
-        this.endTimeMillis = System.currentTimeMillis();
+        this.endTimeSecs = System.currentTimeMillis() / 1000;
         this.endLocalDateTime = LocalDateTime.now();
         this.connectionState = state;
 
@@ -410,7 +393,7 @@ public final class OpenTelemetryExporter implements com.aerospike.OpenTelemetry 
     private void setConnectionStateClosed() {
        try {
             if (openTelemetryInfoGauge != null && !this.abortRun.get()) {
-                this.endTimeMillis = System.currentTimeMillis();
+                this.endTimeSecs = System.currentTimeMillis() / 1000;
                 this.endLocalDateTime = LocalDateTime.now();
                 if(connectionState.equals("Running"))
                     this.connectionState = "Closed";
@@ -467,7 +450,7 @@ public final class OpenTelemetryExporter implements com.aerospike.OpenTelemetry 
                                 this.prometheusPort,
                                 this.connectionState,
                                 this.openTelemetryInfoGauge,
-                                this.openTelemetryTransactionCounter,
+                                null, //this.openTelemetryTransactionCounter,
                                 this.openTelemetryExceptionCounter,
                                 this.openTelemetryLatencyMSHistogram,
                                 this.closed.get());

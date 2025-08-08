@@ -11,7 +11,7 @@ public class IdSampler implements  IdManager {
     private static final int ID_SAMPLE_SIZE = 500_000;
     private List<Object> sampledIds = null;
     final Random random = new Random();
-    private final LogSource logger = LogSource.getInstance();
+    private LogSource logger;
 
     public IdSampler() {
         // Constructor can be used for initialization if needed
@@ -49,17 +49,31 @@ public class IdSampler implements  IdManager {
 
     @Override
     public void init(final GraphTraversalSource g,
+                     final OpenTelemetry openTelemetry,
+                     final LogSource logger,
                      final int sampleSize,
-                     String label) {
+                     final String label) {
+
+        this.logger = logger;
+        long start = 0;
+        long end = 0;
 
         if(sampleSize <= 0) {
             sampledIds = null;
             logger.PrintDebug("IdSampler", "IdSampler disabled");
         } else {
             try {
+                if(label == null || label.isEmpty()) {
+                    System.out.println("Obtaining Vertices Ids...");
+                } else {
+                    System.out.printf("Obtaining Vertices Ids for Label '%s'...%n ", label);
+                }
+
                 logger.PrintDebug("IdSampler", "Trying to obtain Samples: Label: '%s'", label);
 
+                start = System.currentTimeMillis();
                 sampledIds = getSampledIds(g, label, sampleSize, 0, 0);
+                end = System.currentTimeMillis();
             } catch (CompletionException ignored) {
                 //TODO: Really need to rework this to avoid AGS exceptions around large sample sizes...
                 System.out.printf("Retrying Id Sample Size of %,d\n", sampleSize);
@@ -84,6 +98,7 @@ public class IdSampler implements  IdManager {
                                                 startRange, endRange);
                     sampledIds.addAll(portionLst);
                 }
+                end = System.currentTimeMillis();
             }
             logger.PrintDebug("IdSampler", "Obtain Samples: Label: '%s' Count: %d", label, sampledIds.size());
 
@@ -97,12 +112,17 @@ public class IdSampler implements  IdManager {
 
                 throw new ArrayIndexOutOfBoundsException(msg);
             }
-        }
-    }
 
-    @Override
-    public void init(final GraphTraversalSource g) {
-        init(g, ID_SAMPLE_SIZE, null);
+            if(openTelemetry != null) {
+                openTelemetry.setIdMgrGauge(this.getClass().getSimpleName(),
+                                            label,
+                                            sampleSize,
+                                            sampledIds.size(),
+                                            end - start);
+            }
+
+            System.out.println("\tCompleted");
+        }
     }
 
     @Override

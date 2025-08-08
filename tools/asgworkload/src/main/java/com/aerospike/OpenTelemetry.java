@@ -13,6 +13,12 @@ public interface OpenTelemetry extends AutoCloseable {
                       boolean warmup,
                       StringBuilder otherInfo);
 
+    void setIdMgrGauge(final String mgrClass,
+                            final String label,
+                            final int requestedCnt,
+                            final int actualCnt,
+                            final long runtime);
+
     void addException(Exception exception);
     void addException(String exceptionType, String message);
 
@@ -21,7 +27,6 @@ public interface OpenTelemetry extends AutoCloseable {
     void incrPendingTransCounter();
     void decrPendingTransCounter();
 
-    void setWorkloadName(String workLoadType, String workloadName, boolean warmup);
     void setConnectionState(String connectionState);
 
     String printConfiguration();

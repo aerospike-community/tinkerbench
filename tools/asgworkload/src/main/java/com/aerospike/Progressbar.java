@@ -5,14 +5,12 @@ import me.tongfei.progressbar.ProgressBarBuilder;
 import me.tongfei.progressbar.ProgressBarConsumer;
 
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicLong;
 
 public class Progressbar implements AutoCloseable {
 
     private final WorkloadProvider workloadProvider;
     private final me.tongfei.progressbar.ProgressBar underlyingProgressBar;
     private final ProgressBarConsumer consoleConsumer;
-    private final AtomicLong lastPrint = new AtomicLong(0);
     private final AtomicBoolean closed = new AtomicBoolean(false);
     private final boolean isDebug;
 
@@ -34,7 +32,7 @@ public class Progressbar implements AutoCloseable {
                 .build();
     }
 
-    public void start(String msg) {
+    public synchronized void start(String msg) {
         this.underlyingProgressBar.step();
         if(msg != null) {
             this.underlyingProgressBar.setExtraMessage(msg);
@@ -48,58 +46,55 @@ public class Progressbar implements AutoCloseable {
         start(null);
     }
 
+    void setRateMessage(String msg) {
+        String rateMsg = String.format("OPS: %,d Pending: %,d Errors: %,d",
+                Math.round(workloadProvider.getCallsPerSecond()),
+                workloadProvider.getPendingCount(),
+                workloadProvider.getErrorCount());
+
+        if (msg != null) {
+            rateMsg += "; " + msg;
+        }
+        if (isDebug) {
+            rateMsg += String.format("%n");
+        }
+        this.underlyingProgressBar.setExtraMessage(rateMsg);
+    }
+
     long determineDelta() {
         if(this.underlyingProgressBar
                 .getTotalElapsed().toSeconds() >= this.underlyingProgressBar.getMax()
             || this.underlyingProgressBar.getCurrent() >= this.underlyingProgressBar.getMax()) {
             return -1;
         } else {
-            long delta = this.underlyingProgressBar
-                            .getElapsedAfterStart()
-                            .toSeconds()
-                            - this.lastPrint.get();
-            if(delta > this.underlyingProgressBar.getMax()) {
-                return -1;
-            } else {
-                return delta;
-            }
+            return this.underlyingProgressBar
+                                    .getElapsedAfterStart()
+                                    .toSeconds()
+                                - this.underlyingProgressBar.getCurrent();
         }
     }
 
-    public void step(String msg) {
+    public synchronized void step(String msg) {
         if(closed.get()) { return; }
 
         long delta = determineDelta();
 
         if(delta > 0) {
             this.underlyingProgressBar.stepBy(delta);
-            this.lastPrint.set(this.underlyingProgressBar
-                                    .getElapsedAfterStart()
-                                    .toSeconds());
         }
-        String rateMsg = String.format("OPS: %,d Pending: %,d Errors: %,d",
-                            Math.round(workloadProvider.getCallsPerSecond()),
-                            workloadProvider.getPendingCount(),
-                            workloadProvider.getErrorCount());
-
-        if(msg != null) {
-            rateMsg += "; " + msg;
-        }
-        if(isDebug) {
-            rateMsg += String.format("%n");
-        }
-        this.underlyingProgressBar.setExtraMessage(rateMsg);
+        setRateMessage(msg);
     }
 
     public void step() { this.step(null); }
 
-    public void stop(String msg) {
+    public synchronized void stop(String msg) {
         if(closed.get()) { return; }
 
         closed.set(true);
         if(!workloadProvider.isAborted()){
-            if(this.underlyingProgressBar.getCurrent() < this.underlyingProgressBar.getMax()) {
-                this.underlyingProgressBar.step();
+            final long delta = this.underlyingProgressBar.getMax() - this.underlyingProgressBar.getCurrent();
+            if(delta > 0) {
+                this.underlyingProgressBar.stepBy(delta);
                 this.underlyingProgressBar.refresh();
             }
         }
@@ -120,8 +115,9 @@ public class Progressbar implements AutoCloseable {
     public void stop() { this.stop(null); }
 
     @Override
-    public void close() {
+    public synchronized void close() {
         if(!closed.get()) {
+            closed.set(true);
             underlyingProgressBar.close();
             consoleConsumer.close();
         }

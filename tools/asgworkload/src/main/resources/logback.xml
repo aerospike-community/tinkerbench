@@ -8,6 +8,7 @@
     </appender-->
 
     <logger name="com.aerospike.asgworkload" level="OFF"/>
+    <logger name="io.opentelemetry.javaagent.slf4j.simpleLogger.defaultLogLevel" level="OFF"/>
 
     <!--logger name="com.aerospike.asgworkload" level="info" additivity="false">
         <appender-ref ref="FILE"/>

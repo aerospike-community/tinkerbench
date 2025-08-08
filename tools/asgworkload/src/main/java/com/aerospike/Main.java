@@ -73,7 +73,11 @@ public class Main extends  AGSWorkloadArgs {
                             = new AGSGraphTraversalSource(this, openTel)) {
 
             if(!this.testMode && !this.idManager.isInitialized())
-                this.idManager.init(agsGraphTraversalSource.G(), idSampleSize, labelSample);
+                this.idManager.init(agsGraphTraversalSource.G(),
+                                        openTel,
+                                        logger,
+                                        idSampleSize,
+                                        labelSample);
 
             if (!warmupDuration.isZero()) {
                 ExecuteWorkload(openTel,
@@ -87,12 +91,12 @@ public class Main extends  AGSWorkloadArgs {
 
             if (!mainInstance.abortRun.get()) {
                 ExecuteWorkload(openTel,
-                        logger,
-                        agsGraphTraversalSource,
-                        this.idManager,
-                        duration,
-                        this,
-                        false);
+                                logger,
+                                agsGraphTraversalSource,
+                                this.idManager,
+                                duration,
+                                this,
+                                false);
                 mainInstance.terminateRun.set(true);
             }
         }

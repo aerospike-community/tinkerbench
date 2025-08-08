@@ -87,6 +87,15 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
         schedulerPool = Executors.newFixedThreadPool(this.schedulers);
         workerPool = Executors.newFixedThreadPool(cliArgs.workers);
 
+        if(openTelemetry != null) {
+            openTelemetry.Reset(cliArgs,
+                                null,
+                                null,
+                                targetRunDuration,
+                                0,
+                                warmup,
+                                null);
+        }
         setStatus(WorkloadStatus.Initialized);
     }
 
@@ -705,8 +714,8 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
                         success = true;
                     } else {
                         abortedCount.incrementAndGet();
-                        logger.getLogger4j().warn("Workload {} aborted",
-                                queryRunnable);
+                        logger.warn("Workload {} aborted",
+                                    queryRunnable);
                     }
                 }
             } catch (InterruptedException e) {
