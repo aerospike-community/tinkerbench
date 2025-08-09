@@ -40,6 +40,7 @@ public final class OpenTelemetryExporter implements com.aerospike.OpenTelemetry 
     private final LongUpDownCounter openTelemetryPendingCounter;
     private final DoubleHistogram openTelemetryLatencyMSHistogram;
 
+    private int isWarmup = 0; //0 -- unknown, 1 -- Warmup, 2 -- Workload
     private final AtomicInteger hbCnt = new AtomicInteger();
     private final long startTimeMillis;
     private final LocalDateTime startLocalDateTime;
@@ -200,6 +201,8 @@ public final class OpenTelemetryExporter implements com.aerospike.OpenTelemetry 
         final long counter = (now * 100L)
                                 + hCnt ;
 
+        attributes.put("currTimeSecs", now / 1000L);
+
         this.openTelemetryInfoGauge.set(counter,
                                         attributes.build());
 
@@ -238,10 +241,11 @@ public final class OpenTelemetryExporter implements com.aerospike.OpenTelemetry 
                       boolean warmup,
                       StringBuilder otherInfo) {
 
+        this.isWarmup = warmup ? 1 : 2;
         this.wlTypeStage = String.format("%s-%s",
                                             warmup ? "Warmup" : "Workload",
                                             workloadType == null ? "Initial" : workloadType);
-        this.workloadName = workloadName == null ? "Workload" : workloadName;
+        this.workloadName = workloadName == null ? "NA" : workloadName;
 
         this.endTimeSecs = 0;
         this.endLocalDateTime = null;

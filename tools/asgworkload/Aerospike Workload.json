@@ -33,6 +33,7 @@
           },
           "decimals": 0,
           "mappings": [],
+          "noValue": "Nothing Running",
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -280,6 +281,7 @@
               "commandlineargs": true,
               "commandlineargs 1": true,
               "commandlineargs 2": true,
+              "currTimeSecs": true,
               "duration": true,
               "duration 1": true,
               "duration 2": true,
@@ -408,15 +410,16 @@
               "workers": 20,
               "workload": 21
             },
+            "orderByMode": "manual",
             "renameByName": {
               "Time": "",
               "endLocalDateTime": "End",
-              "endTimeSecs": "End",
+              "endTimeSecs": "",
               "runDurationMillis": "Duration",
               "runDurationSecs": "Duration",
               "startDateTime": "Start",
               "startDateTime 1": "Start",
-              "startTimeSecs": "Start"
+              "startTimeSecs": ""
             }
           }
         }
@@ -447,6 +450,7 @@
             "mode": "thresholds"
           },
           "mappings": [],
+          "noValue": "Nothing Running",
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -530,6 +534,7 @@
             "mode": "thresholds"
           },
           "mappings": [],
+          "noValue": "--",
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -616,6 +621,7 @@
             "mode": "thresholds"
           },
           "mappings": [],
+          "noValue": "--",
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -700,6 +706,7 @@
             "mode": "thresholds"
           },
           "mappings": [],
+          "noValue": "--",
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -788,6 +795,7 @@
             "mode": "thresholds"
           },
           "mappings": [],
+          "noValue": "--",
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -875,6 +883,7 @@
             "mode": "thresholds"
           },
           "mappings": [],
+          "noValue": "--",
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -959,6 +968,7 @@
             "mode": "thresholds"
           },
           "mappings": [],
+          "noValue": "--",
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -1057,6 +1067,7 @@
           },
           "decimals": 0,
           "mappings": [],
+          "noValue": "--",
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -1131,6 +1142,7 @@
           },
           "decimals": 0,
           "mappings": [],
+          "noValue": "--",
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -1215,6 +1227,7 @@
               "type": "value"
             }
           ],
+          "noValue": "--",
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -1288,12 +1301,53 @@
           },
           "decimals": 0,
           "mappings": [],
+          "noValue": "--",
           "thresholds": {
-            "mode": "absolute",
+            "mode": "percentage",
             "steps": [
               {
                 "color": "green",
                 "value": 0
+              },
+              {
+                "color": "dark-red",
+                "value": 0
+              },
+              {
+                "color": "semi-dark-red",
+                "value": 10
+              },
+              {
+                "color": "red",
+                "value": 20
+              },
+              {
+                "color": "super-light-red",
+                "value": 30
+              },
+              {
+                "color": "dark-orange",
+                "value": 40
+              },
+              {
+                "color": "orange",
+                "value": 50
+              },
+              {
+                "color": "yellow",
+                "value": 60
+              },
+              {
+                "color": "light-green",
+                "value": 70
+              },
+              {
+                "color": "green",
+                "value": 80
+              },
+              {
+                "color": "dark-green",
+                "value": 90
               }
             ]
           },
@@ -1384,6 +1438,7 @@
               "type": "value"
             }
           ],
+          "noValue": "--",
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -1469,6 +1524,7 @@
             "mode": "thresholds"
           },
           "mappings": [],
+          "noValue": "--",
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -1855,6 +1911,7 @@
           "fieldMinMax": false,
           "mappings": [],
           "min": 0,
+          "noValue": "--",
           "thresholds": {
             "mode": "percentage",
             "steps": [
@@ -1937,7 +1994,7 @@
           "disableTextWrap": false,
           "editorMode": "builder",
           "exemplar": false,
-          "expr": "sort(timestamp(aerospike_workload_ags_stateinfo{instance=~\"$client\", workload=~\"$workload\", wltype=~\"$workloadtype\", wlstage=\"Warmup\"}))",
+          "expr": "sort(aerospike_workload_ags_stateinfo{instance=~\"$client\", workload=~\"$workload\", wltype=~\"$workloadtype\", wlstage=\"Warmup\"})",
           "format": "table",
           "fullMetaSearch": false,
           "hide": false,
@@ -1979,6 +2036,7 @@
           },
           "mappings": [],
           "min": 0,
+          "noValue": "--",
           "thresholds": {
             "mode": "percentage",
             "steps": [
@@ -2129,6 +2187,7 @@
         "defaults": {
           "decimals": 0,
           "mappings": [],
+          "noValue": "--",
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -2263,6 +2322,7 @@
             "mode": "thresholds"
           },
           "mappings": [],
+          "noValue": "--",
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -2649,6 +2709,7 @@
           "fieldMinMax": false,
           "mappings": [],
           "min": 0,
+          "noValue": "--",
           "thresholds": {
             "mode": "percentage",
             "steps": [
@@ -2728,9 +2789,9 @@
             "uid": "${DATASOURCE}"
           },
           "disableTextWrap": false,
-          "editorMode": "code",
+          "editorMode": "builder",
           "exemplar": false,
-          "expr": "sort(timestamp(aerospike_workload_ags_stateinfo{instance=~\"$client\", workload=~\"$workload\", wltype=~\"$workloadtype\", wlstage=\"Workload\"}))",
+          "expr": "sort(aerospike_workload_ags_stateinfo{instance=~\"$client\", workload=~\"$workload\", wltype=~\"$workloadtype\", wlstage=\"Workload\"})",
           "format": "table",
           "fullMetaSearch": false,
           "hide": false,
@@ -2772,6 +2833,7 @@
           },
           "mappings": [],
           "min": 0,
+          "noValue": "--",
           "thresholds": {
             "mode": "percentage",
             "steps": [
@@ -2922,6 +2984,7 @@
         "defaults": {
           "decimals": 0,
           "mappings": [],
+          "noValue": "--",
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -3646,7 +3709,7 @@
     }
   ],
   "preload": false,
-  "refresh": "5s",
+  "refresh": "",
   "schemaVersion": 41,
   "tags": [],
   "templating": {
@@ -3691,8 +3754,12 @@
       },
       {
         "current": {
-          "text": "All",
-          "value": "$__all"
+          "text": [
+            "TestRun"
+          ],
+          "value": [
+            "TestRun"
+          ]
         },
         "datasource": {
           "type": "prometheus",
@@ -3769,12 +3836,12 @@
     ]
   },
   "time": {
-    "from": "2025-08-08T00:00:47.952Z",
-    "to": "2025-08-08T00:09:31.029Z"
+    "from": "now-5m",
+    "to": "now"
   },
   "timepicker": {},
   "timezone": "browser",
   "title": "Aerospike Workload",
   "uid": "besk2xu6dpp1ca",
-  "version": 46
+  "version": 48
 }

@@ -30,7 +30,7 @@ public class Helpers {
 
             logger.PrintDebug("GetQuery", "Creating Instance %s", queryName);
 
-            Class<?> queryClass = Class.forName("com.aerospike." + queryName);
+            Class<?> queryClass = Class.forName("com.aerospike.predefined." + queryName);
             Constructor<?> constructor = queryClass.getConstructor(WorkloadProvider.class, AGSGraphTraversal.class, IdManager.class);
             logger.PrintDebug("GetQuery", "Created  Class %s", queryClass.getName());
 

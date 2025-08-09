@@ -146,7 +146,7 @@ public abstract class AGSWorkloadArgs  implements Callable<Integer> {
 
     @Option(names = "-result",
             description = "If provided, the results of the Query are displayed and logged")
-    boolean printResult;
+    public boolean printResult;
 
     public final AtomicBoolean abortRun = new AtomicBoolean(false);
     public final AtomicBoolean abortSIGRun = new AtomicBoolean(false);

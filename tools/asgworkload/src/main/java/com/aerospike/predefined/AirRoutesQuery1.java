@@ -1,15 +1,18 @@
-package com.aerospike;
+package com.aerospike.predefined;
 
-import org.apache.tinkerpop.gremlin.structure.T;
+import com.aerospike.AGSGraphTraversal;
+import com.aerospike.IdManager;
+import com.aerospike.QueryWorkloadProvider;
+import com.aerospike.WorkloadProvider;
 import org.javatuples.Pair;
 
 import static org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__.values;
 
-public class AirRoutesQuery extends QueryWorkloadProvider {
+public class AirRoutesQuery1 extends QueryWorkloadProvider {
 
-    public AirRoutesQuery(final WorkloadProvider provider,
-                          final AGSGraphTraversal ags,
-                          final IdManager idManager) {
+    public AirRoutesQuery1(final WorkloadProvider provider,
+                           final AGSGraphTraversal ags,
+                           final IdManager idManager) {
         super(provider, ags, idManager);
     }
 
@@ -18,7 +21,7 @@ public class AirRoutesQuery extends QueryWorkloadProvider {
      */
     @Override
     public String Name() {
-        return "AirRoutes";
+        return "AirRoutesQuery1";
     }
 
     /**
@@ -26,7 +29,7 @@ public class AirRoutesQuery extends QueryWorkloadProvider {
      */
     @Override
     public String getDescription() {
-        return "Air Routes Graph Traversal";
+        return "Air Routes Graph Traversal Query";
     }
 
     /**

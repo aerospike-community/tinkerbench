@@ -1,24 +1,25 @@
-package com.aerospike;
+package com.aerospike.predefined;
 
+import com.aerospike.*;
 import org.apache.tinkerpop.gremlin.driver.Cluster;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
 import org.javatuples.Pair;
 
-public class QueryTest implements QueryRunnable {
+public class TestRun implements QueryRunnable {
 
     private final WorkloadProvider provider;
     private final boolean isPrintResults;
 
-    public QueryTest(final WorkloadProvider provider,
-                     final AGSGraphTraversal ignored0,
-                     final IdManager ignored1) {
+    public TestRun(final WorkloadProvider provider,
+                   final AGSGraphTraversal ignored0,
+                   final IdManager ignored1) {
         this.provider = provider;
         this.provider.setQuery(this);
         this.isPrintResults = provider.getCliArgs().printResult;
     }
 
     @Override
-    public String Name() { return "queryTest"; }
+    public String Name() { return "TestRun"; }
 
     @Override
     public WorkloadTypes WorkloadType() {
@@ -41,7 +42,7 @@ public class QueryTest implements QueryRunnable {
      */
     @Override
     public String getDescription() {
-        return "Test Query";
+        return "Test Run that doesn't query the AGS.";
     }
 
     @Override
