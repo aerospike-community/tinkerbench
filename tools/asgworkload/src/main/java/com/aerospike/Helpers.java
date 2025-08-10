@@ -2,21 +2,88 @@ package com.aerospike;
 
 import org.javatuples.Pair;
 
+import java.io.BufferedReader;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.PrintStream;
 import java.lang.management.ManagementFactory;
 import java.lang.management.RuntimeMXBean;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 public class Helpers {
 
+    public static final String RESET = "\u001B[0m";
+    public static final String BLACK = "\u001B[30m";
+    public static final String RED = "\u001B[31m";
+    public static final String GREEN = "\u001B[32m";
+    public static final String YELLOW = "\u001B[33m";
+    public static final String BLUE = "\u001B[34m";
+    public static final String PURPLE = "\u001B[35m";
+    public static final String CYAN = "\u001B[36m";
+    public static final String WHITE = "\u001B[37m";
+
+    // Background colors
+    public static final String BLACK_BACKGROUND = "\u001B[40m";
+    public static final String RED_BACKGROUND = "\u001B[41m";
+    public static final String GREEN_BACKGROUND = "\u001B[42m";
+    public static final String YELLOW_BACKGROUND = "\u001B[43m";
+    public static final String BLUE_BACKGROUND = "\u001B[44m";
+    public static final String PURPLE_BACKGROUND = "\u001B[45m";
+    public static final String CYAN_BACKGROUND = "\u001B[46m";
+    public static final String WHITE_BACKGROUND = "\u001B[47m";
+
+
     public static final double NS_TO_MS = 1000000D;
     public static final double NS_TO_US = 1000D;
+
+    public static void Print(PrintStream printStream,
+                             final String msg,
+                             final String textColor,
+                             final String backgroundColor) {
+        try {
+            if(backgroundColor != null) {
+                printStream.print(backgroundColor);
+            }
+            printStream.print(textColor);
+            printStream.print(msg);
+        }
+        finally {
+            printStream.print(RESET);
+        }
+    }
+
+    public static void Print(PrintStream printStream,
+                             final String msg,
+                             final String textColor) {
+        Print(printStream, msg, textColor, null);
+    }
+
+    public static void Println(PrintStream printStream,
+                                 final String msg,
+                                 final String textColor,
+                                 final String backgroundColor) {
+        try {
+            if(backgroundColor != null) {
+                printStream.print(backgroundColor);
+            }
+            printStream.print(textColor);
+            printStream.print(msg);
+        }
+        finally {
+            printStream.println(RESET);
+        }
+    }
+
+    public static void Println(PrintStream printStream,
+                                 final String msg,
+                                 final String textColor) {
+        Println(printStream, msg, textColor, null);
+    }
 
     public static QueryRunnable GetQuery(String queryName,
                                          WorkloadProvider provider,
@@ -31,7 +98,9 @@ public class Helpers {
             logger.PrintDebug("GetQuery", "Creating Instance %s", queryName);
 
             Class<?> queryClass = Class.forName("com.aerospike.predefined." + queryName);
-            Constructor<?> constructor = queryClass.getConstructor(WorkloadProvider.class, AGSGraphTraversal.class, IdManager.class);
+            Constructor<?> constructor = queryClass.getConstructor(WorkloadProvider.class,
+                                                                    AGSGraphTraversal.class,
+                                                                    IdManager.class);
             logger.PrintDebug("GetQuery", "Created  Class %s", queryClass.getName());
 
             // Instantiate the class by providing arguments to the constructor
@@ -53,6 +122,63 @@ public class Helpers {
             logger.error(String.format("SetQuery (Error instantiating class for %s)", queryName), e);
             throw e;
         }
+    }
+
+    private static Class<?> getClass(String className, String packageName) {
+        try {
+            Class<?> possibleClass = Class.forName(packageName + "."
+                                                    + className.substring(0, className.lastIndexOf('.')));
+            if(QueryRunnable.class.isAssignableFrom(possibleClass)) {
+                return possibleClass;
+            }
+        } catch (ClassNotFoundException ignored) { }
+        return null;
+    }
+
+    public static Set<Class<?>> findAllClasses(final String packageName) {
+        InputStream stream = ClassLoader.getSystemClassLoader()
+                .getResourceAsStream(packageName.replaceAll("[.]", "/"));
+        BufferedReader reader = new BufferedReader(new InputStreamReader(stream));
+        return reader.lines()
+                .filter(line -> line.endsWith(".class"))
+                .map(line -> getClass(line, packageName))
+                .collect(Collectors.toSet());
+    }
+
+    public static List<String> findAllPredefinedQueries(String packageName) {
+        final LogSource logger = LogSource.getInstance();
+
+        Set<Class<?>> classes = Helpers.findAllClasses("com.aerospike.predefined");
+
+        if(!classes.isEmpty()) {
+            List<String> queries = new ArrayList<>();
+            for (Class<?> c : classes) {
+                try {
+                    Constructor<?> constructor = c.getConstructor(WorkloadProvider.class,
+                                                                    AGSGraphTraversal.class,
+                                                                    IdManager.class);
+                    Object instance = constructor.newInstance(null, null, null);
+                    QueryRunnable query = (QueryRunnable) instance;
+
+                    queries.add(String.format("%s - %s",
+                                 query.Name(),
+                                 query.getDescription()));
+
+                }
+                catch (NoSuchMethodException e) {
+                    logger.Print("findAllPredefinedQueries",true,"Constructor not found for Predefined List");
+                    logger.error("findAllPredefinedQueries (Constructor not found for Predefined List)", e);
+                } catch (InstantiationException | IllegalAccessException | InvocationTargetException e) {
+                    logger.Print("findAllPredefinedQueries",true,"Error instantiating class for Predefined List");
+                    logger.error(String.format("findAllPredefinedQueries (Error instantiating class for %s)", c.getName()), e);
+                }
+            }
+
+            Collections.sort(queries);
+            return queries;
+        }
+
+        return  Collections.emptyList();
     }
 
     public static String GetShortClassName(final String className) {

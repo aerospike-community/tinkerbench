@@ -13,9 +13,14 @@ public class TestRun implements QueryRunnable {
     public TestRun(final WorkloadProvider provider,
                    final AGSGraphTraversal ignored0,
                    final IdManager ignored1) {
+
         this.provider = provider;
-        this.provider.setQuery(this);
-        this.isPrintResults = provider.getCliArgs().printResult;
+        if(this.provider == null) {
+            this.isPrintResults = false;
+        } else {
+            this.provider.setQuery(this);
+            this.isPrintResults = this.provider.getCliArgs().printResult;
+        }
     }
 
     @Override

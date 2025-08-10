@@ -18,13 +18,18 @@ public abstract class QueryWorkloadProvider implements QueryRunnable {
     public QueryWorkloadProvider(final WorkloadProvider provider,
                                  final AGSGraphTraversal ags,
                                  final IdManager idManager) {
+
         this.provider = provider;
         this.agsGraphTraversal = ags;
         this.idManager = idManager;
-        this.isPrintResult = provider.getCliArgs().printResult;
         this.workloadName = null;
 
-        this.provider.setQuery(this);
+        if(this.provider == null) {
+            this.isPrintResult = false;
+        } else {
+            this.isPrintResult = this.provider.getCliArgs().printResult;
+            this.provider.setQuery(this);
+        }
     }
 
     public QueryWorkloadProvider(final WorkloadProvider provider,
@@ -35,9 +40,13 @@ public abstract class QueryWorkloadProvider implements QueryRunnable {
         this.provider = provider;
         this.agsGraphTraversal = ags;
         this.idManager = idManager;
-        this.isPrintResult = provider.getCliArgs().printResult;
 
-        this.provider.setQuery(this);
+        if(this.provider == null) {
+            this.isPrintResult = false;
+        } else {
+            this.isPrintResult = this.provider.getCliArgs().printResult;
+            this.provider.setQuery(this);
+        }
     }
 
     @Override

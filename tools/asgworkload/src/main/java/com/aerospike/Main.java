@@ -62,7 +62,11 @@ public class Main extends  AGSWorkloadArgs {
     }
 
     public Integer call() throws Exception {
+        if(ListPredefinedQueries()) {
+            return 0;
+        }
         validate();
+
         PrintArguments(false);
 
         LogSource logger = new LogSource(debug);

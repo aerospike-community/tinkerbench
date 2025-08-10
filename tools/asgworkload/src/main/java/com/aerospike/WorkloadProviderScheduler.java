@@ -606,8 +606,15 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
                 logStream.info();
             }
         }
-        System.out.flush();
-        return PrintSummary(System.out);
+        try {
+            System.out.flush();
+            System.out.print(Helpers.YELLOW_BACKGROUND);
+            System.out.print(Helpers.BLACK);
+            return PrintSummary(System.out);
+        }
+        finally {
+            System.out.print(Helpers.RESET);
+        }
     }
 
     static DateTimeFormatter dtFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");

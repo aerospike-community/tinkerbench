@@ -38,9 +38,12 @@ public abstract class AGSWorkloadArgs  implements Callable<Integer> {
     CommandSpec commandlineSpec;
 
     @Parameters(description = "The Gremlin query string to run or a predefined Query. "
-                                + "If a query string is provided, and Id Vertices Manager (--IdManager) is enabled, "
+                                + "%nIf the keyword 'List' is provided a list of predefined queries are displayed. "
+                                + "%nIf a query string is provided, and Id Vertices Manager (--IdManager) is enabled, "
                                 + "you can place a '%%s' or '%%d' as an vertices placeholder in the string. "
-                                + "Example: 'g.V(%%d).out().limit(5).path().by(values('code','city').fold()).tolist()'")
+                                + "%nExample:%n\t'g.V(%%d).out().limit(5).path().by(values('code','city').fold()).tolist()'"
+                                + "%n\tList -- List predefined queries"
+                                + "%n\tAirRoutesQuery1 -- Predefined query for the Air Routes dataset")
     String queryNameOrString;
 
     @Option(names = {"-s", "--schedulers"},
@@ -55,12 +58,12 @@ public abstract class AGSWorkloadArgs  implements Callable<Integer> {
 
     @Option(names = {"-d", "--duration"},
             converter = DurationConverter.class,
-            description = "The Time duration (wall clock) of the workload. The format can be in Hour(s)|H|Hr(s), Minute(s)|M|Min(s), and/or Second(s)|S|Sec(s), ISO 8601 format (PT1H2M3.5S), or just an integer value which represents seconds. Example: 1h30s -> One hours and 30 seconds; 45 -> 45 seconds... Default is ${DEFAULT-VALUE}",
+            description = "The Time duration (wall clock) of the actual workload execution.%nThe format can be in Hour(s)|H|Hr(s), Minute(s)|M|Min(s), and/or Second(s)|S|Sec(s), ISO 8601 format (PT1H2M3.5S), or just an integer value which represents seconds.%nExample:%n\t1h30s -> One hours and 30 seconds%n\t45 -> 45 seconds...%nDefault is ${DEFAULT-VALUE}",
             defaultValue = "15M")
     Duration duration;
 
     @Option(names = {"-c", "--callsPerSec"},
-            description = "The number of calls per seconds. Default is ${DEFAULT-VALUE}",
+            description = "The number of calls per seconds that the workload should reach and maintain. Default is ${DEFAULT-VALUE}",
             defaultValue = "100")
     int callsPerSecond;
 
@@ -81,23 +84,23 @@ public abstract class AGSWorkloadArgs  implements Callable<Integer> {
 
     @Option(names = {"-wu", "--WarmupDuration"},
             converter = DurationConverter.class,
-            description = "The warmup time duration (wall clock). A zero duration will disable the warmup. The format can be in Hour(s)|H|Hr(s), Minute(s)|M|Min(s), and/or Second(s)|S|Sec(s), ISO 8601 format (PT1H2M3.5S), or just an integer value which represents seconds. Example: 1h30s -> One hours and 30 seconds; 45 -> 45 seconds... Default is ${DEFAULT-VALUE}",
+            description = "The warmup time duration (wall clock).%nA zero duration will disable the warmup.%nThe format can be in Hour(s)|H|Hr(s), Minute(s)|M|Min(s), and/or Second(s)|S|Sec(s), ISO 8601 format (PT1H2M3.5S), or just an integer value which represents seconds.%nExample:%n\t1h30s -> One hours and 30 seconds%n\t45 -> 45 seconds...%nDefault is ${DEFAULT-VALUE}",
             defaultValue = "0")
     Duration warmupDuration;
 
     @Option(names = {"-g", "--gremlin"},
             converter = GraphConfigOptionsConverter.class,
-            description = "Aerospike or Gremlin configuration options.%nMust be in the of 'PropertyName=PropertyValue'.%nExample: -g evaluationTimeout=30000%n-g aerospike.client.policy.maxRetries=2%nYou can specify this command multiple time (one per option).%nDefault is ${DEFAULT-VALUE}")
+            description = "Aerospike or Gremlin configuration options.%nMust be in the form of 'PropertyName=PropertyValue'.%nExample:%n\t-g evaluationTimeout=30000%n\t-g aerospike.client.policy.maxRetries=2%nYou can specify this command multiple time (one per option).")
     GraphConfigOptions[] gremlinConfigOptions;
 
     @Option(names = {"-as", "--aerospike"},
             converter = AerospikeConfigOptionsConverter.class,
-            description = "Aerospike ONLY configuration options.%nYou are not required to include the 'aerospike' prefix to the options.%nMust be in the of 'PropertyName=PropertyValue'.%nExample: -as graph.parallelize=10%n-as client.policy.maxRetries=2%nYou can specify this command multiple time (one per option).%nDefault is ${DEFAULT-VALUE}")
+            description = "Only for Aerospike configuration options.%nMust be in the format of 'OptionName=OptionValue'.%nYou are not required to include the 'aerospike' prefix in the option's name.%nExample:%n\t-as graph.parallelize=10%n\t-as client.policy.maxRetries=2%nYou can specify this command multiple time (one per option).")
     GraphConfigOptions[] asConfigOptions;
 
     @Option(names = {"-sd","--shutdown"},
             converter = DurationConverter.class,
-            description = "Timeout used to wait for worker and scheduler shutdown. The format can be in Hour(s)|H|Hr(s), Minute(s)|M|Min(s), and/or Second(s)|S|Sec(s), ISO 8601 format (PT1H2M3.5S), or just an integer value which represents seconds. Example: 1h30s -> One hours and 30 seconds; 45 -> 45 seconds... Default is ${DEFAULT-VALUE}",
+            description = "Additional time to wait for workload completion based on duration. Default is ${DEFAULT-VALUE}",
             defaultValue = "15S")
     Duration shutdownTimeout;
 
@@ -112,7 +115,7 @@ public abstract class AGSWorkloadArgs  implements Callable<Integer> {
 
     @Option(names = {"-cw", "--CloseWait"},
             converter = DurationConverter.class,
-            description = "Close wait interval upon application exit. This interval ensure all values are picked up by the Prometheus server. This should match the 'scrape_interval' in the PROM ymal file. Can be zero to disable wait. Default is ${DEFAULT-VALUE}",
+            description = "Close wait interval used upon application exit. This interval ensure all values are picked up by the Prometheus server. This should match the 'scrape_interval' in the PROM ymal file. Can be zero to disable wait. Default is ${DEFAULT-VALUE}",
             defaultValue = "15S")
     Duration closeWaitDuration;
 
@@ -128,11 +131,11 @@ public abstract class AGSWorkloadArgs  implements Callable<Integer> {
     int idSampleSize;
 
     @Option(names = {"-label", "--IdSampleLabel"},
-            description = "The Label used to obtain Id samples used by the IdManager. Null to disable and get vertices based on the Id sample size. Default is ${DEFAULT-VALUE}")
+            description = "The Label used to obtain Id samples used by the IdManager. Null to obtain the vertices based on the Id sample size.")
     String labelSample;
 
     @Option(names = {"-e","--Errors"},
-            description = "The number of errors reached when the workload is aborted. Default is ${DEFAULT-VALUE}",
+            description = "The number of errors the workload can encounter before it is aborted. Default is ${DEFAULT-VALUE}",
             defaultValue = "150")
     int errorsAbort;
 
@@ -141,11 +144,11 @@ public abstract class AGSWorkloadArgs  implements Callable<Integer> {
     boolean debug;
 
     @Option(names = "-test",
-            description = "Enables application test mode (no physical connections to AGS).")
+            description = "Enables application test mode (disabled any connections to AGS).")
     boolean testMode;
 
     @Option(names = "-result",
-            description = "If provided, the results of the Query are displayed and logged")
+            description = "If provided, the results of the  Gremlin termination step are displayed and logged")
     public boolean printResult;
 
     public final AtomicBoolean abortRun = new AtomicBoolean(false);
@@ -403,7 +406,6 @@ public abstract class AGSWorkloadArgs  implements Callable<Integer> {
         }
     }
 
-
     String[] getVersions(Boolean onlyApplicationVersion) {
         ManifestVersionProvider provider = new ManifestVersionProvider();
         try {
@@ -413,7 +415,6 @@ public abstract class AGSWorkloadArgs  implements Callable<Integer> {
             return onlyApplicationVersion ? new String[] {"N/A"} : new String[0];
         }
     }
-
 
     private boolean missing(List<?> list) {
         return list == null || list.isEmpty();
@@ -508,6 +509,28 @@ public abstract class AGSWorkloadArgs  implements Callable<Integer> {
                                 + "You can only supply the config file or the AGS port argument, not both!");
             }
         }
+    }
+
+    public boolean ListPredefinedQueries() {
+
+        if(!missing(queryNameOrString)
+                && queryNameOrString.equalsIgnoreCase("list")) {
+            List<String> classes = Helpers.findAllPredefinedQueries("com.aerospike.predefined");
+            if(!classes.isEmpty()) {
+                Helpers.Println(System.out,
+                            "Following is a list of possible Predefined Queries:",
+                                Helpers.BLACK,
+                                Helpers.YELLOW_BACKGROUND);
+                for(String item : classes) {
+                    Helpers.Print(System.out,
+                                    String.format("\t%s%n", item),
+                                    Helpers.BLACK,
+                                    Helpers.YELLOW_BACKGROUND);
+                }
+                return true;
+            }
+        }
+        return false;
     }
 
     /*
