@@ -1,6 +1,8 @@
 package com.aerospike;
 
+
 import org.javatuples.Pair;
+
 import org.slf4j.LoggerFactory;
 
 import java.io.ByteArrayOutputStream;
@@ -25,7 +27,7 @@ public final class LogSource {
 
     public LogSource(boolean debugEnabled) {
         this.debugEnabled = debugEnabled;
-        this.logger4j = LoggerFactory.getLogger("com.aerospike.asgworkload");
+        this.logger4j = LoggerFactory.getLogger("com.aerospike.tinkerbench2");
         instance = this;
     }
 
@@ -36,6 +38,8 @@ public final class LogSource {
 
         return instance; // Return the single instance
     }
+
+    public Boolean loggingEnabled() { return debugEnabled || logger4j.isErrorEnabled(); }
 
     public int getDebugCnt() { return debugCnt.get(); }
 
@@ -111,15 +115,22 @@ public final class LogSource {
         LocalDateTime now = LocalDateTime.now();
         String formattedDateTime = now.format(DateFormatter);
         Pair<?,?> pidThread = Helpers.GetPidThreadId();
+        String errMsg = ex.getMessage();
+        if(errMsg == null || errMsg.isEmpty()) {
+            errMsg = "<Missing Message>";
+        }
         String fmtMsg = String.format("%s ERROR %s %s %s %s: %s%n",
                                         formattedDateTime,
                                         pidThread.getValue0(),
                                         pidThread.getValue1(),
                                         name,
                                         ex.getClass().getSimpleName(),
-                                        ex.getMessage())
+                                        errMsg)
                             .replace("%","%%");
         System.err.printf(fmtMsg);
+        if(isDebug()) {
+            ex.printStackTrace(System.err);
+        }
     }
 
     public void Print(String name, boolean err, String msg, Object var2) {
@@ -172,15 +183,20 @@ public final class LogSource {
             LocalDateTime now = LocalDateTime.now();
             String formattedDateTime = now.format(DateFormatter);
             Pair<?,?> pidThread = Helpers.GetPidThreadId();
+            String errMsg = ex.getMessage();
+            if(errMsg == null || errMsg.isEmpty()) {
+                errMsg = "<Missing Message>";
+            }
             String fmtMsg = String.format("%s DEBUG %s %s %s %s: %s%n",
                                             formattedDateTime,
                                             pidThread.getValue0(),
                                             pidThread.getValue1(),
                                             name,
                                             ex.getClass().getSimpleName(),
-                                            ex.getMessage())
+                                            errMsg)
                             .replace("%","%%");
             System.err.printf(fmtMsg);
+            ex.printStackTrace(System.err);
         }
     }
 
@@ -202,7 +218,7 @@ public final class LogSource {
         }
     }
 
-    public void title(AGSWorkloadArgs args) {
+    public void title(TinkerBench2Args args) {
 
         logger4j.info("Program: {}", args.commandlineSpec.name());
         logger4j.info("Arguments:");

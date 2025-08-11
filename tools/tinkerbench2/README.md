@@ -14,13 +14,13 @@ mvn clean install
 The CLI includes full help documentation:
 
 ```
-agsworkload --help
+tinkerbench2 --help
 ```
 
 To run a predefined workload with default values:
 
 ```
-agsworkload AirRouteQuery
+tinkerbench2 AirRouteQuery
 ```
 
 
@@ -41,7 +41,7 @@ After adding your class:
 
 ```sh
 mvn clean install
-agsworkload MyWorkloadQuery
+tinkerbench2 MyWorkloadQuery
 ```
 
 Here's an example:
@@ -109,7 +109,7 @@ public class MyWorkloadQuery extends QueryWorkloadProvider {
 To enable Prometheus metrics, use the -prom flag using the proper port (run --help for info).
 
 ```
-agsworkload MyWorkloadQuery -prom
+tinkerbench2 MyWorkloadQuery -prom
 ```
 This currently provides the best interface. The initial Grafana dashboard can be found at here.
 To visualize the metrics, you can use the Grafana dashboard provided here .

@@ -4,14 +4,14 @@ import picocli.CommandLine;
 
 import java.time.Duration;
 
-public class Main extends  AGSWorkloadArgs {
+public class Main extends TinkerBench2Args {
 
     private static void ExecuteWorkload(OpenTelemetry openTel,
                                         LogSource logger,
                                         AGSGraphTraversal agsGraphTraversal,
                                         IdManager idManager,
                                         Duration targetRunDuration,
-                                        AGSWorkloadArgs args,
+                                        TinkerBench2Args args,
                                         boolean isWarmUp) {
 
         try (final WorkloadProvider workload = new WorkloadProviderScheduler(openTel,
@@ -71,6 +71,13 @@ public class Main extends  AGSWorkloadArgs {
 
         LogSource logger = new LogSource(debug);
         logger.title(this);
+
+        if(logger.loggingEnabled()) {
+            Helpers.Println(System.out,
+                    "Logging Enabled",
+                    Helpers.BLACK,
+                    Helpers.GREEN_BACKGROUND);
+        }
 
         try (final OpenTelemetry openTel = OpenTelemetryHelper.Create(this, null);
             final AGSGraphTraversalSource agsGraphTraversalSource

@@ -97,7 +97,7 @@ public interface WorkloadProvider extends AutoCloseable {
 
     OpenTelemetry getOpenTelemetry();
 
-    AGSWorkloadArgs getCliArgs();
+    TinkerBench2Args getCliArgs();
 
     /*
     Set's the query that will be executed by the work load scheduler.

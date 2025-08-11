@@ -27,12 +27,12 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-@Command(name = "agsworkload",
+@Command(name = "tinkerbench2",
         mixinStandardHelpOptions = true,
-        versionProvider = AGSWorkloadArgs.ManifestVersionProvider.class,
-        defaultValueProvider = AGSWorkloadArgs.DefaultProvider.class,
-        description = "Aerospike Graph Workload Generator")
-public abstract class AGSWorkloadArgs  implements Callable<Integer> {
+        versionProvider = TinkerBench2Args.ManifestVersionProvider.class,
+        defaultValueProvider = TinkerBench2Args.DefaultProvider.class,
+        description = "Aerospike Tinker Bench 2 Workload Runner")
+public abstract class TinkerBench2Args implements Callable<Integer> {
 
     @Spec
     CommandSpec commandlineSpec;
@@ -170,7 +170,7 @@ public abstract class AGSWorkloadArgs  implements Callable<Integer> {
                 versions.add(title + " version \"" + version + "\"");
             }
             else {
-                getVersionsFromMetaInf(AGSWorkloadArgs.class.getClassLoader().getResources("META-INF/MANIFEST.MF"),
+                getVersionsFromMetaInf(TinkerBench2Args.class.getClassLoader().getResources("META-INF/MANIFEST.MF"),
                                         "AGS Workload",
                                         "com.aerospike.Main",
                                         versions);

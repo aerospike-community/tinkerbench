@@ -5,13 +5,13 @@ import java.time.Duration;
 public interface OpenTelemetry extends AutoCloseable {
 
     boolean getClosed();
-    void Reset(AGSWorkloadArgs args,
-                      String workloadName,
-                      String workloadType,
-                      Duration targetDuration,
-                      long pendingActions,
-                      boolean warmup,
-                      StringBuilder otherInfo);
+    void Reset(TinkerBench2Args args,
+               String workloadName,
+               String workloadType,
+               Duration targetDuration,
+               long pendingActions,
+               boolean warmup,
+               StringBuilder otherInfo);
 
     void setIdMgrGauge(final String mgrClass,
                             final String label,

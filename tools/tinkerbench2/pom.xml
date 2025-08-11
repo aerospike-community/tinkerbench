@@ -5,8 +5,8 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>com.aerospike</groupId>
-    <artifactId>asgworkload</artifactId>
-    <version>1.12.0</version>
+    <artifactId>tinkerbench2</artifactId>
+    <version>1.13.0</version>
 
     <name>AGS Workload</name>
     <description>Aerospike Graph Workload Generator</description>

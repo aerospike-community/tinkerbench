@@ -41,6 +41,7 @@ public final class OpenTelemetryExporter implements com.aerospike.OpenTelemetry 
     private final DoubleHistogram openTelemetryLatencyMSHistogram;
 
     private int isWarmup = 0; //0 -- unknown, 1 -- Warmup, 2 -- Workload
+    private String workloadType;
     private final AtomicInteger hbCnt = new AtomicInteger();
     private final long startTimeMillis;
     private final LocalDateTime startLocalDateTime;
@@ -53,7 +54,7 @@ public final class OpenTelemetryExporter implements com.aerospike.OpenTelemetry 
     public final AtomicBoolean abortRun;
     public final AtomicBoolean terminateRun;
 
-    public OpenTelemetryExporter(AGSWorkloadArgs args,
+    public OpenTelemetryExporter(TinkerBench2Args args,
                                  StringBuilder otherInfo) {
 
         this.startTimeMillis = System.currentTimeMillis();
@@ -233,7 +234,7 @@ public final class OpenTelemetryExporter implements com.aerospike.OpenTelemetry 
                                     attributes.build());
     }
 
-    public void Reset(AGSWorkloadArgs args,
+    public void Reset(TinkerBench2Args args,
                       String workloadName,
                       String workloadType,
                       Duration targetDuration,
@@ -242,13 +243,19 @@ public final class OpenTelemetryExporter implements com.aerospike.OpenTelemetry 
                       StringBuilder otherInfo) {
 
         this.isWarmup = warmup ? 1 : 2;
+        this.workloadType = workloadType == null ? "Initial" : workloadType;
         this.wlTypeStage = String.format("%s-%s",
                                             warmup ? "Warmup" : "Workload",
-                                            workloadType == null ? "Initial" : workloadType);
+                                            this.workloadType);
         this.workloadName = workloadName == null ? "NA" : workloadName;
 
         this.endTimeSecs = 0;
         this.endLocalDateTime = null;
+
+        if(this.hbAttributes[0] != null
+                && workloadType != null
+                && pendingActions > 0)
+            this.pendingTransCounter(pendingActions * -1);
 
         //These attributes commonly used by all events
         // They uniquely  identify events to this run
@@ -256,7 +263,7 @@ public final class OpenTelemetryExporter implements com.aerospike.OpenTelemetry 
                 Attributes.of(
                         AttributeKey.stringKey("workload"), this.workloadName,
                         AttributeKey.stringKey("wlstage"), warmup ? "Warmup" : "Workload",
-                        AttributeKey.stringKey("wltype"), workloadType == null ? "Initial" : workloadType,
+                        AttributeKey.stringKey("wltype"), this.workloadType,
                         AttributeKey.longKey("pid"), this.pid,
                         AttributeKey.longKey("startTimeSecs"), Math.round(this.startTimeMillis / 1000.0)
                 );
@@ -282,13 +289,10 @@ public final class OpenTelemetryExporter implements com.aerospike.OpenTelemetry 
                         AttributeKey.longKey("errorlimit"), (long) args.errorsAbort
                 );
 
-        if(pendingActions > 0)
-            this.pendingTransCounter(pendingActions * -1);
-        else
-            this.pendingTransCounter(0);
-
         this.updateInfoGauge(true);
-
+        if(workloadType != null) {
+            this.pendingTransCounter(0);
+        }
     }
 
     @Override
@@ -330,11 +334,8 @@ public final class OpenTelemetryExporter implements com.aerospike.OpenTelemetry 
         final AttributesBuilder attributes = Attributes.builder();
         attributes.putAll(this.hbAttributes[0]);
 
-        final Attributes attrsBuilt = attributes.build();
-
-        this.openTelemetryLatencyMSHistogram.record((double) elapsedNanos / Helpers.NS_TO_MS, attrsBuilt);
-        //this.openTelemetryLatencyUSHistogram.record((double) elapsedNanos / Helpers.NS_TO_US, attrsBuilt);
-        //this.openTelemetryTransactionCounter.add(1, attrsBuilt);
+        this.openTelemetryLatencyMSHistogram.record((double) elapsedNanos / Helpers.NS_TO_MS,
+                                                    attributes.build());
 
         this.logger.PrintDebug("OpenTelemetry", "Elapsed Time Record  %s %s", workloadName, wlTypeStage);
     }

@@ -15,7 +15,7 @@ public final class AGSGraphTraversalSource  implements AGSGraphTraversal, Closea
     private final OpenTelemetry openTelemetry;
     private final LogSource logger = LogSource.getInstance();
 
-    public AGSGraphTraversalSource(AGSWorkloadArgs args,
+    public AGSGraphTraversalSource(TinkerBench2Args args,
                                    OpenTelemetry openTelemetry) {
 
         this.openTelemetry = openTelemetry;

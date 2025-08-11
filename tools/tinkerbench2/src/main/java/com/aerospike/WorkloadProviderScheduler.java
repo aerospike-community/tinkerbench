@@ -48,7 +48,7 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
     private final Vector<Exception> errors = new Vector<>();
     private final int callsPerSecond;
     private final OpenTelemetry openTelemetry;
-    private final AGSWorkloadArgs cliArgs;
+    private final TinkerBench2Args cliArgs;
 
     private final LogSource logger = LogSource.getInstance();
 
@@ -65,7 +65,7 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
     public WorkloadProviderScheduler(OpenTelemetry openTelemetry,
                                      Duration targetRunDuration,
                                      boolean warmup,
-                                     AGSWorkloadArgs cliArgs) {
+                                     TinkerBench2Args cliArgs) {
         this.abortRun = cliArgs.abortRun;
         this.terminateRun = cliArgs.terminateRun;
         this.errorThreshold = cliArgs.errorsAbort;
@@ -102,7 +102,7 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
     public WorkloadProviderScheduler(OpenTelemetry openTelemetry,
                                      Duration targetRunDuration,
                                      boolean warmup,
-                                     AGSWorkloadArgs cliArgs,
+                                     TinkerBench2Args cliArgs,
                                      QueryRunnable query) {
         this(openTelemetry,
                 targetRunDuration,
@@ -240,7 +240,7 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
 
     public OpenTelemetry getOpenTelemetry() { return openTelemetry; }
 
-    public AGSWorkloadArgs getCliArgs() { return cliArgs; }
+    public TinkerBench2Args getCliArgs() { return cliArgs; }
 
     /*
     Set's the query that will be executed by the work load scheduler.
@@ -318,6 +318,9 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
                                 warmup ? "Warmup" : "Workload",
                                 queryRunnable.WorkloadType().toString(),
                                 queryRunnable.Name());
+
+            progressbar = new Progressbar(this);
+            progressbar.start();
 
             final long targetDuration = System.nanoTime() + targetRunDuration.toNanos();
 
@@ -413,9 +416,8 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
 
         if(status == WorkloadStatus.Running) {
             result = true;
-            System.out.println("\tAwaiting for Completion...");
-            progressbar = new Progressbar(this);
-            progressbar.start();
+            //System.out.println("\tAwaiting for Completion...");
+
             LocalDateTime exitTime = LocalDateTime.now()
                                             .plus(targetRunDuration)
                                             .plus(shutdownTimeout);
