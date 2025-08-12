@@ -229,7 +229,7 @@ public class Helpers {
             }
             else {
                 if(prefix != null) sb.append(prefix);
-                sb.append(msgPart);
+                sb.append(msgPart.replaceAll("org\\.apache\\.tinkerpop\\.|com\\.aerospike\\.|java\\.lang\\.|org\\.apache\\.","..."));
                 if(breakPrefix != null) {
                     sb.append(":");
                     sb.append(breakPrefix.repeat(cnt));

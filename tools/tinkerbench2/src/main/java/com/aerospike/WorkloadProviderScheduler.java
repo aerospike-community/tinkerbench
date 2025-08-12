@@ -49,6 +49,7 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
     private final int callsPerSecond;
     private final OpenTelemetry openTelemetry;
     private final TinkerBench2Args cliArgs;
+    private final Boolean hdrHistFmt;
 
     private final LogSource logger = LogSource.getInstance();
 
@@ -66,6 +67,7 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
                                      Duration targetRunDuration,
                                      boolean warmup,
                                      TinkerBench2Args cliArgs) {
+        this.hdrHistFmt = cliArgs.enableHdrHistFmt;
         this.abortRun = cliArgs.abortRun;
         this.terminateRun = cliArgs.terminateRun;
         this.errorThreshold = cliArgs.errorsAbort;
@@ -506,7 +508,7 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
        return getErrorMessage(error, 0);
     }
 
-    public WorkloadProvider PrintSummary(PrintStream printStream) {
+    public WorkloadProvider PrintSummary(PrintStream printStream, boolean useHdrHistFmt) {
 
         if(queryRunnable == null) {
             printStream.printf("No %s Summary available.%n",
@@ -584,13 +586,47 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
                                                 " "));
                 }
             }
+           if (logger.loggingEnabled()) {
+                printStream.println("Note: Check logs for detailed error messages and stack traces...");
+            } else {
+                printStream.println("Note: Enabling logging will provided detailed error messages...");
+                printStream.println("\tYou can enabled logging by changing ./resouces/logback.xml file or SLF4J property settings...");
+            }
         }
         printStream.println();
         if(!warmup) {
-            printStream.printf("Recorded latencies [in ms] for %s%n",
-                    queryRunnable.Name());
-            histogram.outputPercentileDistribution(printStream, Helpers.NS_TO_MS);
-            printStream.println();
+            if(useHdrHistFmt) {
+                printStream.printf("Recorded latencies [in ms] for %s%n",
+                                    queryRunnable.Name());
+                histogram.outputPercentileDistribution(printStream, Helpers.NS_TO_MS);
+            } else {
+                printStream.printf("Summary recorded latencies for %s%n",
+                                    queryRunnable.Name());
+                final double[] desiredPercentiles = {50.0, 90.0, 95.0, 99.0, 99.9};
+                final double scale = Math.pow(10, 3);
+
+                printStream.printf("\t\tPercentile\tValue [ms]\tCount%n");
+                for (double desiredPercentile : desiredPercentiles) {
+                    long percentValue = histogram.getValueAtPercentile(desiredPercentile);
+                    double roundedValue = Math.round((percentValue/ Helpers.NS_TO_MS) * scale) / scale;
+
+                    printStream.printf("\t\t%,.2f\t\t%,.3f\t\t%,d%n",
+                                        desiredPercentile,
+                                        roundedValue,
+                                        histogram.getCountBetweenValues(0, percentValue));
+                }
+                final double meanValue = histogram.getMean();
+                final double meanRoundedValue = Math.round((meanValue/ Helpers.NS_TO_MS) * scale) / scale;
+                final long maxValue = histogram.getMaxValue();
+                final double maxRoundedValue = Math.round((maxValue/ Helpers.NS_TO_MS) * scale) / scale;
+                final double stdValue = histogram.getStdDeviation();
+                final double stdRoundedValue = Math.round((stdValue/ Helpers.NS_TO_MS) * scale) / scale;
+
+                printStream.printf("Mean is %,.3fms%nMaximum is %,.3fms%nStdDeviation is %,.3f%n",
+                                        meanRoundedValue,
+                                        maxRoundedValue,
+                                        stdRoundedValue);
+            }
             printStream.println();
         }
         return this;
@@ -604,7 +640,7 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
 
         if(logger.getLogger4j().isInfoEnabled()) {
             try (LogSource.Stream logStream = new LogSource.Stream(logger)) {
-                PrintSummary(logStream.getPrintStream());
+                PrintSummary(logStream.getPrintStream(), true);
                 logStream.info();
             }
         }
@@ -612,11 +648,12 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
             System.out.flush();
             System.out.print(Helpers.YELLOW_BACKGROUND);
             System.out.print(Helpers.BLACK);
-            return PrintSummary(System.out);
+            PrintSummary(System.out, this.hdrHistFmt);
         }
         finally {
             System.out.print(Helpers.RESET);
         }
+        return this;
     }
 
     static DateTimeFormatter dtFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
@@ -705,7 +742,7 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
 
         public void run() {
             long startCall = 0;
-            Object resultValue = null;
+            Object recordResult = null;
             boolean success = false;
             Throwable lastError = null;
             pendingCount.incrementAndGet();
@@ -714,11 +751,11 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
             try {
                 queryRunnable.preCall();
                 startCall = System.nanoTime();
-                final Pair<Boolean, Object> recordResult = queryRunnable.call();
+                final Pair<Boolean, Object> callResult = queryRunnable.call();
                 final long duration = System.nanoTime() - startCall;
-                resultValue = recordResult.getValue1();
+                recordResult = callResult.getValue1();
                 if (!terminateWorkers.get()) {
-                    if (recordResult.getValue0()) {
+                    if (callResult.getValue0()) {
                         Success(duration);
                         success = true;
                     } else {
@@ -750,7 +787,7 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
                         e);
             } finally {
                 try {
-                    queryRunnable.postCall(resultValue,
+                    queryRunnable.postCall(recordResult,
                                             success,
                                             lastError);
                 } catch (Exception e) {

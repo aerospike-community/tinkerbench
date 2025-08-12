@@ -1,6 +1,7 @@
 package com.aerospike;
 
 
+import org.apache.tinkerpop.gremlin.driver.exception.ResponseException;
 import org.javatuples.Pair;
 
 import org.slf4j.LoggerFactory;
@@ -130,6 +131,13 @@ public final class LogSource {
         System.err.printf(fmtMsg);
         if(isDebug()) {
             ex.printStackTrace(System.err);
+            if(ex instanceof ResponseException) {
+                ResponseException re = (ResponseException) ex;
+                System.err.printf("\tStatus Code: %s%n\t\tRemote: %s%n\t\tRemote Stack Trace: %s%n",
+                        re.getResponseStatusCode(),
+                        re.getRemoteExceptionHierarchy(),
+                        re.getRemoteStackTrace());
+            }
         }
     }
 
@@ -197,6 +205,14 @@ public final class LogSource {
                             .replace("%","%%");
             System.err.printf(fmtMsg);
             ex.printStackTrace(System.err);
+
+            if(ex instanceof ResponseException) {
+                ResponseException re = (ResponseException) ex;
+                System.err.printf("\tStatus Code: %s%n\t\tRemote: %s%n\t\tRemote Stack Trace: %s%n",
+                                    re.getResponseStatusCode(),
+                                    re.getRemoteExceptionHierarchy(),
+                                    re.getRemoteStackTrace());
+            }
         }
     }
 

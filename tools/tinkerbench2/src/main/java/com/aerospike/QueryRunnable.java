@@ -7,8 +7,10 @@ import java.util.concurrent.Callable;
 /*
 Query workloads should inherit from this interface.
 The call function should be the actual workload that will be performed and measured.
-If the call function should return a pair where the key (first element) will be a boolean and the value (second element) is an object passed to the postCall function.
-    If the first element is false, the workload is NOT measured. If true, the workload is measured.
+If the call function should return a pair where:
+        1) the key (first element) will be a boolean
+        2) the value (second element) is an object passed to the postCall function
+The call function additional notes:
     If the call function throws an InterruptedException; the workload is, also.
     If the call is not measured; the workload is treated as aborted.
     If an exception occurs, it is captured and treated as an error which will be included in the call-per-sec rate calculations (aborted calls do not).

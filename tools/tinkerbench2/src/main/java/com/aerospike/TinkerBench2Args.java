@@ -151,6 +151,10 @@ public abstract class TinkerBench2Args implements Callable<Integer> {
             description = "If provided, the results of the  Gremlin termination step are displayed and logged")
     public boolean printResult;
 
+    @Option(names = "-HdrHistFmt",
+            description = "If provided, the HdrHistogram Latency format is printed to the console.")
+    public boolean enableHdrHistFmt;
+
     public final AtomicBoolean abortRun = new AtomicBoolean(false);
     public final AtomicBoolean abortSIGRun = new AtomicBoolean(false);
     public final AtomicBoolean terminateRun = new AtomicBoolean(false);

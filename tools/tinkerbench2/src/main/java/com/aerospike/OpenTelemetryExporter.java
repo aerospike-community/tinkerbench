@@ -8,13 +8,16 @@ import io.opentelemetry.exporter.prometheus.PrometheusHttpServer;
 import io.opentelemetry.sdk.OpenTelemetrySdk;
 import io.opentelemetry.sdk.metrics.SdkMeterProvider;
 import io.opentelemetry.sdk.resources.Resource;
+import org.apache.tinkerpop.gremlin.driver.exception.ResponseException;
 
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -296,17 +299,36 @@ public final class OpenTelemetryExporter implements com.aerospike.OpenTelemetry 
     }
 
     @Override
-    public void addException(Exception exception) {
+    public void addException(final Exception exception) {
         if(this.closed.get()) { return; }
 
+        String errMessage = exception.getMessage();
+        if(exception instanceof ResponseException) {
+            ResponseException re = (ResponseException) exception;
+            StringBuilder sb = errMessage == null
+                                    ? new StringBuilder()
+                                    : new StringBuilder(errMessage);
+            sb.append(" Response Code: ");
+            sb.append(re.getResponseStatusCode());
+            Optional<List<String>> items = re.getRemoteExceptionHierarchy();
+            if(items.isPresent()) {
+                sb.append(": Remote");
+                for(String item : items.get()) {
+                    sb.append(": ");
+                    sb.append(item);
+                }
+            }
+            errMessage = sb.toString();
+        }
+
         final String exceptionType = Helpers.GetShortClassName(exception.getClass().getName());
-        final String message = Helpers.GetShortErrorMsg(exception.getMessage(), 160);
+        final String message = Helpers.GetShortErrorMsg(errMessage, 160);
 
         this.addException(exceptionType, message);
     }
 
     @Override
-    public void addException(String exceptionType, String message) {
+    public void addException(final String exceptionType, String message) {
 
         if(this.closed.get()) { return; }
 
@@ -316,6 +338,11 @@ public final class OpenTelemetryExporter implements com.aerospike.OpenTelemetry 
         }
 
         final AttributesBuilder attributes = Attributes.builder();
+
+        if(message == null || message.isEmpty()) {
+            message = "<No Defined Msg>";
+        }
+
         attributes.putAll(this.hbAttributes[0]);
         attributes.putAll(Attributes.of(
                 AttributeKey.stringKey("exception_type"), exceptionType,
