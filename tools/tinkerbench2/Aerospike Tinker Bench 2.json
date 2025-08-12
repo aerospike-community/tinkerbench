@@ -1563,7 +1563,7 @@
             "h": 5,
             "w": 3,
             "x": 0,
-            "y": 20
+            "y": 15
           },
           "id": 29,
           "options": {
@@ -1650,7 +1650,7 @@
             "h": 5,
             "w": 3,
             "x": 3,
-            "y": 20
+            "y": 15
           },
           "id": 30,
           "options": {
@@ -1751,7 +1751,7 @@
             "h": 5,
             "w": 3,
             "x": 6,
-            "y": 20
+            "y": 15
           },
           "id": 31,
           "options": {
@@ -1963,7 +1963,7 @@
             "h": 5,
             "w": 4,
             "x": 9,
-            "y": 20
+            "y": 15
           },
           "id": 32,
           "options": {
@@ -2120,7 +2120,7 @@
             "h": 5,
             "w": 8,
             "x": 13,
-            "y": 20
+            "y": 15
           },
           "id": 33,
           "options": {
@@ -2235,7 +2235,7 @@
             "h": 5,
             "w": 3,
             "x": 21,
-            "y": 20
+            "y": 15
           },
           "id": 34,
           "options": {
@@ -3411,7 +3411,7 @@
             "h": 11,
             "w": 24,
             "x": 0,
-            "y": 47
+            "y": 42
           },
           "id": 16,
           "options": {
@@ -3470,7 +3470,9 @@
                   "job": true,
                   "otel_scope_name": true,
                   "pid": true,
-                  "startTimeMillis": true
+                  "startTimeMillis": true,
+                  "startTimeSecs": true,
+                  "wlstage": true
                 },
                 "includeByName": {},
                 "indexByName": {
@@ -3500,6 +3502,9 @@
               "id": "groupToNestedTable",
               "options": {
                 "fields": {
+                  "Errors": {
+                    "aggregations": []
+                  },
                   "Exception": {
                     "aggregations": [],
                     "operation": "groupby"
@@ -3584,7 +3589,7 @@
             "h": 11,
             "w": 24,
             "x": 0,
-            "y": 58
+            "y": 53
           },
           "id": 18,
           "options": {
@@ -3630,7 +3635,7 @@
     }
   ],
   "preload": false,
-  "refresh": "",
+  "refresh": "5s",
   "schemaVersion": 41,
   "tags": [],
   "templating": {
@@ -3764,5 +3769,5 @@
   "timezone": "browser",
   "title": "Aerospike Tinker Bench 2",
   "uid": "besk2xu6dpp1ca",
-  "version": 51
+  "version": 52
 }
