@@ -29,7 +29,7 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
     private final int schedulers;
     private final ExecutorService schedulerPool;
     private final ExecutorService workerPool;
-    CountDownLatch shutdownLatch = new CountDownLatch(1);
+    private final CountDownLatch shutdownLatch = new CountDownLatch(1);
 
     private final Duration targetRunDuration;
     private final Duration shutdownTimeout;
@@ -74,7 +74,7 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
         this.targetRunDuration =  targetRunDuration == null
                 ? cliArgs.duration
                 : targetRunDuration;
-        this.callsPerSecond = cliArgs.callsPerSecond;
+        this.callsPerSecond = cliArgs.queriesPerSecond;
         this.shutdownTimeout = cliArgs.shutdownTimeout;
         this.schedulers = cliArgs.schedulers;
         this.openTelemetry = openTelemetry == null ? new OpenTelemetryDummy() : openTelemetry;
@@ -418,7 +418,8 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
 
         if(status == WorkloadStatus.Running) {
             result = true;
-            //System.out.println("\tAwaiting for Completion...");
+            logger.PrintDebug("WorkloadProviderScheduler",
+                            "Awaiting for Completion...");
 
             LocalDateTime exitTime = LocalDateTime.now()
                                             .plus(targetRunDuration)

@@ -284,7 +284,7 @@ public final class OpenTelemetryExporter implements com.aerospike.OpenTelemetry 
                 );
         this.hbAttributes[3] =
                 Attributes.of(
-                        AttributeKey.longKey("CallsPerSecond"), (long) args.callsPerSecond,
+                        AttributeKey.longKey("CallsPerSecond"), (long) args.queriesPerSecond,
                         AttributeKey.longKey("schedulars"), (long) args.schedulers,
                         AttributeKey.longKey("workers"), (long) args.workers,
                         AttributeKey.stringKey("duration"), targetDuration.toString(),

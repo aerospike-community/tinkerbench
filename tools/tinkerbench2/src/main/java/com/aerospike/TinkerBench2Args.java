@@ -62,10 +62,10 @@ public abstract class TinkerBench2Args implements Callable<Integer> {
             defaultValue = "15M")
     Duration duration;
 
-    @Option(names = {"-c", "--callsPerSec"},
-            description = "The number of calls per seconds that the workload should reach and maintain. Default is ${DEFAULT-VALUE}",
+    @Option(names = {"-q", "--QueriesPerSec"},
+            description = "The number of queries per seconds that the workload should reach and maintain. Default is ${DEFAULT-VALUE}",
             defaultValue = "100")
-    int callsPerSecond;
+    int queriesPerSecond;
 
     @Option(names = {"-a", "--ags"},
             description = "Specify multiple AGS host by -a agsHost1 -a agsHost2, etc.  Default is '${DEFAULT-VALUE}'",
@@ -459,9 +459,9 @@ public abstract class TinkerBench2Args implements Callable<Integer> {
                     "Argument Shutdown duration cannot be zero or negative.");
         }
 
-        if(callsPerSecond <= 0) {
+        if(queriesPerSecond <= 0) {
             throw new CommandLine.ParameterException(commandlineSpec.commandLine(),
-                    "Argument Call-per-Second cannot be zero or negative.");
+                    "Argument Queries-per-Second cannot be zero or negative.");
         }
 
         if(port <= 0) {
