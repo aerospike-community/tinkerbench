@@ -520,7 +520,9 @@ public abstract class TinkerBench2Args implements Callable<Integer> {
         if(!missing(queryNameOrString)
                 && queryNameOrString.equalsIgnoreCase("list")) {
             List<String> classes = Helpers.findAllPredefinedQueries("com.aerospike.predefined");
-            if(!classes.isEmpty()) {
+            if(classes.isEmpty()) {
+                System.err.println("There were no predefined queries found.");
+            } else {
                 Helpers.Println(System.out,
                             "Following is a list of possible Predefined Queries:",
                                 Helpers.BLACK,
@@ -531,8 +533,8 @@ public abstract class TinkerBench2Args implements Callable<Integer> {
                                     Helpers.BLACK,
                                     Helpers.YELLOW_BACKGROUND);
                 }
-                return true;
             }
+            return true;
         }
         return false;
     }
