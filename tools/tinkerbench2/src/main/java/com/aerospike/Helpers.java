@@ -138,6 +138,9 @@ public class Helpers {
     public static Set<Class<?>> findAllClasses(final String packageName) {
         InputStream stream = ClassLoader.getSystemClassLoader()
                 .getResourceAsStream(packageName.replaceAll("[.]", "/"));
+        if(stream == null) {
+            return Collections.emptySet();
+        }
         BufferedReader reader = new BufferedReader(new InputStreamReader(stream));
         return reader.lines()
                 .filter(line -> line.endsWith(".class"))
@@ -148,7 +151,7 @@ public class Helpers {
     public static List<String> findAllPredefinedQueries(String packageName) {
         final LogSource logger = LogSource.getInstance();
 
-        Set<Class<?>> classes = Helpers.findAllClasses("com.aerospike.predefined");
+        Set<Class<?>> classes = Helpers.findAllClasses(packageName);
 
         if(!classes.isEmpty()) {
             List<String> queries = new ArrayList<>();
