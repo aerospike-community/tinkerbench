@@ -1,116 +1,18 @@
-This tool is designed to run and benchmark query workloads against the Aerospike Graph Service (AGS). It supports a simple extensible interface and integrates with Prometheus and Grafana for performance monitoring.
+# ![A cartoon of a green alien with a black graduation cap AI-generated content may be incorrect.](media/390439d4419f1c2c0b41ac34d2d68ff9.png)![A yellow rocket on a blue background AI-generated content may be incorrect.](media/9d5af70e414e86f57b0650aa3e3d6d67.jpg)TinkerBench 2
 
-**🛠️ Getting Started**
+**TinkerBench** is a benchmarking tool designed for [Apache TinkerPop](https://tinkerpop.apache.org/) based graph databases. It provides an efficient way to measure [Gremlin Query](https://docs.janusgraph.org/getting-started/gremlin/) performance, making it easy for developers to evaluate their queries.
 
-**__Build__**
+## Overview
 
-To compile the project, run the following from the root of the repository:
-```
-mvn clean install
-```
+**TinkerBench** provides all the necessary performance metrics of the query. It provides latency, rate, count, and error information. This information is delivered in real time on the console or within a [Granfa dashboard](https://grafana.com/grafana/dashboards/). Information can be also captured in file format for post-processing or historic reference.
 
-**Usage**
+**TinkerBench** has two different ways to supply the Gremlin Query for measurement.
 
-The CLI includes full help documentation:
+-   Pass the actual query string by means of the command line for execution. The query is compiled and that result is used for measurement. Static or random vertex identifiers can be used in the query.
+-   Create a [Java Jar](https://docs.oracle.com/javase/8/docs/technotes/guides/jar/jarGuide.html) file using the **TinkerBench** framework. With this method, you can pass the name of the custom query class by means of the command line for execution. This method provides an means of handling complex configurations, vertex/edge creation, etc. The framework handles measurements, error handling, logging, interface, etc. The developer only needs to focus on the desired query behavior.
 
-```
-tinkerbench2 --help
-```
+# Details
 
-To run a predefined workload with default values:
+## Understanding the Command Line Interface (CLI)
 
-```
-tinkerbench2 AirRouteQuery
-```
-
-
-**📦 Workloads**
-
-The tool currently supports two workloads:
-
-`QueryTest`: for basic testing
-
-`AirRouteQuery`: queries on the Air Route graph database
-
-You can add custom workloads by extending the `QueryWorkloadProvider` class.
-
-**✏️ Defining a Custom Workload**
-
-To create your own workload, simply extend QueryWorkloadProvider. No other code changes are required.
-After adding your class:
-
-```sh
-mvn clean install
-tinkerbench2 MyWorkloadQuery
-```
-
-Here's an example:
-
-```java
-package com.aerospike;
-
-import static org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__.values;
-
-public class MyWorkloadQuery extends QueryWorkloadProvider {
-
-    public MyWorkloadQuery (final WorkloadProvider provider,
-                          final AGSGraphTraversal ags) {
-        super(provider, ags);
-    }
-
-    /**
-     * @return thw Query name
-     */
-    @Override
-    public String Name() {
-        return "MyWorkload";
-    }
-
-    /**
-     * @return The query description
-     */
-    @Override
-    public String getDescription() {
-        return "My Workload   Graph Traversal";
-    }
-
-    /**
-     * Performs any required pre-process required for the workload.
-     * @return true to execute workload or false to abort execution
-     */
-    @Override
-    public boolean preProcess() {
-        return true;
-    }
-
-    /**
-     * Performs any post-processing for the workload
-     */
-    @Override
-    public void postProcess() {
-
-    }
-
-    /**
-     * @return true to indicate that the workload was successful and should be recorded.
-     *  False to indicate that the workload should not be recorded. This also occurs for any exceptions
-     * @throws Exception
-     */
-    @Override
-    public Boolean call() throws Exception {
-        G().V(3).out().limit(5).path().by(values("code","city").fold()).toList();
-        return true;
-    }
-}
-```
-
-****📈 Monitoring with Prometheus****
-
-To enable Prometheus metrics, use the -prom flag using the proper port (run --help for info).
-
-```
-tinkerbench2 MyWorkloadQuery -prom
-```
-This currently provides the best interface. The initial Grafana dashboard can be found at here.
-To visualize the metrics, you can use the Grafana dashboard provided here .
- ```tools/asgworkload/Aerospike Workload.json```
+TinkerBench can be run by running the
