@@ -44,6 +44,7 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
     private final int errorThreshold;
     private final Boolean warmup;
     private final Histogram histogram;
+    private final Histogram queueDepthTracker;
 
     private final Vector<Exception> errors = new Vector<>();
     private final int callsPerSecond;
@@ -81,9 +82,12 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
         this.cliArgs = cliArgs;
         this.warmup = warmup;
         {
-            // A Histogram covering the range from 1 ms to target duration with 3 decimal point resolution:
-            final Duration higestDuration = this.targetRunDuration.plusMinutes(1);
-            this.histogram = new AtomicHistogram(higestDuration.toNanos(), 3);
+            // A Histogram covering the range from 1 nano to Trackable duration (max latency per query) with 3 digits resolution:
+            // All latency reported must be in ns resolution
+            final Duration higestTrackableDuration = Duration.ofSeconds((this.targetRunDuration.toSeconds()/this.callsPerSecond) + 5);
+            this.histogram = new AtomicHistogram(higestTrackableDuration.toNanos(), 3);
+            //Tack pending queries for reporting
+            this.queueDepthTracker = new AtomicHistogram(this.targetRunDuration.toSeconds(), 0);
         }
 
         schedulerPool = Executors.newFixedThreadPool(this.schedulers);
@@ -511,21 +515,21 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
 
     public WorkloadProvider PrintSummary(PrintStream printStream, boolean useHdrHistFmt) {
 
-        if(queryRunnable == null) {
+        if (queryRunnable == null) {
             printStream.printf("No %s Summary available.%n",
-                                warmup ? "Warmup" : "Workload");
+                    warmup ? "Warmup" : "Workload");
             return this;
         }
         final long totalCount = getSuccessCount()
-                                    + getErrorCount()
-                                    + getAbortedCount();
+                + getErrorCount()
+                + getAbortedCount();
 
         printStream.printf("%s Summary for %s:%n",
-                            warmup ? "Warmup " : "Workload",
-                            queryRunnable.Name());
+                warmup ? "Warmup " : "Workload",
+                queryRunnable.Name());
         printStream.printf("\tStatus: %s%n", abortRun.get()
-                                                ? getStatus() +" (Signaled)"
-                                                : getStatus());
+                ? getStatus() + " (Signaled)"
+                : getStatus());
         printStream.printf("\tRuntime Duration: %s%n", getRunningDuration());
 
         printStream.println("\tSuccessful Operations");
@@ -543,7 +547,28 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
         printStream.printf("\tAborted Operations: %,d%n", getAbortedCount());
         printStream.printf("\tTotal Number of All Operations: %,d%n", totalCount);
 
-        if(getErrorCount() > 0) {
+        {
+            final long maxValue = this.queueDepthTracker.getMaxValue();
+            double maxPercent = 0;
+            if(maxValue > 0) {
+                maxPercent = ((double) this.queueDepthTracker.getCountAtValue(maxValue)
+                                    / (double) this.queueDepthTracker.getTotalCount())
+                                * 100.0;
+            }
+            printStream.printf("\tQueue Depth:%n");
+            printStream.printf("\t\tMean: %,d\tMax:%,d (occurs %,.2f%%)%n",
+                                Math.round(this.queueDepthTracker.getMean()),
+                                maxValue,
+                                maxPercent);
+            printStream.printf("\t\t50%% -- better at Depth:%,d%n",
+                                Math.round(this.queueDepthTracker.getValueAtPercentile(50.0)));
+            printStream.printf("\t\t75%% -- better at Depth:%,d%n",
+                    Math.round(this.queueDepthTracker.getValueAtPercentile(75.0)));
+            printStream.printf("\t\t90%% -- better at Depth:%,d%n",
+                    Math.round(this.queueDepthTracker.getValueAtPercentile(90.0)));
+        }
+
+        if (getErrorCount() > 0) {
             final String preFix = String.format("%n\t\t\t");
 
             printStream.println("Error Summary:");
@@ -562,9 +587,9 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
                                 entry.getValue().size(),
                                 Helpers.GetShortClassName(entry.getKey()),
                                 Helpers.GetShortErrorMsg(entry.getValue().get(0).getMessage(),
-                                                            0,
-                                                            preFix,
-                                                            " "));
+                                        0,
+                                        preFix,
+                                        " "));
                     } else {
                         printStream.printf("\tCnt: %d\tException: %s:%n",
                                 entry.getValue().size(),
@@ -573,63 +598,62 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
                             printStream.printf("\t\tCnt: %d\tMsg: '%s'%n",
                                     sameMsg.getValue().size(),
                                     Helpers.GetShortErrorMsg(sameMsg.getKey(),
-                                                    0,
-                                                                preFix,
-                                                    " "));
+                                            0,
+                                            preFix,
+                                            " "));
                         }
                     }
                 } catch (Exception ignored) {
                     printStream.printf("\tCnt: %d\t%s:%n",
                             entry.getValue().size(),
                             Helpers.GetShortErrorMsg(entry.getKey(),
-                                                0,
-                                                preFix,
-                                                " "));
+                                    0,
+                                    preFix,
+                                    " "));
                 }
             }
-           if (logger.loggingEnabled()) {
+            if (logger.loggingEnabled()) {
                 printStream.println("Note: Check logs for detailed error messages and stack traces...");
             } else {
                 printStream.println("Note: Enabling logging will provided detailed error messages...");
                 printStream.println("\tYou can enabled logging by changing ./resouces/logback.xml file or SLF4J property settings...");
             }
         }
+
         printStream.println();
-        if(!warmup) {
-            if(useHdrHistFmt) {
-                printStream.printf("Recorded latencies [in ms] for %s%n",
-                                    queryRunnable.Name());
-                histogram.outputPercentileDistribution(printStream, Helpers.NS_TO_MS);
-            } else {
-                printStream.printf("Summary recorded latencies for %s%n",
-                                    queryRunnable.Name());
-                final double[] desiredPercentiles = {50.0, 90.0, 95.0, 99.0, 99.9};
-                final double scale = Math.pow(10, 3);
+        if(!warmup && useHdrHistFmt) {
+            printStream.printf("Recorded latencies [in ms] for %s%n",
+                                queryRunnable.Name());
+            histogram.outputPercentileDistribution(printStream, Helpers.NS_TO_MS);
+        } else {
+            printStream.printf("Summary recorded latencies for %s%n",
+                                queryRunnable.Name());
+            final double[] desiredPercentiles = {50.0, 90.0, 95.0, 99.0, 99.9};
+            final double scale = Math.pow(10, 3);
 
-                printStream.printf("\t\tPercentile\tValue [ms]\tCount%n");
-                for (double desiredPercentile : desiredPercentiles) {
-                    long percentValue = histogram.getValueAtPercentile(desiredPercentile);
-                    double roundedValue = Math.round((percentValue/ Helpers.NS_TO_MS) * scale) / scale;
+            printStream.printf("\t\tPercentile\tValue [ms]\tCount%n");
+            for (double desiredPercentile : desiredPercentiles) {
+                long percentValue = histogram.getValueAtPercentile(desiredPercentile);
+                double roundedValue = Math.round((percentValue/ Helpers.NS_TO_MS) * scale) / scale;
 
-                    printStream.printf("\t\t%,.2f\t\t%,.3f\t\t%,d%n",
-                                        desiredPercentile,
-                                        roundedValue,
-                                        histogram.getCountBetweenValues(0, percentValue));
-                }
-                final double meanValue = histogram.getMean();
-                final double meanRoundedValue = Math.round((meanValue/ Helpers.NS_TO_MS) * scale) / scale;
-                final long maxValue = histogram.getMaxValue();
-                final double maxRoundedValue = Math.round((maxValue/ Helpers.NS_TO_MS) * scale) / scale;
-                final double stdValue = histogram.getStdDeviation();
-                final double stdRoundedValue = Math.round((stdValue/ Helpers.NS_TO_MS) * scale) / scale;
-
-                printStream.printf("Mean is %,.3fms%nMaximum is %,.3fms%nStdDeviation is %,.3f%n",
-                                        meanRoundedValue,
-                                        maxRoundedValue,
-                                        stdRoundedValue);
+                printStream.printf("\t\t%,.2f\t\t%,.3f\t\t%,d%n",
+                                    desiredPercentile,
+                                    roundedValue,
+                                    histogram.getCountBetweenValues(0, percentValue));
             }
-            printStream.println();
+            final double meanValue = histogram.getMean();
+            final double meanRoundedValue = Math.round((meanValue/ Helpers.NS_TO_MS) * scale) / scale;
+            final long maxValue = histogram.getMaxValue();
+            final double maxRoundedValue = Math.round((maxValue/ Helpers.NS_TO_MS) * scale) / scale;
+            final double stdValue = histogram.getStdDeviation();
+            final double stdRoundedValue = Math.round((stdValue/ Helpers.NS_TO_MS) * scale) / scale;
+
+            printStream.printf("Mean is %,.3fms%nMaximum is %,.3fms%nStdDeviation is %,.3f%n",
+                                    meanRoundedValue,
+                                    maxRoundedValue,
+                                    stdRoundedValue);
         }
+        printStream.println();
         return this;
     }
 
@@ -796,7 +820,7 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
                         Error(0, e);
                     }
                 }
-                pendingCount.decrementAndGet();
+                queueDepthTracker.recordValue(pendingCount.decrementAndGet());
                 openTelemetry.decrPendingTransCounter();
                 progressbar.step();
             }
