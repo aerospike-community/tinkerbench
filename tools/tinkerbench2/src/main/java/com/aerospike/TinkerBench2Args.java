@@ -1,5 +1,6 @@
 package com.aerospike;
 
+import org.apache.commons.lang3.StringUtils;
 import org.javatuples.Pair;
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
@@ -261,25 +262,36 @@ public abstract class TinkerBench2Args implements Callable<Integer> {
         }
     }
 
-    static final class DefaultProvider implements CommandLine.IDefaultValueProvider {
+    static final class DefaultProvider extends picocli.CommandLine.PropertiesDefaultProvider {
 
-        private final int nbrCores = Runtime.getRuntime().availableProcessors();
+        public static final int nbrCores = Runtime.getRuntime().availableProcessors();
 
-        public int DefaultNbrSchedules() { return (int) Math.floor(nbrCores * .25); }
-        public int DefaultNbrWorks() { return (int) Math.ceil(nbrCores * .5); }
+        public DefaultProvider() {
+            super() ;
+        }
+        public DefaultProvider(File file) { super(file); }
+
+        public static int DefaultNbrSchedules() { return (int) Math.floor(nbrCores * .25); }
+        public static int DefaultNbrWorks() { return (int) Math.ceil(nbrCores * .5); }
 
         @Override
         public String defaultValue(CommandLine.Model.ArgSpec argSpec) throws Exception {
 
+            String defaultValue = super.defaultValue(argSpec);
+
             if (argSpec.isOption()) {
                 OptionSpec option = (OptionSpec) argSpec;
-                if ("--schedulers".equals(option.longestName())) {
-                    return String.valueOf(DefaultNbrSchedules());
-                } else if ("--workers".equals(option.longestName())) {
-                    return String.valueOf(DefaultNbrWorks());
+                if(StringUtils.isEmpty(defaultValue)
+                        || defaultValue.equals("0")
+                        || defaultValue.equals("-1")) {
+                    if ("--schedulers".equals(option.longestName())) {
+                        return String.valueOf(DefaultNbrSchedules());
+                    } else if ("--workers".equals(option.longestName())) {
+                        return String.valueOf(DefaultNbrWorks());
+                    }
                 }
             }
-            return null;
+            return defaultValue;
         }
     }
 
@@ -289,8 +301,7 @@ public abstract class TinkerBench2Args implements Callable<Integer> {
             int i = Integer.parseInt(value);
 
             if(i <= 0) {
-                DefaultProvider d = new DefaultProvider();
-                i = d.DefaultNbrSchedules();
+                i = DefaultProvider.DefaultNbrSchedules();
             }
 
             return i;
@@ -303,8 +314,7 @@ public abstract class TinkerBench2Args implements Callable<Integer> {
             int i = Integer.parseInt(value);
 
             if(i <= 0) {
-                DefaultProvider d = new DefaultProvider();
-                i = d.DefaultNbrWorks();
+                i = DefaultProvider.DefaultNbrWorks();
             }
 
             return i;

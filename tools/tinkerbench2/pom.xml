@@ -6,7 +6,7 @@
 
     <groupId>com.aerospike</groupId>
     <artifactId>tinkerbench2</artifactId>
-    <version>1.13.0</version>
+    <version>1.14.0</version>
 
     <name>AGS Workload</name>
     <description>Aerospike Graph Workload Generator</description>
@@ -96,12 +96,14 @@
             <artifactId>opentelemetry-semconv</artifactId>
             <version>1.34.0</version>
         </dependency>
+        <!--- https://github.com/open-telemetry/opentelemetry-java -->
 
         <!-- HdrHistogram -->
         <dependency>
             <groupId>org.hdrhistogram</groupId>
             <artifactId>HdrHistogram</artifactId>
             <version>${hdrhistogram.version}</version>
+            <!--- https://github.com/HdrHistogram/HdrHistogram -->
         </dependency>
 
         <!-- progressbar -->
@@ -153,6 +155,7 @@
                     <archive>
                         <manifest>
                             <addClasspath>true</addClasspath>
+                            <classpathPrefix>lib/</classpathPrefix>
                             <mainClass>com.aerospike.Main</mainClass>
                         </manifest>
                         <manifestEntries>

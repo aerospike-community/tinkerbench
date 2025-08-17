@@ -2,18 +2,17 @@ package com.aerospike;
 
 import org.javatuples.Pair;
 
-import java.io.BufferedReader;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.PrintStream;
+import java.io.*;
 import java.lang.management.ManagementFactory;
 import java.lang.management.RuntimeMXBean;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
+
 import java.util.*;
+import java.util.jar.JarEntry;
+import java.util.jar.JarInputStream;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 public class Helpers {
 
@@ -124,34 +123,50 @@ public class Helpers {
         }
     }
 
-    private static Class<?> getClass(String className, String packageName) {
-        try {
-            Class<?> possibleClass = Class.forName(packageName + "."
-                                                    + className.substring(0, className.lastIndexOf('.')));
-            if(QueryRunnable.class.isAssignableFrom(possibleClass)) {
-                return possibleClass;
-            }
-        } catch (ClassNotFoundException ignored) { }
-        return null;
-    }
+    public static List<Class<?>> getClassesInPackage(String packageName) {
+        String path = packageName.replaceAll("[.]", "/");
+        List<Class<?>> classes = new ArrayList<>();
+        String[] classPathEntries = System.getProperty("java.class.path").split(
+                File.pathSeparator
+        );
 
-    public static Set<Class<?>> findAllClasses(final String packageName) {
-        InputStream stream = ClassLoader.getSystemClassLoader()
-                .getResourceAsStream(packageName.replaceAll("[.]", "/"));
-        if(stream == null) {
-            return Collections.emptySet();
+        String name;
+        for (String classpathEntry : classPathEntries) {
+            if (classpathEntry.endsWith(".jar")) {
+                File jar = new File(classpathEntry);
+                try {
+                    JarInputStream is = new JarInputStream(new FileInputStream(jar));
+                    JarEntry entry;
+                    while((entry = is.getNextJarEntry()) != null) {
+                        name = entry.getName();
+                        if (name.endsWith(".class") && name.contains(path)) {
+                            String classPath = name.substring(0, entry.getName().length() - 6);
+                            classPath = classPath.replaceAll("[\\|/]", ".");
+                            classes.add(Class.forName(classPath));
+                        }
+                    }
+                } catch (Exception ignored) { }
+            } else {
+                try {
+                    File base = new File(classpathEntry + File.separatorChar + path);
+                    for (File file : Objects.requireNonNull(base.listFiles())) {
+                        name = file.getName();
+                        if (name.endsWith(".class")) {
+                            name = name.substring(0, name.length() - 6);
+                            classes.add(Class.forName(packageName + "." + name));
+                        }
+                    }
+                } catch (Exception ignored) { }
+            }
         }
-        BufferedReader reader = new BufferedReader(new InputStreamReader(stream));
-        return reader.lines()
-                .filter(line -> line.endsWith(".class"))
-                .map(line -> getClass(line, packageName))
-                .collect(Collectors.toSet());
+
+        return classes;
     }
 
     public static List<String> findAllPredefinedQueries(String packageName) {
         final LogSource logger = LogSource.getInstance();
 
-        Set<Class<?>> classes = Helpers.findAllClasses(packageName);
+        List<Class<?>> classes = getClassesInPackage(packageName);
 
         if(!classes.isEmpty()) {
             List<String> queries = new ArrayList<>();

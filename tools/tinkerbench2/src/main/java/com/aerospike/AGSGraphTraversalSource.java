@@ -4,6 +4,7 @@ import org.apache.tinkerpop.gremlin.driver.Cluster;
 import org.apache.tinkerpop.gremlin.driver.remote.DriverRemoteConnection;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
 
+import java.awt.*;
 import java.io.Closeable;
 
 import static org.apache.tinkerpop.gremlin.process.traversal.AnonymousTraversalSource.traversal;
@@ -38,8 +39,14 @@ public final class AGSGraphTraversalSource  implements AGSGraphTraversal, Closea
                 }
             }
 
-            if (args.testMode)
+            if (args.testMode) {
                 this.cluster = null;
+                System.err.println();
+                System.err.println("Warning: Running in Test Mode!");
+                System.err.println("\tNo AGS connection will be attempted!");
+                System.err.println();
+                logger.warn("Running in Test Mode! No Connection!");
+            }
             else
                 this.cluster = clusterBuilder.create();
 
