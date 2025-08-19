@@ -37,6 +37,7 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
     private final AtomicLong abortedCount = new AtomicLong();
     private final AtomicLong successfulDuration = new AtomicLong();
     private final AtomicLong errorDuration = new AtomicLong();
+    private final AtomicLong errorCount = new AtomicLong();
     private final AtomicBoolean abortRun;
     private final AtomicBoolean terminateRun;
     private final AtomicBoolean terminateWorkers = new AtomicBoolean();
@@ -180,7 +181,7 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
     /*
     The number of errors encountered.
      */
-    public long getErrorCount() { return errors.size(); }
+    public long getErrorCount() { return errorCount.get(); }
 
     /*
     The collection of errors encountered.
@@ -236,9 +237,9 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
     public double getErrorsPerSecond() {
         if(startTimeNanos > 0) {
             if(stopTimeNanos <= 0) {
-                return getErrorCount() / ((System.nanoTime() - startTimeNanos) / 1_000_000_000.0);
+                return errorCount.get() / ((System.nanoTime() - startTimeNanos) / 1_000_000_000.0);
             }
-            return getErrorCount() / ((stopTimeNanos - startTimeNanos) / 1_000_000_000.0);
+            return errorCount.get() / ((stopTimeNanos - startTimeNanos) / 1_000_000_000.0);
         }
 
         return 0;
@@ -753,6 +754,7 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
 
         private void Error(long latency, Throwable e) {
             errors.add((Exception) e);
+            errorCount.incrementAndGet();
             if(latency > 0) {
                 errorDuration.addAndGet(latency);
             }
@@ -836,12 +838,12 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
         long now;
 
         while ((now = System.nanoTime()) <= targetDurationNS
-                && getErrorCount() <= errorThreshold
+                && errorCount.get() <= errorThreshold
                 && !terminateWorkers.get()
                 && !abortRun.get()
                 && !terminateRun.get()) {
             if (now >= nextCallTime) {
-                workerPool.submit(new Handler());
+                workerPool.execute(new Handler());
                 nextCallTime += callIntervalNS;
             } else {
                 Thread.onSpinWait();
@@ -850,19 +852,19 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
 
         terminateWorkers.set(true);
 
-        if(getErrorCount() > errorThreshold
+        if(errorCount.get() > errorThreshold
                 && !abortRun.get())
         {
             abortRun.set(true);
             progressbar.stop();
             System.err.printf("\tStopping %s due %d Errors for %s...%n",
                                 warmup ? "warmup" : "workload",
-                                getErrorCount(),
+                                errorCount.get(),
                                 queryRunnable.Name());
             logger.warn("Stopping {} {} due to the number of errors ({})",
                             warmup ? "warmup" : "workload",
                             queryRunnable.Name(),
-                            getErrorCount());
+                            errorCount.get());
         }
 
         setStatus(WorkloadStatus.WaitingCompletion);

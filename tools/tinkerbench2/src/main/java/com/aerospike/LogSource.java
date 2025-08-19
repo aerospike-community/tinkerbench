@@ -11,6 +11,7 @@ import java.io.Closeable;
 import java.io.PrintStream;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public final class LogSource {
@@ -236,15 +237,21 @@ public final class LogSource {
 
     public void title(TinkerBench2Args args) {
 
-        logger4j.info("Program: {}", args.commandlineSpec.name());
-        logger4j.info("Arguments:");
+        logger4j.info("==============> Starting <==============");
+        StringBuilder argStr = new StringBuilder("Arguments:\n");
         for (String arg : args.getArguments(false)) {
-            logger4j.info("\t{}", arg);
+            argStr.append("\t")
+                    .append(arg)
+                    .append("\n");
         }
-        logger4j.info("Versions:");
+        logger4j.info(argStr.toString());
+        argStr = new StringBuilder("Versions:\n");
         for(String version : args.getVersions(false)) {
-            logger4j.info("\t{}", version);
+            argStr.append("\t")
+                    .append(version)
+                    .append("\n");
         }
+        logger4j.info(argStr.toString());
     }
 
     public void info(String msg) { logger4j.info(msg); }

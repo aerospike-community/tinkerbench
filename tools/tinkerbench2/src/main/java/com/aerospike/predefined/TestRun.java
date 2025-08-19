@@ -105,17 +105,17 @@ public class TestRun implements QueryRunnable {
      *
      */
     @Override
-    public void preCall() {
+    public final void preCall() {
 
     }
 
     @Override
-    public void postCall(Object ignored0, Boolean ignored1, Throwable ignored2) {
+    public final void postCall(Object ignored0, Boolean ignored1, Throwable ignored2) {
 
     }
 
     @Override
-    public Pair<Boolean,Object> call() throws InterruptedException {
+    public final Pair<Boolean,Object> call() throws InterruptedException {
         try {
             Thread.sleep(1);
         } catch (InterruptedException e) {

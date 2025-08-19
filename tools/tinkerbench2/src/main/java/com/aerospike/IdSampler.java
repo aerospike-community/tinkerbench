@@ -65,8 +65,10 @@ public class IdSampler implements  IdManager {
             try {
                 if(label == null || label.isEmpty()) {
                     System.out.println("Obtaining Vertices Ids...");
+                    logger.info("Obtaining Vertices Ids...");
                 } else {
                     System.out.printf("Obtaining Vertices Ids for Label '%s'...%n ", label);
+                    logger.info("Obtaining Vertices Ids for Label '%s'...", label);
                 }
 
                 logger.PrintDebug("IdSampler", "Trying to obtain Samples: Label: '%s'", label);
@@ -113,14 +115,19 @@ public class IdSampler implements  IdManager {
                 throw new ArrayIndexOutOfBoundsException(msg);
             }
 
+            final long runningLatency = end - start;
             if(openTelemetry != null) {
                 openTelemetry.setIdMgrGauge(this.getClass().getSimpleName(),
                                             label,
                                             sampleSize,
                                             sampledIds.size(),
-                                            end - start);
+                                            runningLatency);
             }
 
+            logger.info("Completed retrieving Ids ({}) for label '{}' in {} ms",
+                            sampledIds.size(),
+                            label,
+                            runningLatency);
             System.out.println("\tCompleted");
         }
     }

@@ -60,6 +60,12 @@ public final class OpenTelemetryExporter implements com.aerospike.OpenTelemetry 
     public OpenTelemetryExporter(TinkerBench2Args args,
                                  StringBuilder otherInfo) {
 
+        Helpers.Println(System.out,
+                        "Prometheus Enabled",
+                        Helpers.BLACK,
+                        Helpers.GREEN_BACKGROUND);
+        logger.info("Prometheus Enabled");
+
         this.startTimeMillis = System.currentTimeMillis();
         this.startLocalDateTime = LocalDateTime.ofInstant(Instant.ofEpochMilli(this.startTimeMillis),
                                     ZoneId.systemDefault());
