@@ -222,13 +222,9 @@ public final class EvalQueryWorkloadProvider extends QueryWorkloadProvider {
     }
 
     @Override
-    public boolean preProcess() {
-        return true;
-    }
-
-    @Override
-    public void postProcess() {
-    }
+    public int getSampleSize() {
+        return formatDefinedId == null ? 0 : -1;
+    };
 
     @Override
     public Pair<Boolean,Object> call() throws Exception {

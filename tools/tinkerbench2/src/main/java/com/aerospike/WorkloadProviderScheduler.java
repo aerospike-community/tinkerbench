@@ -561,11 +561,13 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
                                 Math.round(this.queueDepthTracker.getMean()),
                                 maxValue,
                                 maxPercent);
-            printStream.printf("\t\t50%% -- better at Depth:%,d%n",
+            printStream.printf("\t\t25%% depth under %,d%n",
+                                Math.round(this.queueDepthTracker.getValueAtPercentile(25.0)));
+            printStream.printf("\t\t50%% depth under %,d%n",
                                 Math.round(this.queueDepthTracker.getValueAtPercentile(50.0)));
-            printStream.printf("\t\t75%% -- better at Depth:%,d%n",
+            printStream.printf("\t\t75%% depth under %,d%n",
                     Math.round(this.queueDepthTracker.getValueAtPercentile(75.0)));
-            printStream.printf("\t\t90%% -- better at Depth:%,d%n",
+            printStream.printf("\t\t90%% depth under %,d%n",
                     Math.round(this.queueDepthTracker.getValueAtPercentile(90.0)));
         }
 

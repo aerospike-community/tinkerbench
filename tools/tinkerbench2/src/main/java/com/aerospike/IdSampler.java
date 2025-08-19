@@ -11,7 +11,6 @@ public class IdSampler implements  IdManager {
     private static final int ID_SAMPLE_SIZE = 500_000;
     private List<Object> sampledIds = null;
     final Random random = new Random();
-    private LogSource logger;
 
     public IdSampler() {
         // Constructor can be used for initialization if needed
@@ -54,7 +53,6 @@ public class IdSampler implements  IdManager {
                      final int sampleSize,
                      final String label) {
 
-        this.logger = logger;
         long start = 0;
         long end = 0;
 
@@ -68,7 +66,7 @@ public class IdSampler implements  IdManager {
                     logger.info("Obtaining Vertices Ids...");
                 } else {
                     System.out.printf("Obtaining Vertices Ids for Label '%s'...%n ", label);
-                    logger.info("Obtaining Vertices Ids for Label '%s'...", label);
+                    logger.info("Obtaining Vertices Ids for Label '{}'...", label);
                 }
 
                 logger.PrintDebug("IdSampler", "Trying to obtain Samples: Label: '%s'", label);
