@@ -38,7 +38,8 @@ public abstract class TinkerBench2Args implements Callable<Integer> {
     @Spec
     CommandSpec commandlineSpec;
 
-    @Parameters(description = "The Gremlin query string to run or a predefined Query. "
+    @Parameters(paramLabel ="QueryNameOrGremlinString",
+                description = "The Gremlin query string to run or a predefined Query. "
                                 + "%nIf the keyword 'List' is provided a list of predefined queries are displayed. "
                                 + "%nIf a query string is provided, and Id Vertices Manager (--IdManager) is enabled, "
                                 + "you can place a '%%s' or '%%d' as an vertices placeholder in the string. "
@@ -111,7 +112,8 @@ public abstract class TinkerBench2Args implements Callable<Integer> {
     int promPort;
 
     @Option(names = "-prom",
-            description = "Enables Prometheus OpenTel metrics.")
+            description = "Enables Prometheus OpenTel metrics.",
+            negatable = true)
     boolean promEnabled;
 
     @Option(names = {"-cw", "--CloseWait"},
@@ -144,17 +146,20 @@ public abstract class TinkerBench2Args implements Callable<Integer> {
                 description = "Enables application debug tracing.")
     boolean debug;
 
-    @Option(names = "-test",
+    @Option(names = "-AppTest",
+            hidden = true,
             description = "Enables application test mode (disabled any connections to AGS).")
-    boolean testMode;
+    boolean appTestMode;
 
     @Option(names = "-result",
+            negatable = true,
             description = "If provided, the results of the  Gremlin termination step are displayed and logged")
     public boolean printResult;
 
     @Option(names = "-HdrHistFmt",
+            negatable  = true,
             description = "If provided, the HdrHistogram Latency format is printed to the console.")
-    public boolean enableHdrHistFmt;
+    public boolean hdrHistFmt;
 
     public final AtomicBoolean abortRun = new AtomicBoolean(false);
     public final AtomicBoolean abortSIGRun = new AtomicBoolean(false);
@@ -523,6 +528,10 @@ public abstract class TinkerBench2Args implements Callable<Integer> {
                                 + "You can only supply the config file or the AGS port argument, not both!");
             }
         }
+
+        if(queryNameOrString.equals(com.aerospike.predefined.TestRun.class.getSimpleName())) {
+            appTestMode=true;
+        }
     }
 
     public boolean ListPredefinedQueries() {
@@ -534,14 +543,27 @@ public abstract class TinkerBench2Args implements Callable<Integer> {
                 System.err.println("There were no predefined queries found.");
             } else {
                 Helpers.Println(System.out,
-                            "Following is a list of possible Predefined Queries:",
+                            "Following is a list of Predefined Queries:",
                                 Helpers.BLACK,
                                 Helpers.YELLOW_BACKGROUND);
-                for(String item : classes) {
+                for(String className : classes) {
+                    String queryName = className;
+                    try {
+                        final QueryRunnable instance = Helpers.GetQuery(className, null, null, null, false);
+                        queryName = instance.Name();
+                        if(instance.getDescription() != null) {
+                            queryName += String.format(" -- %s", instance.getDescription());
+                            queryName = queryName.replace("\t", "\t\t");
+                        }
+                        if(instance.getSampleLabelId() != null) {
+                            queryName += String.format("%n\t\tSample Vertices id label of '%s'", instance.getSampleLabelId());
+                        }
+                    } catch (Exception ignored) {}
+
                     Helpers.Print(System.out,
-                                    String.format("\t%s%n", item),
+                                    String.format("\t%s%n", queryName),
                                     Helpers.BLACK,
-                                    Helpers.YELLOW_BACKGROUND);
+                                    Helpers.GREEN_BACKGROUND);
                 }
             }
             return true;
@@ -557,49 +579,15 @@ public abstract class TinkerBench2Args implements Callable<Integer> {
     void PrintArguments(boolean onlyProvidedArgs) {
         ParseResult pr = commandlineSpec.commandLine().getParseResult();
 
-        System.out.println("Positional Arguments:");
-        List<PositionalParamSpec> positional = commandlineSpec.positionalParameters();
-        for (PositionalParamSpec argPos : positional) {
-            String argKeyword = argPos.paramLabel();
-            Object value = argPos.getValue();
-            if(value.getClass().isArray())
-                value = Arrays.toString((String[]) value);
+        System.out.println("Arguments:");
+        String[] args = getArguments(onlyProvidedArgs);
 
-            System.out.printf("\t%s (Position %s): %s%n",
-                    argKeyword,
-                    argPos.index(),
-                    value);
-        }
-
-        List<OptionSpec> options = commandlineSpec.options();
-        List<String> optionLst = new ArrayList<>();
-
-        for (OptionSpec opt : options) {
-            String argKeyword = opt.longestName();
-            if(argKeyword.equals("--help") || argKeyword.equals("--version")) {
-                continue;
+        if(args.length > 0) {
+            for (String arg : args) {
+                System.out.printf("\t%s%n", arg);
             }
-
-            boolean usesDefaultValue= !pr.hasMatchedOption(opt);
-            if(onlyProvidedArgs && usesDefaultValue) {
-                continue;
-            }
-
-            Object value = opt.getValue();
-            if(value != null && value.getClass().isArray()) {
-                value = Arrays.toString((Object[]) value);
-            }
-            optionLst.add(String.format("\t%s: %s%s%n",
-                                            argKeyword,
-                                            value,
-                                            (usesDefaultValue) ? " (Default)" : ""));
-        }
-
-        if(!optionLst.isEmpty()) {
-            System.out.println("Options:");
-            for(String optionStr : optionLst) {
-                System.out.print(optionStr);
-            }
+        } else {
+            System.out.println("\tNo arguments were provided.");
         }
     }
 
@@ -615,21 +603,25 @@ public abstract class TinkerBench2Args implements Callable<Integer> {
 
         List<PositionalParamSpec> positional = commandlineSpec.positionalParameters();
         for (PositionalParamSpec argPos : positional) {
-            String argKeyword = argPos.paramLabel();
-            Object value = argPos.getValue();
-            if(value.getClass().isArray())
-                value = Arrays.toString((Object[]) value);
+            if(!argPos.hidden()) {
+                String argKeyword = argPos.paramLabel();
+                Object value = argPos.getValue();
+                if (value.getClass().isArray())
+                    value = Arrays.toString((Object[]) value);
 
-            args.add(String.format("%s (Position %s): %s",
-                                    argKeyword,
-                                    argPos.index(),
-                                    value));
+                args.add(String.format("%s (Position %s): %s",
+                                        argKeyword,
+                                        argPos.index(),
+                                        value));
+            }
         }
 
         List<OptionSpec> options = commandlineSpec.options();
         for (OptionSpec opt : options) {
             String argKeyword = opt.longestName();
-            if(argKeyword.equals("--help") || argKeyword.equals("--version")) {
+            if(argKeyword.equals("--help")
+                    || argKeyword.equals("--version")
+                    || opt.hidden()) {
                 continue;
             }
 

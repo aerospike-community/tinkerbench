@@ -96,7 +96,12 @@ public class Helpers {
 
             logger.PrintDebug("GetQuery", "Creating Instance %s", queryName);
 
-            Class<?> queryClass = Class.forName("com.aerospike.predefined." + queryName);
+            if(!queryName.startsWith("com.aerospike.predefined.")) {
+                if(!queryName.contains("."))
+                    queryName = "com.aerospike.predefined." + queryName;
+            }
+
+            Class<?> queryClass = Class.forName(queryName);
             Constructor<?> constructor = queryClass.getConstructor(WorkloadProvider.class,
                                                                     AGSGraphTraversal.class,
                                                                     IdManager.class);
@@ -178,10 +183,7 @@ public class Helpers {
                     Object instance = constructor.newInstance(null, null, null);
                     QueryRunnable query = (QueryRunnable) instance;
 
-                    queries.add(String.format("%s - %s",
-                                 query.Name(),
-                                 query.getDescription()));
-
+                    queries.add(c.getName());
                 }
                 catch (NoSuchMethodException e) {
                     logger.Print("findAllPredefinedQueries",true,"Constructor not found for Predefined List");

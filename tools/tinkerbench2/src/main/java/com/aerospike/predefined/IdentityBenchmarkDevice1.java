@@ -5,17 +5,18 @@ import com.aerospike.IdManager;
 import com.aerospike.QueryWorkloadProvider;
 import com.aerospike.WorkloadProvider;
 import org.apache.tinkerpop.gremlin.process.traversal.Path;
+import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.javatuples.Pair;
 
 import java.util.List;
 
 import static org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__.values;
 
-public class AirRoutesQuery1 extends QueryWorkloadProvider {
+public class IdentityBenchmarkDevice1 extends QueryWorkloadProvider {
 
-    public AirRoutesQuery1(final WorkloadProvider provider,
-                           final AGSGraphTraversal ags,
-                           final IdManager idManager) {
+    public IdentityBenchmarkDevice1(final WorkloadProvider provider,
+                                      final AGSGraphTraversal ags,
+                                      final IdManager idManager) {
         super(provider, ags, idManager);
     }
 
@@ -24,7 +25,7 @@ public class AirRoutesQuery1 extends QueryWorkloadProvider {
      */
     @Override
     public String Name() {
-        return "AirRoutesQuery1";
+        return "IdentityBenchmarkDevice1";
     }
 
     /**
@@ -32,8 +33,15 @@ public class AirRoutesQuery1 extends QueryWorkloadProvider {
      */
     @Override
     public String getDescription() {
-        return "Air Routes Graph Traversal Query:\n\tG().V( getVId() ).out().limit(5).path().by(values(\"code\",\"city\").fold()).toList();";
+        return "Identity Benchmark Query:\n\tG().V(<DeviceId>).in('HAS_DEVICE', 'PROVIDED_DEVICE').out('HAS_DEVICE', 'PROVIDED_DEVICE').toList();";
     }
+
+    /*
+    Returns a label used to obtain the ids in the sampling.
+        If a label is provided in the CLI, that one would override this value!
+     */
+    @Override
+    public final String getSampleLabelId() { return "Device"; }
 
     /**
      * @return true to indicate that the workload was successful and should be recorded.
@@ -43,13 +51,10 @@ public class AirRoutesQuery1 extends QueryWorkloadProvider {
      */
     @Override
     public Pair<Boolean,Object> call() throws Exception {
-        final List<Path> result =  G().V( getVId() )
-                                            .out()
-                                            .limit(5)
-                                            .path()
-                                            .by(values("code","city")
-                                                    .fold())
-                                            .toList();
+        final List<Vertex> result =  G().V( getVId() )
+                                        .in("HAS_DEVICE", "PROVIDED_DEVICE")
+                                        .out("HAS_DEVICE", "PROVIDED_DEVICE")
+                                        .toList();
 
         //The below code is not required since the result can be ignored.
         if(isPrintResult())

@@ -69,7 +69,7 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
                                      Duration targetRunDuration,
                                      boolean warmup,
                                      TinkerBench2Args cliArgs) {
-        this.hdrHistFmt = cliArgs.enableHdrHistFmt;
+        this.hdrHistFmt = cliArgs.hdrHistFmt;
         this.abortRun = cliArgs.abortRun;
         this.terminateRun = cliArgs.terminateRun;
         this.errorThreshold = cliArgs.errorsAbort;
@@ -665,20 +665,33 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
         } catch (InterruptedException ignored) { }
 
         if(logger.getLogger4j().isInfoEnabled()) {
+            //Print to log file
             try (LogSource.Stream logStream = new LogSource.Stream(logger)) {
                 PrintSummary(logStream.getPrintStream(), true);
                 logStream.info();
             }
         }
+
+        //Make sure the progression bar is closed!
+        if(progressbar != null) {
+            progressbar.close();
+        }
+
+        System.out.flush();
+        System.err.flush();
+        System.out.println();
+
         try {
-            System.out.flush();
             System.out.print(Helpers.YELLOW_BACKGROUND);
             System.out.print(Helpers.BLACK);
             PrintSummary(System.out, this.hdrHistFmt);
+            System.out.flush();
+            System.err.flush();
         }
         finally {
             System.out.print(Helpers.RESET);
         }
+        System.out.println();
         return this;
     }
 

@@ -54,6 +54,21 @@ public abstract class QueryWorkloadProvider implements QueryRunnable {
         return this.workloadName;
     }
 
+    /*
+    Returns a label used to obtain the ids in the sampling.
+        If null, the default from the CLI is used.
+     */
+    @Override
+    public String getSampleLabelId() { return null; }
+
+    /*
+    Returns the sampling size.
+        If -1 to use the default value from the CLI.
+        If zero, this will disable id sampling.
+     */
+    @Override
+    public int getSampleSize() { return -1;};
+
     /**
      * @return Logger instance
      */
@@ -143,6 +158,35 @@ public abstract class QueryWorkloadProvider implements QueryRunnable {
         this.provider.Shutdown();
         return this;
     }
+
+    /**
+     * Performs any required pre-process required for the query.
+     * @return true to execute workload or false to abort execution
+     */
+    @Override
+    public boolean preProcess() { return true; }
+
+    /**
+     * Performs any post-processing for the query
+     */
+    @Override
+    public void postProcess() { }
+
+    /*
+   Called before the actual workload is executed.
+   This is called within the scheduler and is NOT part of the workload measurement.
+    */
+    @Override
+    public void preCall() {}
+
+    /*
+    Called after the actual workload is executed passing the value from the workload.
+        The success param is true if the workload was recorded and exception will be not-null if an exciton occurred during workload execution.
+    This is called within the scheduler and is NOT part of the workload measurement.
+     */
+    @Override
+    public void postCall(Object value, Boolean success, Throwable error) {}
+
 
     @Override
     public String toString() {

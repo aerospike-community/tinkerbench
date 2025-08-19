@@ -34,6 +34,19 @@ public class Main extends TinkerBench2Args {
             if (mainInstance.abortRun.get())
                 return;
 
+            if(!args.appTestMode && !args.idManager.isInitialized())
+                args.idManager.init(agsGraphTraversal.G(),
+                                    openTel,
+                                    logger,
+                                    workloadRunner.getSampleSize() < 0
+                                        ? args.idSampleSize
+                                        : workloadRunner.getSampleSize(),
+                                    workloadRunner.getSampleLabelId() == null
+                                        ? args.labelSample
+                                        : (args.labelSample == null
+                                            ? workloadRunner.getSampleLabelId()
+                                            : args.labelSample));
+
             if (isWarmUp) {
                 System.out.println("Preparing WarmUp...");
                 logger.info("Preparing WarmUp...");
@@ -82,13 +95,6 @@ public class Main extends TinkerBench2Args {
         try (final OpenTelemetry openTel = OpenTelemetryHelper.Create(this, null);
             final AGSGraphTraversalSource agsGraphTraversalSource
                             = new AGSGraphTraversalSource(this, openTel)) {
-
-            if(!this.testMode && !this.idManager.isInitialized())
-                this.idManager.init(agsGraphTraversalSource.G(),
-                                        openTel,
-                                        logger,
-                                        idSampleSize,
-                                        labelSample);
 
             if (!warmupDuration.isZero()) {
                 ExecuteWorkload(openTel,
