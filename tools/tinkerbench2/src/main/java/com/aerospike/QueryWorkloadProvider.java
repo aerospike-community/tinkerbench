@@ -159,6 +159,9 @@ public abstract class QueryWorkloadProvider implements QueryRunnable {
         return this;
     }
 
+    @Override
+    public void PrepareCompile() {}
+
     /**
      * Performs any required pre-process required for the query.
      * @return true to execute workload or false to abort execution

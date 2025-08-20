@@ -125,4 +125,9 @@ public interface WorkloadProvider extends AutoCloseable {
     boolean awaitTermination();
 
     WorkloadProvider PrintSummary();
+
+    /*
+    Signals that workload should be aborted.
+     */
+    void SignalAbortWorkLoad();
 }

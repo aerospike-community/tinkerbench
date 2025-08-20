@@ -14,17 +14,22 @@ import java.util.regex.Pattern;
 
 public final class EvalQueryWorkloadProvider extends QueryWorkloadProvider {
 
-    final GremlinLangScriptEngine engine;
     final String gremlinString;
-    final String traversalSource;
     final LogSource logger;
     final Boolean isPrintResult;
-    Terminator terminator = Terminator.toList;
-    final String formatDefinedId;
-    final boolean formatIdRequired;
     final IdManager idManager;
-    final Bindings bindings;
+    final Matcher fmtargMatch;
+
+    GremlinLangScriptEngine engine;
+    String traversalSource;
+    Terminator terminator = Terminator.toList;
+    //The string format argument required to format the id...
+    String formatDefinedId;
+    //Can just use the id directory, no string format required...
+    boolean formatIdRequired;
+    Bindings bindings;
     ThreadLocal<Bytecode> bytecodeThreadLocal;
+    boolean compiled = false;
 
     final Pattern funcPattern = Pattern.compile("^\\s*(?<stmt>.+)\\.(?<func>[^(]+)\\(\\s*\\)\\s*$", Pattern.CASE_INSENSITIVE);
     ///This is a much more complete regex to parse the Gremlin string. This will allow an advance Id Manager based on String format params...
@@ -80,41 +85,65 @@ public final class EvalQueryWorkloadProvider extends QueryWorkloadProvider {
             }
         }
 
-        final String[] parts = gremlinScript.split("\\.");
-        Object sampleId;
+        this.gremlinString = gremlinScript;
+        isPrintResult = isPrintResult();
 
-        if(this.idManager.isInitialized()) {
-            sampleId = this.idManager.getId();
-        } else {
-            sampleId = null;
-        }
-
-        Matcher fmtargMatch = fmtargPattern.matcher(gremlinScript);
+        fmtargMatch = fmtargPattern.matcher(gremlinString);
         if (fmtargMatch.find()) {
-            String fmtArg = fmtargMatch.group("arg");
-            if(sampleId instanceof String && !fmtArg.startsWith("\"")) {
-                fmtArg = "\"" + fmtArg + "\"";
-                sampleId = String.format(fmtArg, sampleId);
-                formatIdRequired = true;
-            } else if (fmtargMatch.group("opts") != null
-                        && !fmtargMatch.group("opts").isEmpty()) {
-                sampleId = String.format(fmtArg, sampleId);
-                formatIdRequired = true;
-            } else {
-                formatIdRequired = false;
-            }
-
-            formatDefinedId = fmtArg;
-        }
-        else {
+            formatDefinedId = fmtargMatch.group("arg");
+            formatIdRequired = true;
+        } else {
             formatDefinedId = null;
             formatIdRequired = false;
-            sampleId = null;
+        }
+    }
+
+    /*private static void GetEngines(ScriptEngineManager manager) {
+        for (ScriptEngineFactory factory : manager.getEngineFactories()) {
+            System.out.println("Engine Name: " + factory.getEngineName());
+            System.out.println("Language Name: " + factory.getLanguageName());
+            System.out.println("Names: " + factory.getNames());
+            System.out.println("--------------------");
+        }
+    }*/
+
+    @Override
+    public void PrepareCompile() {
+
+        logger.PrintDebug("PrepareCompile",
+                            "Starting...");
+
+        if(compiled) {
+            logger.PrintDebug("PrepareCompile",
+                            "Already compiled... Skipping...");
+            return;
         }
 
-        this.gremlinString = gremlinScript;
+        if(getProvider().isAborted()) {
+            logger.PrintDebug("PrepareCompile",
+                    "Abort Signaled... Aborting...");
+            return;
+        }
+
+        compiled = true;
+        final String[] parts = gremlinString.split("\\.");
+        Object sampleId = null;
+
+        if (formatDefinedId != null && this.idManager.isInitialized()) {
+            sampleId = this.idManager.getId();
+            if(sampleId instanceof String && !formatDefinedId.startsWith("\"")) {
+                formatDefinedId = "\"" + formatDefinedId + "\"";
+                sampleId = String.format(formatDefinedId, sampleId);
+            } else if (fmtargMatch.group("opts") != null
+                    && !fmtargMatch.group("opts").isEmpty()) {
+                sampleId = String.format(formatDefinedId, sampleId);
+            } else {
+                //No need to format the id (can use it directly)
+                formatIdRequired = false;
+            }
+        }
+
         this.traversalSource = parts[0];
-        isPrintResult = isPrintResult();
 
         System.out.printf("Preparing Gremlin traversal string with Source \"%s\":\n\t%s using %s for %s\n",
                             traversalSource,
@@ -122,17 +151,17 @@ public final class EvalQueryWorkloadProvider extends QueryWorkloadProvider {
                             terminator,
                             isWarmup() ? "Warmup" : "Workload");
 
-        logger.PrintDebug("EvalQueryWorkloadProvider", "Getting GremlinLangScriptEngine Engine");
+        logger.PrintDebug("PrepareCompile", "Getting GremlinLangScriptEngine Engine");
         engine = new GremlinLangScriptEngine();
 
-        logger.PrintDebug("EvalQueryWorkloadProvider", "Binding to g");
+        logger.PrintDebug("PrepareCompile", "Binding to g");
         bindings = engine.createBindings();
         bindings.put(traversalSource, G());
 
         try {
-            logger.PrintDebug("EvalQueryWorkloadProvider", "Generating Bytecode for \"%s\"", gremlinString);
+            logger.PrintDebug("PrepareCompile", "Generating Bytecode for \"%s\"", gremlinString);
 
-            if(formatDefinedId != null && !this.idManager.isInitialized()) {
+            if(formatDefinedId != null && sampleId == null) {
                 throw new ScriptException(String.format("Script contains a 'id' placeholder but the Id Manager was not initialized (disabled). Id Manager is required!\n'%s'",
                                                         gremlinString));
             }
@@ -141,20 +170,19 @@ public final class EvalQueryWorkloadProvider extends QueryWorkloadProvider {
             bytecodeThreadLocal = ThreadLocal.withInitial(() -> {
                 try {
                     return ((DefaultGraphTraversal<?, ?>)
-                                engine.eval(String.format(gremlinString, finalSampleId),
-                                            bindings))
-                                            .getBytecode();
+                            engine.eval(String.format(gremlinString, finalSampleId),
+                                    bindings))
+                            .getBytecode();
                 } catch (ScriptException e) {
                     System.err.printf("ERROR: could not evaluate gremlin script \"%s\". Error: %s\n",
-                                        gremlinString,
-                                        e.getMessage());
+                            gremlinString,
+                            e.getMessage());
                     logger.error(String.format("ERROR: could not evaluate gremlin script \"%s\". Error: %s\n",
-                                                gremlinString,
-                                                e.getMessage()),
-                                    e);
+                                    gremlinString,
+                                    e.getMessage()),
+                            e);
                     getOpenTelemetry().addException(e);
-                    provider.getCliArgs()
-                            .abortRun.set(true);
+                    getProvider().SignalAbortWorkLoad();
                 } catch (Exception e) {
                     System.err.printf("ERROR: could not evaluate gremlin script \"%s\". Error: %s\n",
                             gremlinString,
@@ -176,27 +204,17 @@ public final class EvalQueryWorkloadProvider extends QueryWorkloadProvider {
             logger.error(String.format("ERROR: could not evaluate gremlin script \"%s\". Error: %s\n",
                             gremlinString,
                             e.getMessage()),
-                        e);
+                    e);
             getOpenTelemetry().addException(e);
-            provider.getCliArgs()
-                    .abortRun.set(true);
+            getProvider().SignalAbortWorkLoad();
         }
 
-        logger.PrintDebug("EvalQueryWorkloadProvider",
-                        "%s...",
-                            provider.getCliArgs().abortRun.get()
-                                ? "Aborted"
-                                : "Completed");
+        logger.PrintDebug("PrepareCompile",
+                "%s...",
+                getProvider().isAborted()
+                        ? "Aborted"
+                        : "Completed");
     }
-
-    /*private static void GetEngines(ScriptEngineManager manager) {
-        for (ScriptEngineFactory factory : manager.getEngineFactories()) {
-            System.out.println("Engine Name: " + factory.getEngineName());
-            System.out.println("Language Name: " + factory.getLanguageName());
-            System.out.println("Names: " + factory.getNames());
-            System.out.println("--------------------");
-        }
-    }*/
 
     public String BytecodeTranslator() {
         JavaTranslator<GraphTraversalSource, Traversal.Admin<?, ?>> translator = JavaTranslator.of(G());

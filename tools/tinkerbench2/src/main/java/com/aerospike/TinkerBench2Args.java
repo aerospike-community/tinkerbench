@@ -123,7 +123,6 @@ public abstract class TinkerBench2Args implements Callable<Integer> {
     Duration closeWaitDuration;
 
     @Option(names = {"-id", "--IdManager"},
-            hidden = true,
             converter = IdManagerConverter.class,
             description = "The IdManager to use for the workload. Default is ${DEFAULT-VALUE}",
             defaultValue = "com.aerospike.IdSampler")

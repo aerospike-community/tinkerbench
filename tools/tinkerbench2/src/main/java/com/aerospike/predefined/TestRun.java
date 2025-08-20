@@ -69,6 +69,9 @@ public class TestRun implements QueryRunnable {
     }
 
     @Override
+    public void PrepareCompile() {}
+
+    @Override
     public QueryRunnable PrintSummary() {
         provider.PrintSummary();
         return this;

@@ -4,13 +4,10 @@ import com.aerospike.AGSGraphTraversal;
 import com.aerospike.IdManager;
 import com.aerospike.QueryWorkloadProvider;
 import com.aerospike.WorkloadProvider;
-import org.apache.tinkerpop.gremlin.process.traversal.Path;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.javatuples.Pair;
 
 import java.util.List;
-
-import static org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__.values;
 
 public class IdentityBenchmarkDevice1 extends QueryWorkloadProvider {
 

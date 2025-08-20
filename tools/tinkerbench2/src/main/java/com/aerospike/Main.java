@@ -34,18 +34,24 @@ public class Main extends TinkerBench2Args {
             if (mainInstance.abortRun.get())
                 return;
 
-            if(!args.appTestMode && !args.idManager.isInitialized())
+            if(!args.appTestMode && !args.idManager.isInitialized()) {
                 args.idManager.init(agsGraphTraversal.G(),
                                     openTel,
                                     logger,
                                     workloadRunner.getSampleSize() < 0
-                                        ? args.idSampleSize
-                                        : workloadRunner.getSampleSize(),
+                                            ? args.idSampleSize
+                                            : workloadRunner.getSampleSize(),
                                     workloadRunner.getSampleLabelId() == null
-                                        ? args.labelSample
-                                        : (args.labelSample == null
-                                            ? workloadRunner.getSampleLabelId()
-                                            : args.labelSample));
+                                            ? args.labelSample
+                                            : (args.labelSample == null
+                                                ? workloadRunner.getSampleLabelId()
+                                                : args.labelSample));
+            }
+
+            workloadRunner.PrepareCompile();
+
+            if (mainInstance.abortRun.get())
+                return;
 
             if (isWarmUp) {
                 System.out.println("Preparing WarmUp...");

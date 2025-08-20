@@ -73,6 +73,11 @@ public interface QueryRunnable extends AGSGraphTraversal,
     String getDescription();
 
     /*
+    Used to prepare and possible compile the Gremlin Query...
+     */
+    void PrepareCompile();
+
+    /*
     Performs a "Warm Up" or preprocessing prior to calling "run".
     Note: This is not executed within the scheduler.
     Returns:
