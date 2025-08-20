@@ -32,7 +32,7 @@ import java.util.stream.Collectors;
         mixinStandardHelpOptions = true,
         versionProvider = TinkerBench2Args.ManifestVersionProvider.class,
         defaultValueProvider = TinkerBench2Args.DefaultProvider.class,
-        description = "Aerospike Tinker Bench 2 Workload Runner")
+        description = "TinkerBench2 Query Analyzer")
 public abstract class TinkerBench2Args implements Callable<Integer> {
 
     @Spec
@@ -123,6 +123,7 @@ public abstract class TinkerBench2Args implements Callable<Integer> {
     Duration closeWaitDuration;
 
     @Option(names = {"-id", "--IdManager"},
+            hidden = true,
             converter = IdManagerConverter.class,
             description = "The IdManager to use for the workload. Default is ${DEFAULT-VALUE}",
             defaultValue = "com.aerospike.IdSampler")
@@ -181,11 +182,11 @@ public abstract class TinkerBench2Args implements Callable<Integer> {
             }
             else {
                 getVersionsFromMetaInf(TinkerBench2Args.class.getClassLoader().getResources("META-INF/MANIFEST.MF"),
-                                        "AGS Workload",
+                                        "TinkerBench2",
                                         "com.aerospike.Main",
                                         versions);
                 if(versions.isEmpty()) {
-                    versions.add("AGS Workload");
+                    versions.add("TinkerBench2");
                 }
             }
 
