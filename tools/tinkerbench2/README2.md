@@ -160,6 +160,9 @@ This stage produces the results of the query execution. This report is brekon do
     -   The percentage breakdown indicates the distribution of percentage at that queue depth. For example:
         -   25% depth under 1 – 25% of the time the queue depth was under 1.
         -   50% depth under 3 – 50% of the time the queue depth was under 3. This includes the 25% depth.
+-   Error Details  
+    If errors occurred during query execution, this reporting will be presented. It will show a summary description of the error plus different levels of the number of occurrences. It is not meant for detail debugging. That can only be provided by enabled logging where the complete exception information with backtraces is provided. See the \<logging\> section for details.  
+    ![A screenshot of a computer program AI-generated content may be incorrect.](media/ConsoleSummaryErrorDetail.png)
 -   Latency Percentile  
     This will provide the latency information using the actual query latency value without any overhead of the worker or scheduler. The latency is captured at the nanosecond but presented in milliseconds. TinkerBench2 uses the [HdrHistogram](https://github.com/HdrHistogram/HdrHistogram) package for all the recording and analyzing of this data. There are two forms of the latency report.
     -   Summary Report  
@@ -167,9 +170,13 @@ This stage produces the results of the query execution. This report is brekon do
         ![A screenshot of a computer program AI-generated content may be incorrect.](media/ConsoleHdrHistSummary.png)
     -   Full Report  
         This report is produced if the “—*HdrHistFmt*” flag is provided. It produces a complete HdrHistogram report that can be consumed by the [HdrHistogram Plotter](https://hdrhistogram.github.io/HdrHistogram/plotFiles.html).  
-        **Note**: If logging is enabled, the full HdrHistogram reported is always rendered in the log.   
+        **Note**: If logging is enabled, the full HdrHistogram reported is always rendered in the log.  
         ![](media/ConsoleHdrHistGram.png)
         -   Value column is the latency in milliseconds for that percentile.
         -   The percentile column is the percentage that latency is at or better.
-        -   The count column is the number of queries tat make up that percentile.
+        -   The count column is the number of queries that make up that percentile.
         -   The “1/(1-Percentil)” (Inverse percentiles) column focus to the proportion of requests meeting specific performance targets.
+
+### Typical Complete Console Output
+
+![A screenshot of a computer screen AI-generated content may be incorrect.](media/TB2TypicalRunOutput.png)
