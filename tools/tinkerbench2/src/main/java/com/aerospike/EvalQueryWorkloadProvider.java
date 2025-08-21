@@ -9,6 +9,7 @@ import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSo
 import org.javatuples.Pair;
 
 import javax.script.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -29,7 +30,8 @@ public final class EvalQueryWorkloadProvider extends QueryWorkloadProvider {
     boolean formatIdRequired;
     Bindings bindings;
     ThreadLocal<Bytecode> bytecodeThreadLocal;
-    boolean compiled = false;
+    boolean prepared = false;
+    final AtomicBoolean compiled = new AtomicBoolean(false);
 
     final Pattern funcPattern = Pattern.compile("^\\s*(?<stmt>.+)\\.(?<func>[^(]+)\\(\\s*\\)\\s*$", Pattern.CASE_INSENSITIVE);
     ///This is a much more complete regex to parse the Gremlin string. This will allow an advance Id Manager based on String format params...
@@ -113,9 +115,9 @@ public final class EvalQueryWorkloadProvider extends QueryWorkloadProvider {
         logger.PrintDebug("PrepareCompile",
                             "Starting...");
 
-        if(compiled) {
+        if(prepared) {
             logger.PrintDebug("PrepareCompile",
-                            "Already compiled... Skipping...");
+                            "Already Prepared... Skipping...");
             return;
         }
 
@@ -125,7 +127,7 @@ public final class EvalQueryWorkloadProvider extends QueryWorkloadProvider {
             return;
         }
 
-        compiled = true;
+        prepared = true;
         final String[] parts = gremlinString.split("\\.");
         Object sampleId = null;
 
@@ -169,11 +171,13 @@ public final class EvalQueryWorkloadProvider extends QueryWorkloadProvider {
             final Object finalSampleId = sampleId;
             bytecodeThreadLocal = ThreadLocal.withInitial(() -> {
                 try {
-                    return ((DefaultGraphTraversal<?, ?>)
-                            engine.eval(String.format(gremlinString, finalSampleId),
-                                    bindings))
-                            .getBytecode();
-                } catch (ScriptException e) {
+                    final Bytecode result = ((DefaultGraphTraversal<?, ?>)
+                                                engine.eval(String.format(gremlinString, finalSampleId),
+                                                        bindings))
+                                                .getBytecode();
+                    compiled.set(true);
+                    return result;
+                /*} catch (ScriptException e) {
                     System.err.printf("ERROR: could not evaluate gremlin script \"%s\". Error: %s\n",
                             gremlinString,
                             e.getMessage());
@@ -182,7 +186,7 @@ public final class EvalQueryWorkloadProvider extends QueryWorkloadProvider {
                                     e.getMessage()),
                             e);
                     getOpenTelemetry().addException(e);
-                    getProvider().SignalAbortWorkLoad();
+                    getProvider().SignalAbortWorkLoad();*/
                 } catch (Exception e) {
                     System.err.printf("ERROR: could not evaluate gremlin script \"%s\". Error: %s\n",
                             gremlinString,
@@ -191,8 +195,8 @@ public final class EvalQueryWorkloadProvider extends QueryWorkloadProvider {
                                     gremlinString,
                                     e.getMessage()),
                             e);
-                    getOpenTelemetry().addException(e);
-                    throw new RuntimeException(e);
+                    getProvider().AddError(e);
+                    getProvider().SignalAbortWorkLoad();
                 }
                 return null;
             });
@@ -205,7 +209,7 @@ public final class EvalQueryWorkloadProvider extends QueryWorkloadProvider {
                             gremlinString,
                             e.getMessage()),
                     e);
-            getOpenTelemetry().addException(e);
+            getProvider().AddError(e);
             getProvider().SignalAbortWorkLoad();
         }
 
@@ -217,11 +221,14 @@ public final class EvalQueryWorkloadProvider extends QueryWorkloadProvider {
     }
 
     public String BytecodeTranslator() {
-        JavaTranslator<GraphTraversalSource, Traversal.Admin<?, ?>> translator = JavaTranslator.of(G());
-        try(Traversal<?, ?> translatedTraversal = translator.translate(bytecodeThreadLocal.get())) {
-            return translatedTraversal.toString();
-        } catch (Exception e) {
-            logger.PrintDebug("EvalQueryWorkloadProvider", e);
+        final Bytecode bytecode = bytecodeThreadLocal.get();
+        if(bytecode != null) {
+            JavaTranslator<GraphTraversalSource, Traversal.Admin<?, ?>> translator = JavaTranslator.of(G());
+            try (Traversal<?, ?> translatedTraversal = translator.translate(bytecode)) {
+                return translatedTraversal.toString();
+            } catch (Exception e) {
+                logger.PrintDebug("EvalQueryWorkloadProvider", e);
+            }
         }
         return null;
     }
@@ -286,16 +293,22 @@ public final class EvalQueryWorkloadProvider extends QueryWorkloadProvider {
     @Override
     public void preCall() {
 
-        if (formatDefinedId != null) {
-            logger.PrintDebug("EvalQueryWorkloadProvider", "Pre Call");
-            final Object id = idManager.getId();
-            Object[] data = bytecodeThreadLocal.get().getStepInstructions().get(0).getArguments();
-            data[0] = formatIdRequired
-                        ? String.format(formatDefinedId,id)
+        if(!getProvider().isAborted()) {
+            final Bytecode bytecode = bytecodeThreadLocal.get();
+
+            if (formatDefinedId != null && bytecode != null) {
+                logger.PrintDebug("EvalQueryWorkloadProvider.preCall", "Pre Call");
+                final Object id = idManager.getId();
+                final Object[] data = bytecode.getStepInstructions().get(0).getArguments();
+                data[0] = formatIdRequired
+                        ? String.format(formatDefinedId, id)
                         : id;
-            if(logger.isDebug()) {
-                logger.PrintDebug("EvalQueryWorkloadProvider", "Pre Call with id %s", id);
-                logger.PrintDebug("EvalQueryWorkloadProvider", BytecodeTranslator());
+                if (logger.isDebug()) {
+                    logger.PrintDebug("EvalQueryWorkloadProvider.preCall", "Pre Call with id %s", id);
+                    logger.PrintDebug("EvalQueryWorkloadProvider.preCall", BytecodeTranslator());
+                }
+            } else if (bytecode == null) {
+                logger.PrintDebug("EvalQueryWorkloadProvider.preCall", "Bytecode is null");
             }
         }
     }
@@ -317,5 +330,13 @@ public final class EvalQueryWorkloadProvider extends QueryWorkloadProvider {
         } catch (Exception e) {
             logger.Print("EvalQueryWorkloadProvider error during close of the traversal", e);
         }
+    }
+
+    public String ToString() {
+        return String.format("{\"query\":\"%s\", \"Prepared\":%s, \"Compiled\":%s, \"formatDefinedId\":\"%s\"}",
+                                this.gremlinString,
+                                this.prepared,
+                                this.compiled.get(),
+                                this.formatDefinedId);
     }
 }

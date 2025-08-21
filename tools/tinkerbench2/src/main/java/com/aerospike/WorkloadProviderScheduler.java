@@ -188,9 +188,17 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
      */
     public List<Exception> getErrors() { return errors.stream().toList(); }
 
+    @Override
+    public long AddError(final Exception e) {
+        if(openTelemetry != null)
+            openTelemetry.addException(e);
+        errors.add(e);
+        return errorCount.incrementAndGet();
+    }
+
     /*
-    Returns the Status of the workload scheduler.
-     */
+        Returns the Status of the workload scheduler.
+         */
     public WorkloadStatus getStatus() { return status; }
 
     /*
@@ -772,9 +780,8 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
             }
         }
 
-        private void Error(long latency, Throwable e) {
-            errors.add((Exception) e);
-            errorCount.incrementAndGet();
+        private void Error(long latency, Exception e) {
+            AddError(e);
             if(latency > 0) {
                 errorDuration.addAndGet(latency);
             }
@@ -783,20 +790,20 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
             logger.error(String.format("%s %s",
                                         isWarmup() ? "Warmup" : "Workload",
                                         queryRunnable.Name()), e);
-            if(openTelemetry != null)
-                openTelemetry.addException((Exception)e);
         }
 
         public void run() {
             long startCall = 0;
             Object recordResult = null;
             boolean success = false;
-            Throwable lastError = null;
+            Exception lastError = null;
             pendingCount.incrementAndGet();
             openTelemetry.incrPendingTransCounter();
 
             try {
                 queryRunnable.preCall();
+                if(abortRun.get()) return;
+
                 startCall = System.nanoTime();
                 final Pair<Boolean, Object> callResult = queryRunnable.call();
                 final long duration = System.nanoTime() - startCall;
@@ -824,7 +831,7 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
                 }
             } catch (CompletionException e) {
                 final long duration = System.nanoTime() - startCall;
-                lastError = e.getCause();
+                lastError = (Exception) e.getCause();
                 Error(startCall == 0 ? 0 : duration,
                         lastError);
             } catch (Exception e) {

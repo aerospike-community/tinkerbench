@@ -130,4 +130,6 @@ public interface WorkloadProvider extends AutoCloseable {
     Signals that workload should be aborted.
      */
     void SignalAbortWorkLoad();
+
+    long AddError(Exception e);
 }
