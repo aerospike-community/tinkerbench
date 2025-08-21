@@ -45,8 +45,7 @@ Below are the arguments and description:
 -   \--IdSampleSize, -sample (Integer, Default 500,000) – The number of vertex ids that will be retrieved from the database that will be used as a vertex id by the query, if required. If the query doesn’t use a random vertex id, this feature is disabled. See argument “*—IdSampleLabel*” for additional information. For more information, see \<vertex manager\>.
 -   \--IdSampleLabel, -label (String, Default is None) – If provided, this is a label that is used in retrieving the vertex ids from the database. These ids, if required by the query, are used by the query as a random vertex id to the query. If the See argument *“—IdSampleSize*” for additional information. For more information, see \<vertex manager\>.
 -   \-prom (Flag) – If provided, enables the [Prometheus](https://prometheus.io/) exporter which provides near real-time metrics of the running TinkerBench application in TinkerBench [Grafana](https://grafana.com/grafana/dashboards/) dashboard. For more information, see \<prom\> section.
--   \-HdrHistFmt -- If provided, the summary console output upon exit of the TinkerBench application will provide an [HdrHistogram](https://github.com/HdrHistogram) Latency table. This table can be used by the [HdrHistogram plotter](https://hdrhistogram.github.io/HdrHistogram/plotFiles.html). If not provided a “Summary latency” is provided. For more information, see \<output\> section.
-    **Note**: The HdrHistogram table is always provided in the log file, if logging is enabled.
+-   \-HdrHistFmt -- If provided, the summary console output upon exit of the TinkerBench application will provide an [HdrHistogram](https://github.com/HdrHistogram) Latency table. This table can be used by the [HdrHistogram plotter](https://hdrhistogram.github.io/HdrHistogram/plotFiles.html). If not provided a “Summary latency” is provided. For more information, see \<output\> section. **Note**: The HdrHistogram table is always provided in the log file, if logging is enabled.
 -   \--Errors, -e (Integer, Default 150) – The total number of error occurrences that will cause TinkerBench to shutdown query analysis and display the console summary.
 -   \--version, -V – Prints the TinkerBench and Gremlin client version information.
 
@@ -60,8 +59,7 @@ Below are the arguments and description:
     -   `-g evaluationTimeout=30000 -g paging=2` This will update the traversal with an “evaluation time” of 30 seconds and a “paging” value of 2
 -   \--shutdown, -sd (Time, Default 15 seconds) -- Additional time to wait after workload completion (normal or aborted) to allow for proper cleanup. Typically, the default provides enough time for cleanup.
 -   \--prometheusPort (Integer, Default 19090) – The endpoint port used by [Prometheus](https://prometheus.io/docs/prometheus/latest/configuration/configuration/) to obtain the metrics used by the Granfa dashboard.
--   \--CloseWait (Time, Default 5 seconds) – The wait interval used upon application exit to ensure Prometheus has obtained all the required information. This value should match or exceed the ['scrape interval](https://prometheus.io/docs/prometheus/latest/configuration/configuration/)' in the Prometheus ymal file. This argument is ignored, if Prometheus is disabled (*-no-prom*).
-    **Note**: It is recommended that the scrape interval for the Prometheus TinkerBench job be set to 5 seconds.
+-   \--CloseWait (Time, Default 5 seconds) – The wait interval used upon application exit to ensure Prometheus has obtained all the required information. This value should match or exceed the ['scrape interval](https://prometheus.io/docs/prometheus/latest/configuration/configuration/)' in the Prometheus ymal file. This argument is ignored, if Prometheus is disabled (*-no-prom*). **Note**: It is recommended that the scrape interval for the Prometheus TinkerBench job be set to 5 seconds.
 -   \-result (Flag) -- Enables the results of **every** Gremlin query execution to be displayed and logged. Should only be used for debugging purposes.
 -   \-debug (Flag) -- Enables application debugging tracing and “DEBUG” logging. Should only be used for debugging purposes.
 
@@ -74,25 +72,17 @@ TikerBench2 has two workload run types. They are:
 
 When TinkerBench2 executes it goes through the following stages:
 
-1.  Initialization
-    Performs checks of the configurations, prepares and connections to the database, etc.
-2.  Vertex Id retrieval, if required
-    Obtains vertex ids, if required by the query. These ids are randomly selected for each execution of the query.
-3.  Preparing and Completion of the Gremlin Query String, if required
-    If a Gremlin query string is provided, the string is prepared and compiled into bytecode for repeated executing during workload run phase.
-4.  Workload Run Phase (i.e., run Warmup and/or Main Workload)
-    For each workload run type the following phases are executed:
-    -   Preprocessing
-        The workload scheduler is prepared to execute the query
-    -   Start
-    -   Iteration
-        This phase is run until the duration is obtains. The scheduler adjusts the workers to obtain the QPS rate based on the provided configuration.
-    -   Postprocessing
-        This phase performs result collection, cleanup, etc.
-    -   Shutdown
+1.  Initialization Performs checks of the configurations, prepares and connections to the database, etc.
+2.  Vertex Id retrieval, if required Obtains vertex ids, if required by the query. These ids are randomly selected for each execution of the query.
+3.  Preparing and Completion of the Gremlin Query String, if required If a Gremlin query string is provided, the string is prepared and compiled into bytecode for repeated executing during workload run phase.
+4.  Workload Run Phase (i.e., run Warmup and/or Main Workload) For each workload run type the following phases are executed:
+    1.  Preprocessing The workload scheduler is prepared to execute the query
+    2.  Start
+    3.  Iteration This phase is run until the duration is obtains. The scheduler adjusts the workers to obtain the QPS rate based on the provided configuration.
+    4.  Postprocessing This phase performs result collection, cleanup, etc.
+    5.  Shutdown
 5.  TinkerBench2 Cleanup
-6.  Report Results
-    This stage will display the results based on the configuration provided.
+6.  Report Results This stage will display the results based on the configuration provided.
 
 # Understanding Output
 
@@ -108,8 +98,7 @@ Console output is always produced.
 
 ### Stages 1 to 3
 
-Below shows the normal output produced for stages 1 to 3 of a run.
-This output shows the arguments provided and the default values. If [Prometheus](https://prometheus.io/) is enabled (enabled in this example) and/or Logging is enabled (enabled in this example). If Prometheus and/or Logging was disabled, no output would be present.
+Below shows the normal output produced for stages 1 to 3 of a run. This output shows the arguments provided and the default values. If [Prometheus](https://prometheus.io/) is enabled (enabled in this example) and/or Logging is enabled (enabled in this example). If Prometheus and/or Logging was disabled, no output would be present.
 
 ![A screenshot of a computer program AI-generated content may be incorrect.](media/ConsoleStage1-3.png)
 
@@ -139,10 +128,48 @@ The console will typically show the following output.
 Note that there could be different reasons why the workload was stopped (terminated). They are:
 
 -   Duration Reached – The workload duration was reached, stopping the execution normally.
--   Due to Signaled – TinkerBench2 was interrupted by a kill, Ctrl-C, etc.
+-   Due to Signaled – TinkerBench2 was interrupted by a kill, Ctrl-C, etc. Below is an example of the display.  
+    ![A black screen with white text AI-generated content may be incorrect.](media/ConsoleStageSignal.png)
 -   Due to Error – The maximum number of errors was reached resulting in termination.
 -   Due to Timeout – Query execution progression was not being made based on the Gremlin timeout and execution was terminated.
 
 In any abnormal termination, Stage 6 (Report Results) will always be run providing any results up to the termination.
 
 ### Stage 6 (Report Result)
+
+This stage produces the results of the query execution. This report is brekon down to the following reports:
+
+-   ![](media/ConsoleSummaryOverview.png)Overview
+    -   Runtime duration, which should match the duration provided.
+-   Successful Completed Queries  
+    ![A yellow screen with black text AI-generated content may be incorrect.](media/ConsoleSummarySuccessful.png)
+    -   Mean QPS Rate – The average query rate over the execution duration.
+    -   Total number of queries
+    -   Accumulated Duration – The actual amount of time spent to run all queries without any worker or scheduler overhead.
+-   Queries in Error  
+    ![A yellow screen with black text AI-generated content may be incorrect.](media/ConsoleSummaryError.png)
+    -   Average Error Rate
+    -   Number of Errors
+    -   Accumulated Duration – The amount of time spent handling the error.
+-   Summary  
+    ![A yellow rectangular sign with black text AI-generated content may be incorrect.](media/ConsoleSummarySum.png)
+-   Client Query Queue Depth  
+    This section provides insight into TinkerBench2 query performance. For more information see \<tuning\> section.  
+    ![A yellow screen with black text AI-generated content may be incorrect.](media/ConsoleSummaryDepth.png)
+    -   The queue’s average and maximum queue depth. The percentage next to the maximum indicates how many times TinkerBench2 hit the maximum depth.
+    -   The percentage breakdown indicates the distribution of percentage at that queue depth. For example:
+        -   25% depth under 1 – 25% of the time the queue depth was under 1.
+        -   50% depth under 3 – 50% of the time the queue depth was under 3. This includes the 25% depth.
+-   Latency Percentile  
+    This will provide the latency information using the actual query latency value without any overhead of the worker or scheduler. The latency is captured at the nanosecond but presented in milliseconds. TinkerBench2 uses the [HdrHistogram](https://github.com/HdrHistogram/HdrHistogram) package for all the recording and analyzing of this data. There are two forms of the latency report.
+    -   Summary Report  
+        This report is the default and provides a subset of the complete HdrHistogram report. This report contains the latency percentiles, average, maximum, and deviation.  
+        ![A screenshot of a computer program AI-generated content may be incorrect.](media/ConsoleHdrHistSummary.png)
+    -   Full Report  
+        This report is produced if the “—*HdrHistFmt*” flag is provided. It produces a complete HdrHistogram report that can be consumed by the [HdrHistogram Plotter](https://hdrhistogram.github.io/HdrHistogram/plotFiles.html).  
+        **Note**: If logging is enabled, the full HdrHistogram reported is always rendered in the log.   
+        ![](media/ConsoleHdrHistGram.png)
+        -   Value column is the latency in milliseconds for that percentile.
+        -   The percentile column is the percentage that latency is at or better.
+        -   The count column is the number of queries tat make up that percentile.
+        -   The “1/(1-Percentil)” (Inverse percentiles) column focus to the proportion of requests meeting specific performance targets.
