@@ -84,6 +84,20 @@ When TinkerBench2 executes it goes through the following stages:
 5.  TinkerBench2 Cleanup
 6.  Report Results This stage will display the results based on the configuration provided.
 
+# Understanding Errors
+
+If an error or exception is encountered, TinkerBench2 will determine if can proceed with execution of the query. If the error is fatal (e.g., cannot connect to the database, query syntax error, etc.), Tinkerbench2 will terminate, and it may or may not produce a [summary report](#understanding-output).
+
+The error will always be reported to the console typically in an abbreviated format.
+
+![](media/ConsoleErrorMsg.png)
+
+If an error occurs during query execution and is not fatal, TinkerBench2 will continue Query execution until the error trigger limit is reached defined by –*Errors* argument. Once the error limit is reached, TinkerBench2 will terminate all queries and execution. A [summary report](#understanding-output) is produced.
+
+## Obtaining Error Details
+
+To obtain error details including stack traces, nested exceptions, etc., logging must be enabled. See \<logging\> section for more information.
+
 # Understanding Output
 
 TinkerBench2 produces three types of artifacts. They are:
@@ -128,9 +142,13 @@ The console will typically show the following output.
 Note that there could be different reasons why the workload was stopped (terminated). They are:
 
 -   Duration Reached – The workload duration was reached, stopping the execution normally.
--   Due to Signaled – TinkerBench2 was interrupted by a kill, Ctrl-C, etc. Below is an example of the display.  
+-   Due to Signaled – TinkerBench2 was interrupted by a kill, Ctrl/Command-C, etc. Below is an example of the display.  
     ![A black screen with white text AI-generated content may be incorrect.](media/ConsoleStageSignal.png)
--   Due to Error – The maximum number of errors was reached resulting in termination.
+
+| ![A yellow post-it note with a red pin AI-generated content may be incorrect.](media/NotePencil.png) | A Ctrl/Command-C will cause TinkerBench2 to terminal query execution. All Summary Reports will still be produced. In this manner, you can stop long running executions but still receive the reports. |
+|------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+
+-   Due to Error – The maximum number of errors was reached or a fatal error was encountered resulting in termination.
 -   Due to Timeout – Query execution progression was not being made based on the Gremlin timeout and execution was terminated.
 
 In any abnormal termination, Stage 6 (Report Results) will always be run providing any results up to the termination.
