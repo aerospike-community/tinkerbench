@@ -15,23 +15,23 @@
 
 To obtain the command-line arguments with description and examples run TinkerBench with the “—help” flag. If an argument is not valid, an error message is displayed providing feedback so that a proper value is supplied.
 
-| ![A yellow post-it note with a red pin AI-generated content may be incorrect.](media/NotePencil.png) | Arguments can be passed in as a [Java property file](https://localizely.com/java-properties-file/) instead of the command line. If a property file is provided, you can override the file’s property values by means of the command line. For more information, see \<property file\> section. |
-|------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| ![A yellow post-it note with a red pin AI-generated content may be incorrect.](media/NotePencil.png) | Arguments can be passed in as a [Java property file](https://localizely.com/java-properties-file/) instead of the command line. If a property file is provided, you can override the file’s property values by means of the command line. For more information, see \<\*\*property file\> section. |
+|------------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 
 Below are the arguments and description:
 
 -   QueryNameOrGremlinString (String, Required) – This is a required argument that can be located as the first or last argument in the command line. There are three value forms this argument can take. They are:
     -   A Gremlin query string. This string will be compiled and executed for analysis. **Examples**:
         -   `g.V(3).out().limit(5).path().by(values('code','city').fold()).tolist()`
-        -   `g.V(%s).out().limit(5).path().by(values('code','city').fold()).tolist()` Where ‘%s’ will be substituted with a random vertex id from the vertex manager. For more information see \<vertex manager\>.
-    -   A Predefined Query. A query defined using the TinkerBench framework. For more information see \<predefine reference\>.
+        -   `g.V(%s).out().limit(5).path().by(values('code','city').fold()).tolist()` Where ‘%s’ will be substituted with a random vertex id from the vertex manager. For more information see \<\*\*vertex manager\>.
+    -   A Predefined Query. A query defined using the TinkerBench framework. For more information see \<\*\*predefine reference\>.
     -   The keyword ‘List’. If provided all other arguments are ignored. This will list all the predefined queries found in the [Java class path](https://en.wikipedia.org/wiki/Classpath). For more information see \<predefine reference\>.
 -   \--ags, -a (String, Default localhost) – One or more graph nodes’ IP address or host name. To provide multiple nodes, each node must be paired with this argument. **Examples**:
     -   `–ags myGraphNodeName`
     -   `-ags 10.1.1.1123`
     -   `-a 10.1.1.1123 -a 10.1.1.1124 -a 10.1.1.1125` Providing multiple graph node addresses
 -   \--port (Integer, Default 8182) – Graph node’s connection port number.
--   \--QueriesPerSec, -q (Integer, Default 100) -- The targeted number of queries per seconds. TinkerBench will try to achieve and maintain this target for the query duration based on the scheduler and worker arguments. See \<tuning\> for additional information.
+-   \--QueriesPerSec, -q (Integer, Default 100) -- The targeted number of queries per seconds. TinkerBench will try to achieve and maintain this target for the query duration based on the scheduler and worker arguments. See \<\*\*tuning\> for additional information.
 -   \--duration, -d (Time, Default 15 minutes) -- The time duration the query is executed for analysis. This would be the main workload for complete analysis. This duration should be long enough for TinkerBench to achieve its’ targeted query rate. The value can take multiple forms. They are:
     -   [ISO 8601](https://docs.oracle.com/javase/8/docs/api/java/time/format/DateTimeFormatter.html) format **Example**: PT1H2M3.5S – one hour, 2 minutes and 3.5 seconds
     -   A number (integer) of seconds **Example**: 45 – 45 seconds
@@ -40,12 +40,12 @@ Below are the arguments and description:
         -   2hrs45seconds – two hours and 45 seconds
         -   3hours5mins30s – three hours, 5 minutes, and 30 seconds
 -   \--WarmupDuration, -wu (Time, Default disabled) – The query “warmup” duration. The warmup is run using the same graph connection that will be used by the main query workload. The warmup helps the graph database to optimize the query and aids TinkerBench in achieving the targeted rate during the main workload analysis. This takes the same value format as the “duration” argument above. A value of zero (0) will disabled the warmup which is the default.
--   \--schedulers, -s (Integer, Default depends on cores) – Schedulers are used to manage workers to control the query rate. The default number of schedules is based on the quarter of the number of cores of the machine TinkerBench is currently executing on. A value of -1 will indicate to use the default value. For more information, see the \<tuning\> section. **Example**: 20 core machine -\> there will be 4 schedulers.
--   \--workers, -w (Integer, Default depends on cores) -- The number of workers per scheduler. A worker is responsible for executing a single query instance and collecting data from that instance for analysis. The default number of workers is based on half of the number of cores of the machine TinkerBench is currently executing on. A value of -1 will indicate to use the default value. For more information, see the \<tuning\> section. **Example**: 20 core machine -\> there will be 10 workers per scheduler (total of 40 workers over 4 schedulers).
--   \--IdSampleSize, -sample (Integer, Default 500,000) – The number of vertex ids that will be retrieved from the database that will be used as a vertex id by the query, if required. If the query doesn’t use a random vertex id, this feature is disabled. See argument “*—IdSampleLabel*” for additional information. For more information, see \<vertex manager\>.
--   \--IdSampleLabel, -label (String, Default is None) – If provided, this is a label that is used in retrieving the vertex ids from the database. These ids, if required by the query, are used by the query as a random vertex id to the query. If the See argument *“—IdSampleSize*” for additional information. For more information, see \<vertex manager\>.
--   \-prom (Flag) – If provided, enables the [Prometheus](https://prometheus.io/) exporter which provides near real-time metrics of the running TinkerBench application in TinkerBench [Grafana](https://grafana.com/grafana/dashboards/) dashboard. For more information, see \<prom\> section.
--   \-HdrHistFmt -- If provided, the summary console output upon exit of the TinkerBench application will provide an [HdrHistogram](https://github.com/HdrHistogram) Latency table. This table can be used by the [HdrHistogram plotter](https://hdrhistogram.github.io/HdrHistogram/plotFiles.html). If not provided a “Summary latency” is provided. For more information, see \<output\> section. **Note**: The HdrHistogram table is always provided in the log file, if logging is enabled.
+-   \--schedulers, -s (Integer, Default depends on cores) – Schedulers are used to manage workers to control the query rate. The default number of schedules is based on the quarter of the number of cores of the machine TinkerBench is currently executing on. A value of -1 will indicate to use the default value. For more information, see the \<\*\*tuning\> section. **Example**: 20 core machine -\> there will be 4 schedulers.
+-   \--workers, -w (Integer, Default depends on cores) -- The number of workers per scheduler. A worker is responsible for executing a single query instance and collecting data from that instance for analysis. The default number of workers is based on half of the number of cores of the machine TinkerBench is currently executing on. A value of -1 will indicate to use the default value. For more information, see the \<\*\*tuning\> section. **Example**: 20 core machines -\> there will be 10 workers per scheduler (total of 40 workers over 4 schedulers).
+-   \--IdSampleSize, -sample (Integer, Default 500,000) – The number of vertex ids that will be retrieved from the database that will be used as a vertex id by the query, if required. If the query doesn’t use a random vertex id, this feature is disabled. See argument “*—IdSampleLabel*” for additional information. For more information, see \<\*\*vertex manager\>.
+-   \--IdSampleLabel, -label (String, Default is None) – If provided, this is a label that is used in retrieving the vertex ids from the database. These ids, if required by the query, are used by the query as a random vertex id to the query. If the See argument *“—IdSampleSize*” for additional information. For more information, see \<\*\*vertex manager\>.
+-   \-prom (Flag) – If provided, enables the [Prometheus](https://prometheus.io/) exporter which provides near real-time metrics of the running TinkerBench application in TinkerBench [Grafana](https://grafana.com/grafana/dashboards/) dashboard. For more information, see \<\*\*prom\> section.
+-   \-HdrHistFmt -- If provided, the summary console output upon exit of the TinkerBench application will provide an [HdrHistogram](https://github.com/HdrHistogram) Latency table. This table can be used by the [HdrHistogram plotter](https://hdrhistogram.github.io/HdrHistogram/plotFiles.html). If not provided a “Summary latency” is provided. For more information, see the [Output](#understanding-output) section. **Note**: The HdrHistogram table is always provided in the log file, if logging is enabled.
 -   \--Errors, -e (Integer, Default 150) – The total number of error occurrences that will cause TinkerBench to shutdown query analysis and display the console summary.
 -   \--version, -V – Prints the TinkerBench and Gremlin client version information.
 
@@ -96,7 +96,7 @@ If an error occurs during query execution and is not fatal, TinkerBench2 will co
 
 ## Obtaining Error Details
 
-To obtain error details including stack traces, nested exceptions, etc., logging must be enabled. See \<logging\> section for more information.
+To obtain error details including stack traces, nested exceptions, etc., logging must be enabled. See the [Logging](#logging) section for more information.
 
 # Understanding Output
 
@@ -130,7 +130,7 @@ This ticker shows the following runtime information:
 -   The number of seconds elapsed and the provided duration
 -   Running clock
 -   Current Query Per Second
--   Pending number of queries waiting for execution (Queue Depth). For more information see \<tuning\> section.
+-   Pending number of queries waiting for execution (Queue Depth). For more information see \<\*\*tuning\> section.
 -   Number of encountered errors
 
 ### Stage 5 (Postprocessing/Cleanup)
@@ -172,14 +172,14 @@ This stage produces the results of the query execution. This report is brekon do
 -   Summary  
     ![A yellow rectangular sign with black text AI-generated content may be incorrect.](media/ConsoleSummarySum.png)
 -   Client Query Queue Depth  
-    This section provides insight into TinkerBench2 query performance. For more information see \<tuning\> section.  
+    This section provides insight into TinkerBench2 query performance. For more information see \<\*\*tuning\> section.  
     ![A yellow screen with black text AI-generated content may be incorrect.](media/ConsoleSummaryDepth.png)
     -   The queue’s average and maximum queue depth. The percentage next to the maximum indicates how many times TinkerBench2 hit the maximum depth.
     -   The percentage breakdown indicates the distribution of percentage at that queue depth. For example:
         -   25% depth under 1 – 25% of the time the queue depth was under 1.
         -   50% depth under 3 – 50% of the time the queue depth was under 3. This includes the 25% depth.
 -   Error Details  
-    If errors occurred during query execution, this reporting will be presented. It will show a summary description of the error plus different levels of the number of occurrences. It is not meant for detail debugging. That can only be provided by enabled logging where the complete exception information with backtraces is provided. See the \<logging\> section for details.  
+    If errors occurred during query execution, this reporting will be presented. It will show a summary description of the error plus different levels of the number of occurrences. It is not meant for detail debugging. That can only be provided by enabled logging where the complete exception information with backtraces is provided. See the [Logging](#logging) section for details.  
     ![A screenshot of a computer program AI-generated content may be incorrect.](media/ConsoleSummaryErrorDetail.png)
 -   Latency Percentile  
     This will provide the latency information using the actual query latency value without any overhead of the worker or scheduler. The latency is captured at the nanosecond but presented in milliseconds. TinkerBench2 uses the [HdrHistogram](https://github.com/HdrHistogram/HdrHistogram) package for all the recording and analyzing of this data. There are two forms of the latency report.
@@ -198,3 +198,66 @@ This stage produces the results of the query execution. This report is brekon do
 ### Typical Complete Console Output
 
 ![A screenshot of a computer screen AI-generated content may be incorrect.](media/TB2TypicalRunOutput.png)
+
+## Logging
+
+Logging is disabled by default. Logging can be enabled by updating the [logback.xml](https://logback.qos.ch/) file. Below is the logback file used by TinkerBench2.
+
+```
+<configuration>
+    <!--appender name="FILE" class="ch.qos.logback.core.FileAppender">
+        <file>logs/tinkerbench2.log</file>
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender-->
+    <logger name="com.aerospike.tinkerbench2" level="OFF"/>
+    <logger name="io.opentelemetry.javaagent.slf4j.simpleLogger.defaultLogLevel" level="OFF"/>
+    <!--logger name="com.aerospike.tinkerbench2" level="info" additivity="false">
+        <appender-ref ref="FILE"/>
+    </logger-->
+    <!--root level="info">
+        <appender-ref ref="FILE"/>
+    </root-->
+</configuration>
+```
+
+This file can be found in the TinkerBench2 jar or in [GitHub](https://github.com/aerospike-community/tinkerbench/blob/workload/tools/tinkerbench2/src/main/resources/logback.xml).
+
+### Enable File Logging
+
+To enable simple file logging using the provided logback file, just uncomment the “appender” tag and “logger” tag with the “appender-ref” tab. Comment out the original “logger” tab. This will enable a logging file to file named “tinkerbench2.log” under the folder “logs”. Below is an example where file logging is enabled.
+
+```
+<configuration>
+    <appender name="FILE" class="ch.qos.logback.core.FileAppender">
+        <file>logs/tinkerbench2.log</file>
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender>
+    <logger name="io.opentelemetry.javaagent.slf4j.simpleLogger.defaultLogLevel" level="OFF"/>
+    <logger name="com.aerospike.tinkerbench2" level="info" additivity="false">
+        <appender-ref ref="FILE"/>
+    </logger>
+    <!--root level="info">
+        <appender-ref ref="FILE"/>
+    </root-->
+</configuration>
+```
+
+The new logback file needs to be placed in the Java class path (i.e., logback.xml) or you can use the Java runtime command-line system property option for a different location or name. Below an example:
+
+```
+java -Dlogback.configurationFile=.\mylogback.xml tinkerbench2-2.0.14-jar-with-dependencies.jar
+```
+
+### Other Configurations
+
+TinkerBench2 uses [Simple Logging Facade package](https://www.slf4j.org/) and can be configured to used different logging providers and configuration options. This type of configuration is outside the scope of this documentation.
+
+### Logging File Format
+
+The logging format can be changed by means of the logback.xml file. The examples are based on the default provided by TinkerBench2.
+
+## Grafana Dashboard

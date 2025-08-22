@@ -74,7 +74,13 @@ public final class AGSGraphTraversalSource  implements AGSGraphTraversal, Closea
 
                 this.g = gdb;
                 try {
-                    if (g.inject(0).next() != 0) {
+                    if (g.inject(0).next() == 0) {
+                        Helpers.Println(System.out,
+                                            "Connected Successfully",
+                                            Helpers.BLACK,
+                                            Helpers.GREEN_BACKGROUND);
+                        logger.info("Connected Successfully");
+                    } else {
                         String hosts = String.join(",", args.agsHosts);
                         logger.error("Connection to Database '{}' at port {} Failed!",
                                 hosts,
@@ -82,6 +88,7 @@ public final class AGSGraphTraversalSource  implements AGSGraphTraversal, Closea
                         System.err.printf("Error: Connection to Database '%s' at port %d Failed%n\tAborting Run...%n",
                                 hosts,
                                 args.port);
+                        openTelemetry.addException("Connection Failed", "Gremlin inject zero failed");
                         args.abortRun.set(true);
                     }
                 } catch (IllegalStateException e) {
@@ -90,9 +97,9 @@ public final class AGSGraphTraversalSource  implements AGSGraphTraversal, Closea
                                 String.join(",", args.agsHosts),
                                 args.port);
                         logger.error(msg, e);
-
                         System.err.printf("%s%n\tAborting Run...%n",
                                             msg);
+                        openTelemetry.addException((Exception) e.getCause());
                         args.abortRun.set(true);
                     }
                     else {
@@ -114,6 +121,7 @@ public final class AGSGraphTraversalSource  implements AGSGraphTraversal, Closea
                 System.err.println("\tReview log for error details...");
             else
                 System.err.println("\tEnable logging for error details...");
+            openTelemetry.addException(e);
             args.abortRun.set(true);
             throw new RuntimeException(e);
         }

@@ -795,6 +795,9 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
             Object recordResult = null;
             boolean success = false;
             Exception lastError = null;
+
+            if(abortRun.get()) return;
+
             pendingCount.incrementAndGet();
             openTelemetry.incrPendingTransCounter();
 
