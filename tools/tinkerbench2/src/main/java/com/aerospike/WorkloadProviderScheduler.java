@@ -326,7 +326,6 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
             System.out.println(" Completed");
             if(progressbar != null) {
                 progressbar.close();
-                progressbar = null;
             }
             schedulerFutures.clear();
             System.out.printf("Starting %s for %s %s%n",
@@ -485,7 +484,6 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
 
             if(progressbar != null) {
                 progressbar.close();
-                progressbar = null;
             }
             setStatus(WorkloadStatus.Completed);
             if (queryRunnable != null) {

@@ -2,6 +2,7 @@ package com.aerospike;
 
 import org.apache.tinkerpop.gremlin.driver.Cluster;
 import org.apache.tinkerpop.gremlin.driver.remote.DriverRemoteConnection;
+import org.apache.tinkerpop.gremlin.process.remote.RemoteConnectionException;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
 
 import java.io.Closeable;
@@ -72,10 +73,48 @@ public final class AGSGraphTraversalSource  implements AGSGraphTraversal, Closea
                 }
 
                 this.g = gdb;
+                try {
+                    if (g.inject(0).next() != 0) {
+                        String hosts = String.join(",", args.agsHosts);
+                        logger.error("Connection to Database '{}' at port {} Failed!",
+                                hosts,
+                                args.port);
+                        System.err.printf("Error: Connection to Database '%s' at port %d Failed%n\tAborting Run...%n",
+                                hosts,
+                                args.port);
+                        args.abortRun.set(true);
+                    }
+                } catch (IllegalStateException e) {
+                    if(e.getCause() instanceof RemoteConnectionException) {
+                        String msg = String.format("Could not connect to Database '%s' at port %d",
+                                String.join(",", args.agsHosts),
+                                args.port);
+                        logger.error(msg, e);
+
+                        System.err.printf("%s%n\tAborting Run...%n",
+                                            msg);
+                        args.abortRun.set(true);
+                    }
+                    else {
+                        throw e;
+                    }
+                }
             }
         }
         catch (Exception e) {
             logger.error("Error creating GraphTraversalSource", e);
+            System.err.printf("Error occurred trying to connect to '%s' at port %d%n%n",
+                                String.join(",", args.agsHosts),
+                                args.port);
+            System.err.printf("\tError is %s%n",
+                                e.getClass().getSimpleName());
+            System.err.printf("\tError Message is %s%n",
+                                e.getMessage());
+            if(logger.loggingEnabled())
+                System.err.println("\tReview log for error details...");
+            else
+                System.err.println("\tEnable logging for error details...");
+            args.abortRun.set(true);
             throw new RuntimeException(e);
         }
 
