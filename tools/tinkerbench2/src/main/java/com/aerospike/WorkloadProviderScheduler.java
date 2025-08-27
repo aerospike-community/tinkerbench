@@ -414,15 +414,17 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
                         Helpers.GREEN_BACKGROUND);
                 logger.info(dt);
 
-                dt = String.format("Grafana %s Date Range: {\"from\":\"%s\",\"to\":\"%s\"}",
-                        Helpers.GetLocalZoneString(),
-                        Helpers.GetLocalTimeZoneString(startDateTime),
-                        Helpers.GetLocalTimeZoneString(stopDateTime));
-                Helpers.Println(System.out,
-                                    dt,
-                                    Helpers.BLACK,
-                                    Helpers.GREEN_BACKGROUND);
-                logger.info(dt);
+                if(!Helpers.GetLocalZoneString().equals("UTC")) {
+                    dt = String.format("Grafana %s Date Range: {\"from\":\"%s\",\"to\":\"%s\"}",
+                            Helpers.GetLocalZoneString(),
+                            Helpers.GetLocalTimeZoneString(startDateTime),
+                            Helpers.GetLocalTimeZoneString(stopDateTime));
+                    Helpers.Println(System.out,
+                            dt,
+                            Helpers.BLACK,
+                            Helpers.GREEN_BACKGROUND);
+                    logger.info(dt);
+                }
             }
             final String msg = String.format("Shutdown for %s %s %s Completed%n",
                                             warmup ? "Warmup" : "Workload",
