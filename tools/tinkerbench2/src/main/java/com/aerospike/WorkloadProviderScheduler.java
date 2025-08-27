@@ -825,9 +825,9 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
 
                 logger.Print("Handler.RecordLatency",
                             true,
-                            "Latency Value %,d was too large to record. Using Highest Trackable Value of %,d...",
+                            "Latency Value %,d ns was too large to record. Using Highest Trackable Value of %,d ns...",
                             latency,
-                            HighestTrackableValue);
+                            HighestTrackableValue - 1);
             }
         }
 
@@ -835,7 +835,7 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
             if (depth < HighestTrackableValueDepth) {
                 queueDepthTracker.recordValue(depth);
             } else {
-                String msg = String.format("Depth Value %,d is too large! Maximum queue dept is %,d. Stopping execution...",
+                String msg = String.format("Query Queue Depth of %,d is too large! Maximum dept is %,d. Stopping execution...",
                                             depth,
                                             HighestTrackableValueDepth);
                 System.err.println(msg);
