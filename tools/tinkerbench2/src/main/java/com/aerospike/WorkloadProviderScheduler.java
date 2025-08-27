@@ -89,14 +89,21 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
             // All latency reported must be in ns resolution
             final Duration higestTrackableDuration = Duration.ofSeconds((this.targetRunDuration.toSeconds()/this.callsPerSecond) + 5);
             this.histogram = new AtomicHistogram(higestTrackableDuration.toNanos(), numberOfSignificantValueDigits);
-            //Tack pending queries for reporting
-            this.queueDepthTracker = new AtomicHistogram(this.targetRunDuration.toSeconds(), 0);
             if(log.isDebugEnabled()) {
                 logger.PrintDebug("WorkloadProviderScheduler",
                                         "AtomicHistogram latency highestTrackableValue: %,d%n\tnumberOfSignificantValueDigits: %d%n\tFoot print: %,d (bytes)",
                                     this.histogram.getHighestTrackableValue(),
                                     this.histogram.getNumberOfSignificantValueDigits(),
                                     this.histogram.getEstimatedFootprintInBytes());
+            }
+            //Tack pending queries for reporting
+            this.queueDepthTracker = new AtomicHistogram(this.callsPerSecond/2, 0);
+            if(log.isDebugEnabled()) {
+                logger.PrintDebug("WorkloadProviderScheduler",
+                        "AtomicHistogram queue depth highestTrackableValue: %,d%n\tnumberOfSignificantValueDigits: %d%n\tFoot print: %,d (bytes)",
+                        this.queueDepthTracker.getHighestTrackableValue(),
+                        this.queueDepthTracker.getNumberOfSignificantValueDigits(),
+                        this.queueDepthTracker.getEstimatedFootprintInBytes());
             }
         }
 
@@ -806,6 +813,7 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
     private final class Handler implements Runnable {
 
         final long HighestTrackableValue = histogram.getHighestTrackableValue();
+        final long HighestTrackableValueDepth = queueDepthTracker.getHighestTrackableValue();
 
         Handler() {  }
 
@@ -820,6 +828,21 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
                             "Latency Value %,d was too large to record. Using Highest Trackable Value of %,d...",
                             latency,
                             HighestTrackableValue);
+            }
+        }
+
+        private void RecordDepth(long depth) {
+            if (depth < HighestTrackableValueDepth) {
+                queueDepthTracker.recordValue(depth);
+            } else {
+                String msg = String.format("Depth Value %,d is too large! Maximum queue dept is %,d. Stopping execution...",
+                                            depth,
+                                            HighestTrackableValueDepth);
+                System.err.println(msg);
+                logger.error(msg);
+                abortRun.set(true);
+                Exception e = new RuntimeException(msg);
+                Error(0, e);
             }
         }
 
@@ -903,7 +926,7 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
                         Error(0, e);
                     }
                 }
-                queueDepthTracker.recordValue(pendingCount.decrementAndGet());
+                RecordDepth(pendingCount.decrementAndGet());
                 openTelemetry.decrPendingTransCounter();
                 progressbar.step();
             }
