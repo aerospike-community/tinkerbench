@@ -161,6 +161,11 @@ public abstract class TinkerBench2Args implements Callable<Integer> {
             description = "If provided, the HdrHistogram Latency format is printed to the console.")
     public boolean hdrHistFmt;
 
+    @Option(names = "-background",
+            negatable  = false,
+            description = "If provided, certain console output is suppressed or reduced.")
+    public boolean backgroundMode;
+
     public final AtomicBoolean abortRun = new AtomicBoolean(false);
     public final AtomicBoolean abortSIGRun = new AtomicBoolean(false);
     public final AtomicBoolean terminateRun = new AtomicBoolean(false);

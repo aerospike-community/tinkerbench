@@ -11,7 +11,6 @@ import org.slf4j.LoggerFactory;
 import java.io.PrintStream;
 import java.time.Duration;
 import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -24,7 +23,6 @@ import java.util.stream.Collectors;
 public final class WorkloadProviderScheduler implements WorkloadProvider {
 
     private static final Logger log = LoggerFactory.getLogger(WorkloadProviderScheduler.class);
-    private WorkloadStatus status;
 
     private final int schedulers;
     private final ExecutorService schedulerPool;
@@ -57,6 +55,7 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
 
     private final List<Future<?>> schedulerFutures = new Vector<>();
 
+    private WorkloadStatus status;
     private Progressbar progressbar = null;
     private QueryRunnable queryRunnable = null;
 
@@ -94,15 +93,13 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
         schedulerPool = Executors.newFixedThreadPool(this.schedulers);
         workerPool = Executors.newFixedThreadPool(cliArgs.workers);
 
-        if(openTelemetry != null) {
-            openTelemetry.Reset(cliArgs,
+        this.openTelemetry.Reset(cliArgs,
                                 null,
                                 null,
                                 targetRunDuration,
                                 0,
                                 warmup,
                                 null);
-        }
         setStatus(WorkloadStatus.Initialized);
     }
 
@@ -364,7 +361,7 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
     public WorkloadProvider Shutdown() { close(); return this; }
 
     /**
-     * Waits for the workload to termination and then performs a shutdown.
+     * Shutdowns the schedulers and workers waiting for proper termination...
      */
     @Override
     public void close() {
@@ -406,10 +403,33 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
         }
 
         if(queryRunnable != null) {
-            System.out.printf("Shutdown for %s %s %s Completed%n",
-                    warmup ? "Warmup" : "Workload",
-                    queryRunnable.WorkloadType().toString(),
-                    queryRunnable.Name());
+            if(startDateTime != null && stopDateTime != null) {
+                //{"from":"2025-08-26 16:11:19","to":"2025-08-26 16:12:52"}
+                String dt = String.format("Grafana UTC Date Range: {\"from\":\"%s\",\"to\":\"%s\"}",
+                        Helpers.GetUTCString(startDateTime),
+                        Helpers.GetUTCString(stopDateTime));
+                Helpers.Println(System.out,
+                        dt,
+                        Helpers.BLACK,
+                        Helpers.GREEN_BACKGROUND);
+                logger.info(dt);
+
+                dt = String.format("Grafana %s Date Range: {\"from\":\"%s\",\"to\":\"%s\"}",
+                        Helpers.GetLocalZoneString(),
+                        Helpers.GetLocalTimeZoneString(startDateTime),
+                        Helpers.GetLocalTimeZoneString(stopDateTime));
+                Helpers.Println(System.out,
+                                    dt,
+                                    Helpers.BLACK,
+                                    Helpers.GREEN_BACKGROUND);
+                logger.info(dt);
+            }
+            final String msg = String.format("Shutdown for %s %s %s Completed%n",
+                                            warmup ? "Warmup" : "Workload",
+                                            queryRunnable.WorkloadType().toString(),
+                                            queryRunnable.Name());
+            System.out.println(msg);
+            logger.info(msg);
         }
     }
 
@@ -419,15 +439,10 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
     }
 
     /*
-    Blocks until all tasks have completed execution after a shutdown request, or the timeout occurs, or the current thread is interrupted, whichever happens first.
-    Params:
-        timeout – the maximum time to wait unit before terminating workload.
-                    If -1, the default duration is used.
-        time unit - The unit of time
+    Blocks until all tasks have completed normally, a shutdown requested, timeout occurred, or a worker is interrupted.
+
     Returns:
-        true if this executor terminated and false if the timeout elapsed before termination or nothing is running.
-    Throws:
-        InterruptedException – if interrupted while waiting
+        true if the workload terminates normally.
      */
     public boolean awaitTermination() {
 
@@ -708,8 +723,6 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
         return this;
     }
 
-    static DateTimeFormatter dtFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-
     @Override
     public String toString() {
 
@@ -733,8 +746,8 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
                                 getSuccessCount(),
                                 getErrorCount(),
                                 getAbortedCount(),
-                                startDateTime == null ? "N/A" : dtFormatter.format(startDateTime),
-                                stopDateTime == null ? "N/A" : dtFormatter.format(stopDateTime),
+                                startDateTime == null ? "N/A" : Helpers.GetDateTimeString(startDateTime),
+                                stopDateTime == null ? "N/A" : Helpers.GetDateTimeString(stopDateTime),
                                 getAccumDuration(),
                                 getRemainingTime());
     }

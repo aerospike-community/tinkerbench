@@ -8,6 +8,11 @@ import java.lang.management.RuntimeMXBean;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.jar.JarEntry;
 import java.util.jar.JarInputStream;
@@ -381,6 +386,35 @@ public class Helpers {
 
         } catch (Exception ignored) {}
         return null;
+    }
+
+    public static ZonedDateTime GetLocalTimeZone(final LocalDateTime localDateTime) {
+        return localDateTime.atZone(ZoneId.systemDefault());
+    }
+
+    public static ZonedDateTime GetUTC(final LocalDateTime localDateTime) {
+        final ZonedDateTime zonedDateTime = GetLocalTimeZone(localDateTime);
+        return zonedDateTime.withZoneSameInstant(ZoneOffset.UTC);
+    }
+
+    static DateTimeFormatter dtFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+
+    public static String GetUTCString(final LocalDateTime localDateTime) {
+        final ZonedDateTime utcDateTime = GetUTC(localDateTime);
+        return utcDateTime.format(dtFormatter);
+    }
+
+    public static String GetLocalTimeZoneString(final LocalDateTime localDateTime) {
+        final ZonedDateTime localZone = GetLocalTimeZone(localDateTime);
+        return localZone.format(dtFormatter);
+    }
+
+    public static String GetLocalZoneString() {
+       return ZoneId.systemDefault().toString();
+    }
+
+    public static String GetDateTimeString(final LocalDateTime localDateTime) {
+        return localDateTime.format(dtFormatter);
     }
 
 }

@@ -1,6 +1,7 @@
 package com.aerospike;
 
 import me.tongfei.progressbar.ConsoleProgressBarConsumer;
+import me.tongfei.progressbar.DelegatingProgressBarConsumer;
 import me.tongfei.progressbar.ProgressBarBuilder;
 import me.tongfei.progressbar.ProgressBarConsumer;
 
@@ -13,12 +14,18 @@ public class Progressbar implements AutoCloseable {
     private final ProgressBarConsumer consoleConsumer;
     private final AtomicBoolean closed = new AtomicBoolean(false);
     private final boolean isDebug;
+    private final boolean backGround;
 
     public Progressbar(WorkloadProvider workload) {
         this.workloadProvider = workload;
         this.isDebug = workload.isDebug();
+        this.backGround = workload.getCliArgs().backgroundMode;
 
-        consoleConsumer = new ConsoleProgressBarConsumer(System.out);
+        if(backGround) {
+            consoleConsumer = new DelegatingProgressBarConsumer( (s) -> System.out.print(".") );
+        } else {
+            consoleConsumer = new ConsoleProgressBarConsumer(System.out);
+        }
         this.underlyingProgressBar = new ProgressBarBuilder()
                 .setInitialMax(this.workloadProvider
                                     .getTargetRunDuration()
@@ -33,6 +40,7 @@ public class Progressbar implements AutoCloseable {
     }
 
     public synchronized void start(String msg) {
+        if(closed.get()) { return; }
         this.underlyingProgressBar.step();
         if(msg != null) {
             this.underlyingProgressBar.setExtraMessage(msg);
