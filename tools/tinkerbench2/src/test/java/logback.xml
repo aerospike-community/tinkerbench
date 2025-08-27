@@ -10,7 +10,7 @@
     <!--logger name="com.aerospike.tinkerbench2" level="OFF"/-->
     <logger name="io.opentelemetry.javaagent.slf4j.simpleLogger.defaultLogLevel" level="OFF"/>
 
-    <logger name="com.aerospike.tinkerbench2" level="info" additivity="false">
+    <logger name="com.aerospike.tinkerbench2" level="debug" additivity="false">
         <appender-ref ref="FILE"/>
     </logger>
 

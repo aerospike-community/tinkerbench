@@ -91,6 +91,13 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
             this.histogram = new AtomicHistogram(higestTrackableDuration.toNanos(), numberOfSignificantValueDigits);
             //Tack pending queries for reporting
             this.queueDepthTracker = new AtomicHistogram(this.targetRunDuration.toSeconds(), 0);
+            if(log.isDebugEnabled()) {
+                logger.PrintDebug("WorkloadProviderScheduler",
+                                        "AtomicHistogram latency highestTrackableValue: %,d%n\tnumberOfSignificantValueDigits: %d%n\tFoot print: %,d (bytes)",
+                                    this.histogram.getHighestTrackableValue(),
+                                    this.histogram.getNumberOfSignificantValueDigits(),
+                                    this.histogram.getEstimatedFootprintInBytes());
+            }
         }
 
         schedulerPool = Executors.newFixedThreadPool(this.schedulers);
@@ -798,11 +805,27 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
 
     private final class Handler implements Runnable {
 
+        final long HighestTrackableValue = histogram.getHighestTrackableValue();
+
         Handler() {  }
+
+        private void RecordLatency(long latency) {
+            if (latency < HighestTrackableValue) {
+                histogram.recordValue(latency);
+            } else {
+                histogram.recordValue(HighestTrackableValue - 1);
+
+                logger.Print("Handler.RecordLatency",
+                            true,
+                            "Latency Value %,d was too large to record. Using Highest Trackable Value of %,d...",
+                            latency,
+                            HighestTrackableValue);
+            }
+        }
 
         private void Success(long latency) {
             successfulDuration.addAndGet(latency);
-            histogram.recordValue(latency);
+            RecordLatency(latency);
             if(openTelemetry != null) {
                 openTelemetry.recordElapsedTime(latency);
             }

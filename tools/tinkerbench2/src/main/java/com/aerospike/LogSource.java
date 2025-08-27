@@ -96,19 +96,23 @@ public final class LogSource {
         LocalDateTime now = LocalDateTime.now();
         String formattedDateTime = now.format(DateFormatter);
         Pair<?,?> pidThread = Helpers.GetPidThreadId();
-        String fmtMsg = String.format("%s INFO %s %s %s %s%n",
-                                        formattedDateTime,
+        String msgStr = String.format("%s %s %s %s",
                                         pidThread.getValue0(),
                                         pidThread.getValue1(),
                                         name,
                                         msg)
                             .replace("%", "%%");
+        String fmtMsg = String.format("%s INFO %s%n",
+                                        formattedDateTime,
+                                        msgStr);
 
         if(err) {
             System.err.printf(fmtMsg);
+            this.error(msgStr);
         }
         else {
             System.out.printf(fmtMsg);
+            this.info(msgStr);
         }
     }
 
@@ -121,25 +125,28 @@ public final class LogSource {
         if(errMsg == null || errMsg.isEmpty()) {
             errMsg = "<Missing Message>";
         }
-        String fmtMsg = String.format("%s ERROR %s %s %s %s: %s%n",
-                                        formattedDateTime,
+        String msgStr = String.format("%s %s %s %s: %s",
                                         pidThread.getValue0(),
                                         pidThread.getValue1(),
                                         name,
                                         ex.getClass().getSimpleName(),
                                         errMsg)
                             .replace("%","%%");
-        System.err.printf(fmtMsg);
+
         if(isDebug()) {
             ex.printStackTrace(System.err);
-            if(ex instanceof ResponseException) {
-                ResponseException re = (ResponseException) ex;
-                System.err.printf("\tStatus Code: %s%n\t\tRemote: %s%n\t\tRemote Stack Trace: %s%n",
-                        re.getResponseStatusCode(),
-                        re.getRemoteExceptionHierarchy(),
-                        re.getRemoteStackTrace());
+            if(ex instanceof ResponseException re) {
+                msgStr += String.format("\tStatus Code: %s%n\t\tRemote: %s%n\t\tRemote Stack Trace: %s",
+                                            re.getResponseStatusCode(),
+                                            re.getRemoteExceptionHierarchy(),
+                                            re.getRemoteStackTrace());
             }
         }
+        String fmtMsg = String.format("%s ERROR %s%n",
+                                        formattedDateTime,
+                                        msgStr);
+        System.err.printf(fmtMsg);
+        this.error(msgStr);
     }
 
     public void Print(String name, boolean err, String msg, Object var2) {
@@ -174,16 +181,18 @@ public final class LogSource {
             LocalDateTime now = LocalDateTime.now();
             String formattedDateTime = now.format(DateFormatter);
             Pair<?,?> pidThread = Helpers.GetPidThreadId();
-            String fmtMsg = String.format("%s DEBUG %s %s %s %s%n",
-                            formattedDateTime,
-                            pidThread.getValue0(),
-                            pidThread.getValue1(),
-                            name,
-                            msg)
-                            .replace("%", "%%");
+            String msgStr = String.format("%s %s %s %s",
+                                            pidThread.getValue0(),
+                                            pidThread.getValue1(),
+                                            name,
+                                            msg)
+                                .replace("%", "%%");
+            String fmtMsg = String.format("%s DEBUG %s%n",
+                                            formattedDateTime,
+                                            msgStr);
 
             System.out.printf(fmtMsg);
-            logger4j.debug(fmtMsg);
+            logger4j.debug(msgStr);
         }
     }
 
@@ -196,24 +205,26 @@ public final class LogSource {
             if(errMsg == null || errMsg.isEmpty()) {
                 errMsg = "<Missing Message>";
             }
-            String fmtMsg = String.format("%s DEBUG %s %s %s %s: %s%n",
-                                            formattedDateTime,
+            String fmtStr = String.format("%s %s %s %s: %s%n",
                                             pidThread.getValue0(),
                                             pidThread.getValue1(),
                                             name,
                                             ex.getClass().getSimpleName(),
                                             errMsg)
-                            .replace("%","%%");
+                                .replace("%","%%");
+
+            if(ex instanceof ResponseException re) {
+                fmtStr += String.format("\tStatus Code: %s%n\t\tRemote: %s%n\t\tRemote Stack Trace: %s%n",
+                                            re.getResponseStatusCode(),
+                                            re.getRemoteExceptionHierarchy(),
+                                            re.getRemoteStackTrace());
+            }
+            String fmtMsg = String.format("%s DEBUG %s%n",
+                            formattedDateTime,
+                            fmtStr);
             System.err.printf(fmtMsg);
             ex.printStackTrace(System.err);
-
-            if(ex instanceof ResponseException) {
-                ResponseException re = (ResponseException) ex;
-                System.err.printf("\tStatus Code: %s%n\t\tRemote: %s%n\t\tRemote Stack Trace: %s%n",
-                                    re.getResponseStatusCode(),
-                                    re.getRemoteExceptionHierarchy(),
-                                    re.getRemoteStackTrace());
-            }
+            this.error(fmtMsg, ex);
         }
     }
 

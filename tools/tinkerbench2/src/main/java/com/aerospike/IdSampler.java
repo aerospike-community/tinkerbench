@@ -108,7 +108,6 @@ public class IdSampler implements  IdManager {
                                 : String.format("No Vertex Ids returned for label '%s'. At least one Id is required! Is this label correct or maybe you need to disable Id Sampling?",
                                                 label);
                 logger.Print("IdSampler", true, msg);
-                logger.error(msg);
 
                 throw new ArrayIndexOutOfBoundsException(msg);
             }
