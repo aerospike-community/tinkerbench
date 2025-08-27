@@ -417,4 +417,23 @@ public class Helpers {
         return localDateTime.format(dtFormatter);
     }
 
+    public static String PrintGrafanaRangeJson(LocalDateTime startDateTime,
+                                                LocalDateTime stopDateTime) {
+        if(startDateTime != null && stopDateTime != null) {
+            //{"from":"2025-08-26 16:11:19","to":"2025-08-26 16:12:52"}
+            String dt = String.format("\tGrafana UTC Date Range: {\"from\":\"%s\",\"to\":\"%s\"}",
+                                        GetUTCString(startDateTime),
+                                        GetUTCString(stopDateTime));
+
+            if(!GetLocalZoneString().equals("UTC")) {
+                dt += String.format("%n\t\t%s Date Range: {\"from\":\"%s\",\"to\":\"%s\"}",
+                                    GetLocalZoneString(),
+                                    GetLocalTimeZoneString(startDateTime),
+                                    GetLocalTimeZoneString(stopDateTime));
+            }
+            return dt;
+        }
+        return null;
+    }
+
 }

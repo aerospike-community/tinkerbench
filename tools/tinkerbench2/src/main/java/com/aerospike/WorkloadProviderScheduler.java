@@ -421,28 +421,19 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
         }
 
         if(queryRunnable != null) {
-            if(startDateTime != null && stopDateTime != null) {
-                //{"from":"2025-08-26 16:11:19","to":"2025-08-26 16:12:52"}
-                String dt = String.format("Grafana UTC Date Range: {\"from\":\"%s\",\"to\":\"%s\"}",
-                        Helpers.GetUTCString(startDateTime),
-                        Helpers.GetUTCString(stopDateTime));
+            String grafanaRange = Helpers.PrintGrafanaRangeJson(startDateTime, stopDateTime);
+            if(grafanaRange != null) {
+                final String msg = String.format("%s\tStarted: %s\tEnded: %s%n%s%n",
+                                                    warmup ? "Warmup" : "Workload",
+                                                    Helpers.GetLocalTimeZone(startDateTime),
+                                                    Helpers.GetLocalTimeZone(stopDateTime),
+                                                    grafanaRange);
+
                 Helpers.Println(System.out,
-                        dt,
+                        msg,
                         Helpers.BLACK,
                         Helpers.GREEN_BACKGROUND);
-                logger.info(dt);
-
-                if(!Helpers.GetLocalZoneString().equals("UTC")) {
-                    dt = String.format("Grafana %s Date Range: {\"from\":\"%s\",\"to\":\"%s\"}",
-                            Helpers.GetLocalZoneString(),
-                            Helpers.GetLocalTimeZoneString(startDateTime),
-                            Helpers.GetLocalTimeZoneString(stopDateTime));
-                    Helpers.Println(System.out,
-                            dt,
-                            Helpers.BLACK,
-                            Helpers.GREEN_BACKGROUND);
-                    logger.info(dt);
-                }
+                logger.info(msg);
             }
             final String msg = String.format("Shutdown for %s %s %s Completed%n",
                                             warmup ? "Warmup" : "Workload",

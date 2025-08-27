@@ -3,6 +3,7 @@ package com.aerospike;
 import picocli.CommandLine;
 
 import java.time.Duration;
+import java.time.LocalDateTime;
 
 public class Main extends TinkerBench2Args {
 
@@ -98,6 +99,8 @@ public class Main extends TinkerBench2Args {
                     Helpers.GREEN_BACKGROUND);
         }
 
+        final LocalDateTime appStartTime = LocalDateTime.now();
+
         try (final OpenTelemetry openTel = OpenTelemetryHelper.Create(this, null);
             final AGSGraphTraversalSource agsGraphTraversalSource
                             = new AGSGraphTraversalSource(this, openTel)) {
@@ -121,6 +124,34 @@ public class Main extends TinkerBench2Args {
                                 this,
                                 false);
                 mainInstance.terminateRun.set(true);
+            }
+        } finally {
+
+            if(abortRun.get() || abortSIGRun.get()) {
+                Helpers.Println(System.out,
+                        "TinkerBench2 ended in Aborted Status!",
+                        Helpers.BLACK,
+                        Helpers.RED_BACKGROUND);
+            } else {
+                Helpers.Println(System.out,
+                        "TinkerBench2 Workload Completed!",
+                        Helpers.BLACK,
+                        Helpers.GREEN_BACKGROUND);
+            }
+
+            final LocalDateTime appEndTime = LocalDateTime.now();
+            String grafanaRange = Helpers.PrintGrafanaRangeJson(appStartTime,
+                                                                appEndTime);
+            if(grafanaRange != null) {
+                final String msg = String.format("Application\tStarted: %s\tEnded: %s%n%s%n",
+                                                    Helpers.GetLocalTimeZone(appStartTime),
+                                                    Helpers.GetLocalTimeZone(appEndTime),
+                                                    grafanaRange);
+                Helpers.Println(System.out,
+                        msg,
+                        Helpers.BLACK,
+                        Helpers.GREEN_BACKGROUND);
+                logger.info(msg);
             }
         }
 
