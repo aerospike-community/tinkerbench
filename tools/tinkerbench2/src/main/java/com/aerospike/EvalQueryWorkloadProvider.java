@@ -300,9 +300,11 @@ public final class EvalQueryWorkloadProvider extends QueryWorkloadProvider {
                 logger.PrintDebug("EvalQueryWorkloadProvider.preCall", "Pre Call");
                 final Object id = idManager.getId();
                 final Object[] data = bytecode.getStepInstructions().get(0).getArguments();
-                data[0] = formatIdRequired
-                        ? String.format(formatDefinedId, id)
-                        : id;
+                if (formatIdRequired) {
+                    data[0] = String.format(formatDefinedId, id);
+                } else {
+                    data[0] = id;
+                }
                 if (logger.isDebug()) {
                     logger.PrintDebug("EvalQueryWorkloadProvider.preCall", "Pre Call with id %s", id);
                     logger.PrintDebug("EvalQueryWorkloadProvider.preCall", BytecodeTranslator());
