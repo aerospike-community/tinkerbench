@@ -204,8 +204,7 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
 
     @Override
     public long AddError(final Exception e) {
-        if(openTelemetry != null)
-            openTelemetry.addException(e);
+        openTelemetry.addException(e);
         errors.add(e);
         return errorCount.incrementAndGet();
     }
@@ -299,15 +298,13 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
         }
         else {
             this.queryRunnable = queryRunnable;
-            if(openTelemetry != null) {
-                openTelemetry.Reset(cliArgs,
-                                    queryRunnable.Name(),
-                                    queryRunnable.WorkloadType().toString(),
-                                    targetRunDuration,
-                                    pendingCount.get(),
-                                    warmup,
-                                    null);
-            }
+            openTelemetry.Reset(cliArgs,
+                                queryRunnable.Name(),
+                                queryRunnable.WorkloadType().toString(),
+                                targetRunDuration,
+                                pendingCount.get(),
+                                warmup,
+                                null);
             setStatus(WorkloadStatus.CanRun);
             logger.PrintDebug("WorkloadProviderScheduler", "Set Query to %s", queryRunnable);
         }
@@ -435,14 +432,19 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
         }
 
         if(queryRunnable != null) {
-            String grafanaRange = Helpers.PrintGrafanaRangeJson(startDateTime, stopDateTime);
-            if(grafanaRange != null) {
-                final String msg = String.format("%s\tStarted: %s\tEnded: %s%n%s%n",
+
+            if(startDateTime != null && stopDateTime != null) {
+                String msg = String.format("%s\tStarted: %s\tEnded: %s%n",
                                                     warmup ? "Warmup" : "Workload",
                                                     Helpers.GetLocalTimeZone(startDateTime),
-                                                    Helpers.GetLocalTimeZone(stopDateTime),
-                                                    grafanaRange);
+                                                    Helpers.GetLocalTimeZone(stopDateTime));
 
+                if(openTelemetry.isEnabled()) {
+                    final String grafanaRange = Helpers.PrintGrafanaRangeJson(startDateTime, stopDateTime);
+                    if(grafanaRange != null) {
+                        msg += String.format("%s%n", grafanaRange);
+                    }
+                }
                 Helpers.Println(System.out,
                         msg,
                         Helpers.BLACK,
@@ -801,8 +803,7 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
                 stopDateTime = LocalDateTime.now();
             }
 
-            if (openTelemetry != null)
-                openTelemetry.setConnectionState(workloadStatus.toString());
+            openTelemetry.setConnectionState(workloadStatus.toString());
 
             logger.PrintDebug("WorkloadProviderScheduler", "New Status %s for %s",
                     workloadStatus,
@@ -849,9 +850,7 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
         private void Success(long latency) {
             successfulDuration.addAndGet(latency);
             RecordLatency(latency);
-            if(openTelemetry != null) {
-                openTelemetry.recordElapsedTime(latency);
-            }
+            openTelemetry.recordElapsedTime(latency);
         }
 
         private void Error(long latency, Exception e) {

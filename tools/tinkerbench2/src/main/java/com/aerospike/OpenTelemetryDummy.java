@@ -16,6 +16,9 @@ public final class OpenTelemetryDummy  implements OpenTelemetry {
     public boolean getClosed() { return false; }
 
     @Override
+    public boolean isEnabled() { return false; }
+
+    @Override
     public void Reset(TinkerBench2Args args,
                       String workloadName,
                       String workloadType,

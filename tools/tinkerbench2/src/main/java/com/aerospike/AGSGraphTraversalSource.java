@@ -50,18 +50,21 @@ public final class AGSGraphTraversalSource  implements AGSGraphTraversal, Closea
             else
                 this.cluster = clusterBuilder.create();
 
-            logger.PrintDebug("AGS",
-                    "Creating GraphTraversalSource...");
-
             if (args.appTestMode)
                 this.g = null;
             else {
+                logger.PrintDebug("AGS",
+                        "Creating GraphTraversalSource...");
+                
                 GraphTraversalSource gdb = traversal().withRemote(DriverRemoteConnection.using(cluster));
 
                 if(args.gremlinConfigOptions != null) {
                     for(GraphConfigOptions opt : args.gremlinConfigOptions) {
                         gdb = gdb.with(opt.getKey(),
                                         opt.getValue());
+                        logger.PrintDebug("AGSGraphTraversalSource",
+                                            "Setting %s=%s",
+                                            opt.getKey(), opt.getValue());
                     }
                 }
 
@@ -69,6 +72,9 @@ public final class AGSGraphTraversalSource  implements AGSGraphTraversal, Closea
                     for(GraphConfigOptions opt : args.asConfigOptions) {
                         gdb = gdb.with(opt.getKey(),
                                 opt.getValue());
+                        logger.PrintDebug("AGSGraphTraversalSource",
+                                "Aerospike Setting %s=%s",
+                                opt.getKey(), opt.getValue());
                     }
                 }
 

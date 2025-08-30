@@ -5,6 +5,7 @@ import java.time.Duration;
 public interface OpenTelemetry extends AutoCloseable {
 
     boolean getClosed();
+    boolean isEnabled();
     void Reset(TinkerBench2Args args,
                String workloadName,
                String workloadType,

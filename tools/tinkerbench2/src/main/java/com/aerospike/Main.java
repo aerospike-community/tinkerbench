@@ -140,19 +140,21 @@ public class Main extends TinkerBench2Args {
             }
 
             final LocalDateTime appEndTime = LocalDateTime.now();
-            String grafanaRange = Helpers.PrintGrafanaRangeJson(appStartTime,
-                                                                appEndTime);
-            if(grafanaRange != null) {
-                final String msg = String.format("Application\tStarted: %s\tEnded: %s%n%s%n",
-                                                    Helpers.GetLocalTimeZone(appStartTime),
-                                                    Helpers.GetLocalTimeZone(appEndTime),
-                                                    grafanaRange);
-                Helpers.Println(System.out,
-                        msg,
-                        Helpers.BLACK,
-                        Helpers.GREEN_BACKGROUND);
-                logger.info(msg);
+            String msg = String.format("Application\tStarted: %s\tEnded: %s%n",
+                                                Helpers.GetLocalTimeZone(appStartTime),
+                                                Helpers.GetLocalTimeZone(appEndTime));
+            if(this.promEnabled) {
+                final String grafanaRange = Helpers.PrintGrafanaRangeJson(appStartTime,
+                                                                    appEndTime);
+                if (grafanaRange != null) {
+                    msg += String.format("%s%n", grafanaRange);
+                }
             }
+            Helpers.Println(System.out,
+                    msg,
+                    Helpers.BLACK,
+                    Helpers.GREEN_BACKGROUND);
+            logger.info(msg);
         }
 
         return  0;

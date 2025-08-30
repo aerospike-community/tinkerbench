@@ -159,6 +159,9 @@ public final class OpenTelemetryExporter implements com.aerospike.OpenTelemetry 
                 .buildAndRegisterGlobal();
     }
 
+    @Override
+    public boolean isEnabled() { return true; }
+
     private void printDebug(String msg, boolean limited) {
         logger.PrintDebug("OPENTEL", msg, limited);
     }

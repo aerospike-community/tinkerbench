@@ -154,7 +154,7 @@ public final class LogSource {
     }
 
     public void Print(String name, boolean err, String msg, Object var2, Object var3) {
-       PrintDebug(name, String.format(msg, err, var2, var3), err);
+       Print(name, String.format(msg, var2, var3), err);
     }
 
     public void Print(String name, boolean err, String msg, Object... var2) {
