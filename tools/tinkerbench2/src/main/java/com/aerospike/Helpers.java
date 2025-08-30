@@ -299,14 +299,23 @@ public class Helpers {
         return getErrorMessage(error, 0);
     }
 
-    public static Pair<String,String> GetPidThreadId() {
+    public static String GetPid() {
         String pidString = "<pid>";
-        String threadId = "<thread>";
         try {
             RuntimeMXBean runtimeBean = ManagementFactory.getRuntimeMXBean();
             String jvmName = runtimeBean.getName();
             pidString = jvmName.split("@")[0]; // Extract PID from the name string
         } catch (Exception ignored) { }
+
+        return pidString;
+    }
+
+    /*
+    Returns a pair of strings where the 1st item is the PID and the second is the thread id...
+     */
+    public static Pair<String,String> GetPidThreadId() {
+        String pidString = GetPid();
+        String threadId = "<thread>";
         try {
             threadId = Long.toString(Thread.currentThread().threadId());
         } catch (Exception ignored) { }

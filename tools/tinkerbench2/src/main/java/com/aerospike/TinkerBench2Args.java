@@ -111,7 +111,7 @@ public abstract class TinkerBench2Args implements Callable<Integer> {
             defaultValue = "19090")
     int promPort;
 
-    @Option(names = "-prom",
+    @Option(names = {"-prom", "--prometheus"},
             description = "Enables Prometheus OpenTel metrics.",
             negatable = true)
     boolean promEnabled;
@@ -142,21 +142,21 @@ public abstract class TinkerBench2Args implements Callable<Integer> {
             defaultValue = "150")
     int errorsAbort;
 
-    @Option(names = "-debug",
+    @Option(names = {"-debug"},
                 description = "Enables application debug tracing.")
     boolean debug;
 
-    @Option(names = "-AppTest",
+    @Option(names = {"-AppTest"},
             hidden = true,
             description = "Enables application test mode (disabled any connections to AGS).")
     boolean appTestMode;
 
-    @Option(names = "-result",
+    @Option(names = {"-r", "--result"},
             negatable = true,
             description = "If provided, the results of the  Gremlin termination step are displayed and logged")
     public boolean printResult;
 
-    @Option(names = "-HdrHistFmt",
+    @Option(names = {"-hg", "--HdrHistFmt"},
             negatable  = true,
             description = "If provided, the HdrHistogram Latency format is printed to the console.")
     public boolean hdrHistFmt;

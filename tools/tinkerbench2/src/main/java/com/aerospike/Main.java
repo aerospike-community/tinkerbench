@@ -92,6 +92,8 @@ public class Main extends TinkerBench2Args {
         LogSource logger = new LogSource(debug);
         logger.title(this);
 
+        System.out.printf("Application PID: %s%n", Helpers.GetPid());
+
         if(logger.loggingEnabled()) {
             Helpers.Println(System.out,
                     "Logging Enabled",
