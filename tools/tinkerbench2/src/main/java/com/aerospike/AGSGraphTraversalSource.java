@@ -57,7 +57,7 @@ public final class AGSGraphTraversalSource  implements AGSGraphTraversal, Closea
                         logger.error(msg, e);
                         System.err.printf("%s%n\tAborting Run...%n",
                                 msg);
-                        openTelemetry.addException((Exception) e.getCause());
+                        openTelemetry.addException(e);
                         args.abortRun.set(true);
                         this.cluster = null;
                         this.g = null;
@@ -69,7 +69,7 @@ public final class AGSGraphTraversalSource  implements AGSGraphTraversal, Closea
                         logger.error(msg, e);
                         System.err.printf("%s%n\tAborting Run...%n",
                                 msg);
-                        openTelemetry.addException((Exception) e.getCause());
+                        openTelemetry.addException(e);
                         args.abortRun.set(true);
                         this.cluster = null;
                         this.g = null;
@@ -82,7 +82,7 @@ public final class AGSGraphTraversalSource  implements AGSGraphTraversal, Closea
                         logger.error(msg, e);
                         System.err.printf("%s%n\tAborting Run...%n",
                                 msg);
-                        openTelemetry.addException((Exception) e.getCause());
+                        openTelemetry.addException(e);
                         args.abortRun.set(true);
                         this.cluster = null;
                         this.g = null;
@@ -101,7 +101,7 @@ public final class AGSGraphTraversalSource  implements AGSGraphTraversal, Closea
                         else
                             System.err.println("\tEnable logging for error details...");
 
-                        openTelemetry.addException((Exception) e.getCause());
+                        openTelemetry.addException(e);
                         args.abortRun.set(true);
                         this.cluster = null;
                         this.g = null;
