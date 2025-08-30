@@ -543,29 +543,6 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
         return result;
     }
 
-    private static String getErrorMessage(Throwable error, int depth) {
-
-        if(error == null) { return "<Null>"; }
-        String errMsg = error.getMessage();
-        if(errMsg == null) {
-            if(depth > 50)
-                return error.toString();
-            if(error instanceof ResponseException re) {
-                String msg = re.getMessage();
-                Optional<String> value = re.getRemoteStackTrace();
-                return String.format("%s: %sRemoteStackTrace: %s",
-                                        re.getClass().getName(),
-                                        msg == null ? "" : msg + " ",
-                                        value.orElse(""));
-            }
-            return getErrorMessage(error.getCause(), depth + 1);
-        }
-        return errMsg;
-    }
-
-    private static String getErrorMessage(Throwable error) {
-       return getErrorMessage(error, 0);
-    }
 
     public WorkloadProvider PrintSummary(PrintStream printStream, boolean useHdrHistFmt) {
 
@@ -641,7 +618,7 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
                 try {
                     Map<String, List<Exception>> sameMsgs = entry.getValue()
                             .stream()
-                            .collect(Collectors.groupingBy(WorkloadProviderScheduler::getErrorMessage));
+                            .collect(Collectors.groupingBy(Helpers::getErrorMessage));
                     if (entry.getValue().size() == sameMsgs.size()) {
                         printStream.printf("\tCnt: %d\tException: %s\t'%s'%n",
                                 entry.getValue().size(),

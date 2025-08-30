@@ -31,6 +31,7 @@ public final class AGSGraphTraversalSource  implements AGSGraphTraversal, Closea
                                                     ? Cluster.build()
                                                     : Cluster.build(args.clusterConfigurationFile);
 
+
             if( args.clusterConfigurationFile == null) {
                 clusterBuilder.port(args.port);
 
@@ -39,46 +40,141 @@ public final class AGSGraphTraversalSource  implements AGSGraphTraversal, Closea
                 }
             }
 
-            if (args.appTestMode) {
-                this.cluster = null;
-                System.err.println();
-                System.err.println("Warning: Running in Test Mode!");
-                System.err.println("\tNo AGS connection will be attempted!");
-                System.err.println();
-                logger.warn("Running in Test Mode! No Connection!");
-            }
-            else
-                this.cluster = clusterBuilder.create();
+            if(args.clusterBuilderOptions != null) {
+                for(GraphConfigOptions opt : args.clusterBuilderOptions) {
+                    try {
+                        logger.PrintDebug("AGS Cluster Builder Option",
+                                "Setting %s=%s",
+                                opt.getKey(), opt.getValue());
+                        Helpers.UpdateFieldSetter(clusterBuilder,
+                                                    opt.getKey(),
+                                                    opt.getValue(),
+                                                    false);
+                    } catch (NoSuchMethodException e) {
+                        String msg = String.format("Cluster Builder option '%s' (value '%s') does not exist. Please provide a valid option.",
+                                                    opt.getKey(),
+                                                    opt.getValue());
+                        logger.error(msg, e);
+                        System.err.printf("%s%n\tAborting Run...%n",
+                                msg);
+                        openTelemetry.addException((Exception) e.getCause());
+                        args.abortRun.set(true);
+                        this.cluster = null;
+                        this.g = null;
+                        return;
+                    } catch (IllegalAccessException e) {
+                        String msg = String.format("Cluster Builder option '%s' (value '%s') cannot be accessed. Is this a valid option that can be updated?",
+                                opt.getKey(),
+                                opt.getValue());
+                        logger.error(msg, e);
+                        System.err.printf("%s%n\tAborting Run...%n",
+                                msg);
+                        openTelemetry.addException((Exception) e.getCause());
+                        args.abortRun.set(true);
+                        this.cluster = null;
+                        this.g = null;
+                        return;
+                    } catch (IllegalArgumentException e) {
+                        String msg = String.format("Cluster Builder option '%s' with value '%s' (type provided %s) is an invalid value or incorrect type. Please provide the correct value or type for this option...",
+                                                    opt.getKey(),
+                                                    opt.getValue(),
+                                                    opt.getValue().getClass().getSimpleName());
+                        logger.error(msg, e);
+                        System.err.printf("%s%n\tAborting Run...%n",
+                                msg);
+                        openTelemetry.addException((Exception) e.getCause());
+                        args.abortRun.set(true);
+                        this.cluster = null;
+                        this.g = null;
+                        return;
+                    } catch (Exception e) {
+                        String msg = String.format("Cluster Builder option '%s' could not be set with value '%s'.%n\tTrying to set this option cased an exception!%n\t\tException Message: %s",
+                                                    opt.getKey(),
+                                                    opt.getValue(),
+                                                    Helpers.getErrorMessage(e));
+                        logger.PrintDebug(msg, e);
+                        logger.error(msg, e);
+                        System.err.printf("%s%n\tAborting Run...%n",
+                                            msg);
+                        if(logger.loggingEnabled())
+                            System.err.println("\tReview log for error details...");
+                        else
+                            System.err.println("\tEnable logging for error details...");
 
-            if (args.appTestMode)
+                        openTelemetry.addException((Exception) e.getCause());
+                        args.abortRun.set(true);
+                        this.cluster = null;
+                        this.g = null;
+                        return;
+                    }
+                }
+            }
+
+            {
+                final Cluster tmpCluster;
+
+                if (args.appTestMode) {
+                    tmpCluster = null;
+                    System.err.println();
+                    System.err.println("Warning: Running in Test Mode!");
+                    System.err.println("\tNo AGS connection will be attempted!");
+                    System.err.println();
+                    logger.warn("Running in Test Mode! No Connection!");
+                } else {
+                    try {
+                        tmpCluster = clusterBuilder.create();
+                    } catch (IllegalArgumentException e) {
+                        logger.error("Error creating GraphTraversalSource", e);
+                        if (args.clusterConfigurationFile == null)
+                            System.err.printf("Error occurred trying to connect to '%s' at port %d%n",
+                                    String.join(",", args.agsHosts),
+                                    args.port);
+                        else
+                            System.err.printf("Error occurred trying to connect using builder file '%s'%n",
+                                    args.clusterConfigurationFile);
+                        System.err.printf("\tCluster Builder Error:%n\t\t%s%n", e.getMessage());
+                        openTelemetry.addException(e);
+                        args.abortRun.set(true);
+                        this.cluster = null;
+                        this.g = null;
+                        return;
+                    }
+                }
+
+                this.cluster = tmpCluster;
+            }
+
+            if (args.appTestMode || cluster == null) {
                 this.g = null;
-            else {
+            } else {
                 logger.PrintDebug("AGS",
                         "Creating GraphTraversalSource...");
-                
-                GraphTraversalSource gdb = traversal().withRemote(DriverRemoteConnection.using(cluster));
 
-                if(args.gremlinConfigOptions != null) {
-                    for(GraphConfigOptions opt : args.gremlinConfigOptions) {
-                        gdb = gdb.with(opt.getKey(),
-                                        opt.getValue());
-                        logger.PrintDebug("AGSGraphTraversalSource",
-                                            "Setting %s=%s",
-                                            opt.getKey(), opt.getValue());
+                {
+                    GraphTraversalSource gdb = traversal().withRemote(DriverRemoteConnection.using(cluster));
+
+                    if (args.gremlinConfigOptions != null) {
+                        for (GraphConfigOptions opt : args.gremlinConfigOptions) {
+                            logger.PrintDebug("AGS Gremlin Option",
+                                    "Set %s=%s",
+                                    opt.getKey(), opt.getValue());
+                            gdb = gdb.with(opt.getKey(),
+                                    opt.getValue());
+                        }
                     }
-                }
 
-                if(args.asConfigOptions != null) {
-                    for(GraphConfigOptions opt : args.asConfigOptions) {
-                        gdb = gdb.with(opt.getKey(),
-                                opt.getValue());
-                        logger.PrintDebug("AGSGraphTraversalSource",
-                                "Aerospike Setting %s=%s",
-                                opt.getKey(), opt.getValue());
+                    if (args.asConfigOptions != null) {
+                        for (GraphConfigOptions opt : args.asConfigOptions) {
+                            logger.PrintDebug("AGS Aerospike-Gremlin Option",
+                                    "Aerospike Setting %s=%s",
+                                    opt.getKey(), opt.getValue());
+                            gdb = gdb.with(opt.getKey(),
+                                    opt.getValue());
+                        }
                     }
-                }
 
-                this.g = gdb;
+                    this.g = gdb;
+                }
                 try {
                     if (g.inject(0).next() == 0) {
                         Helpers.Println(System.out,
@@ -113,12 +209,15 @@ public final class AGSGraphTraversalSource  implements AGSGraphTraversal, Closea
                     }
                 }
             }
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             logger.error("Error creating GraphTraversalSource", e);
-            System.err.printf("Error occurred trying to connect to '%s' at port %d%n%n",
-                                String.join(",", args.agsHosts),
-                                args.port);
+            if(args.clusterConfigurationFile == null)
+                System.err.printf("Error occurred trying to connect to '%s' at port %d%n%n",
+                                        String.join(",", args.agsHosts),
+                                        args.port);
+            else
+                System.err.printf("Error occurred trying to connect using builder file '%s'%n%n",
+                                    args.clusterConfigurationFile);
             System.err.printf("\tError is %s%n",
                                 e.getClass().getSimpleName());
             System.err.printf("\tError Message is %s%n",

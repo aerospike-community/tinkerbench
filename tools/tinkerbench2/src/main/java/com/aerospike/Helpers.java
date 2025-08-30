@@ -1,13 +1,16 @@
 package com.aerospike;
 
+import org.apache.tinkerpop.gremlin.driver.exception.ResponseException;
 import org.javatuples.Pair;
 
 import java.io.*;
 import java.lang.management.ManagementFactory;
 import java.lang.management.RuntimeMXBean;
 import java.lang.reflect.Constructor;
+import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 
+import java.lang.reflect.Method;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
@@ -272,6 +275,30 @@ public class Helpers {
         return sb.toString().trim();
     }
 
+    public static String getErrorMessage(Throwable error, int depth) {
+
+        if(error == null) { return "<Null>"; }
+        String errMsg = error.getMessage();
+        if(errMsg == null) {
+            if(depth > 50)
+                return error.toString();
+            if(error instanceof ResponseException re) {
+                String msg = re.getMessage();
+                Optional<String> value = re.getRemoteStackTrace();
+                return String.format("%s: %sRemoteStackTrace: %s",
+                        re.getClass().getName(),
+                        msg == null ? "" : msg + " ",
+                        value.orElse(""));
+            }
+            return getErrorMessage(error.getCause(), depth + 1);
+        }
+        return errMsg;
+    }
+
+    public static String getErrorMessage(Throwable error) {
+        return getErrorMessage(error, 0);
+    }
+
     public static Pair<String,String> GetPidThreadId() {
         String pidString = "<pid>";
         String threadId = "<thread>";
@@ -434,6 +461,39 @@ public class Helpers {
             return dt;
         }
         return null;
+    }
+
+    public static <T,V> void UpdateField(T instance,
+                                             String fieldName,
+                                             V value,
+                                             boolean fieldIsPrivate) throws NoSuchFieldException, IllegalAccessException {
+
+        final Field field = instance.getClass().getField( fieldName);
+        if(fieldIsPrivate) {
+            field.setAccessible(true);
+        }
+        field.set(instance, value); // Update the value
+    }
+
+    public static <T,V> void UpdateFieldSetter(T instance,
+                                                 String setterName,
+                                                 V value,
+                                                 boolean fieldIsPrivate) throws NoSuchMethodException, InvocationTargetException, IllegalAccessException, IllegalArgumentException {
+
+        final Method[] setters = instance.getClass().getMethods();
+
+        for(Method setter : Arrays.stream(setters)
+                                .filter(i -> i.getParameterCount() == 1)
+                                .toList()) {
+            if(setter.getName().equals(setterName)) {
+                if(fieldIsPrivate) {
+                    setter.setAccessible(true);
+                }
+                setter.invoke(instance, value);
+                return;
+            }
+        }
+        throw new NoSuchMethodException(String.format("Setter %s not found", setterName));
     }
 
 }

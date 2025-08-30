@@ -79,10 +79,15 @@ public abstract class TinkerBench2Args implements Callable<Integer> {
             defaultValue = "8182")
     int port;
 
-    @Option(names = {"-b", "--clusterBuildConfigFile"},
+    @Option(names = {"-bf", "--clusterBuildConfigFile"},
             converter = FileExistConverter.class,
             description = "A Cluster Build Configuration File. Default is ${DEFAULT-VALUE}")
     File clusterConfigurationFile;
+
+    @Option(names = {"-b", "--clusterBuild"},
+            converter = GraphConfigOptionsConverter.class,
+            description = "Cluster builder options.%nMust be in the form of 'PropertyName=PropertyValue'.%nExample:%n\t-b maxConnectionPoolSize=10%n\t-b MaxInProcessPerConnection=100%nYou can specify this command multiple time (one per option).")
+    GraphConfigOptions[] clusterBuilderOptions;
 
     @Option(names = {"-wu", "--WarmupDuration"},
             converter = DurationConverter.class,
