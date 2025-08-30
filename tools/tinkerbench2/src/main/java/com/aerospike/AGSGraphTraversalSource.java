@@ -163,16 +163,6 @@ public final class AGSGraphTraversalSource  implements AGSGraphTraversal, Closea
                         }
                     }
 
-                    if (args.asConfigOptions != null) {
-                        for (GraphConfigOptions opt : args.asConfigOptions) {
-                            logger.PrintDebug("AGS Aerospike-Gremlin Option",
-                                    "Aerospike Setting %s=%s",
-                                    opt.getKey(), opt.getValue());
-                            gdb = gdb.with(opt.getKey(),
-                                    opt.getValue());
-                        }
-                    }
-
                     this.g = gdb;
                 }
                 try {

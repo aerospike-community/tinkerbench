@@ -12,12 +12,12 @@ public class GraphConfigOptions {
 
     public static GraphConfigOptions Create(String kvpStr) {
         if(kvpStr == null || kvpStr.isEmpty()) {
-            throw new IllegalArgumentException("Cluster Builder's argument cannot be null or an empty string");
+            throw new IllegalArgumentException("Graph Option's argument cannot be null or an empty string");
         }
 
         Matcher m = kvPattern.matcher(kvpStr.trim());
         if(!m.matches()) {
-            throw new IllegalArgumentException(String.format("Cluster Builder's argument '%s' is not a valid key", kvpStr));
+            throw new IllegalArgumentException(String.format("Graph Option's argument '%s' is not a valid key", kvpStr));
         }
 
         return new GraphConfigOptions(m.group("key"),
