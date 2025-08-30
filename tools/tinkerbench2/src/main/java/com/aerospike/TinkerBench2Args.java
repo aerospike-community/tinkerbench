@@ -97,12 +97,12 @@ public abstract class TinkerBench2Args implements Callable<Integer> {
 
     @Option(names = {"-g", "--gremlin"},
             converter = GraphConfigOptionsConverter.class,
-            description = "Aerospike or Gremlin configuration options.%nMust be in the form of 'PropertyName=PropertyValue'.%nExample:%n\t-g evaluationTimeout=30000%n\t-g aerospike.client.policy.maxRetries=2%nYou can specify this command multiple time (one per option).")
+            description = "Aerospike or Gremlin Traversal configuration options.%nMust be in the form of 'PropertyName=PropertyValue'.%nExample:%n\t-g evaluationTimeout=30000%n\t-g aerospike.client.policy.maxRetries=2%nYou can specify this command multiple time (one per option).")
     GraphConfigOptions[] gremlinConfigOptions;
 
     @Option(names = {"-as", "--aerospike"},
             converter = AerospikeConfigOptionsConverter.class,
-            description = "Only for Aerospike configuration options.%nMust be in the format of 'OptionName=OptionValue'.%nYou are not required to include the 'aerospike' prefix in the option's name.%nExample:%n\t-as graph.parallelize=10%n\t-as client.policy.maxRetries=2%nYou can specify this command multiple time (one per option).")
+            description = "Only for Aerospike Traversal configuration options.%nMust be in the format of 'OptionName=OptionValue'.%nYou are not required to include the 'aerospike' prefix in the option's name.%nExample:%n\t-as graph.parallelize=10%n\t-as client.policy.maxRetries=2%nYou can specify this command multiple time (one per option).")
     GraphConfigOptions[] asConfigOptions;
 
     @Option(names = {"-sd","--shutdown"},
