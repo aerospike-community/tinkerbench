@@ -51,7 +51,7 @@ public final class AGSGraphTraversalSource  implements AGSGraphTraversal, Closea
                                                     opt.getValue(),
                                                     false);
                     } catch (NoSuchMethodException e) {
-                        String msg = String.format("Cluster Builder option '%s' (value '%s') does not exist. Please provide a valid option.",
+                        String msg = String.format("Error Cluster Builder option '%s' (value '%s') does not exist. Please provide a valid option.",
                                                     opt.getKey(),
                                                     opt.getValue());
                         logger.error(msg, e);
@@ -63,7 +63,7 @@ public final class AGSGraphTraversalSource  implements AGSGraphTraversal, Closea
                         this.g = null;
                         return;
                     } catch (IllegalAccessException e) {
-                        String msg = String.format("Cluster Builder option '%s' (value '%s') cannot be accessed. Is this a valid option that can be updated?",
+                        String msg = String.format("Error Cluster Builder option '%s' (value '%s') cannot be accessed. Is this a valid option that can be updated?",
                                 opt.getKey(),
                                 opt.getValue());
                         logger.error(msg, e);
@@ -75,7 +75,7 @@ public final class AGSGraphTraversalSource  implements AGSGraphTraversal, Closea
                         this.g = null;
                         return;
                     } catch (IllegalArgumentException e) {
-                        String msg = String.format("Cluster Builder option '%s' with value '%s' (type provided %s) is an invalid value or incorrect type. Please provide the correct value or type for this option...",
+                        String msg = String.format("Error Cluster Builder option '%s' with value '%s' (type provided %s) is an invalid value or incorrect type. Please provide the correct value or type for this option...",
                                                     opt.getKey(),
                                                     opt.getValue(),
                                                     opt.getValue().getClass().getSimpleName());
@@ -88,7 +88,7 @@ public final class AGSGraphTraversalSource  implements AGSGraphTraversal, Closea
                         this.g = null;
                         return;
                     } catch (Exception e) {
-                        String msg = String.format("Cluster Builder option '%s' could not be set with value '%s'.%n\tTrying to set this option cased an exception!%n\t\tException Message: %s",
+                        String msg = String.format("Error Cluster Builder option '%s' could not be set with value '%s'.%n\tTrying to set this option cased an exception!%n\t\tException Message: %s",
                                                     opt.getKey(),
                                                     opt.getValue(),
                                                     Helpers.getErrorMessage(e));
