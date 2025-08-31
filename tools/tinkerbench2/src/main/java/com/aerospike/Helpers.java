@@ -11,10 +11,7 @@ import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 
 import java.lang.reflect.Method;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
-import java.time.ZoneOffset;
-import java.time.ZonedDateTime;
+import java.time.*;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.jar.JarEntry;
@@ -505,4 +502,64 @@ public class Helpers {
         throw new NoSuchMethodException(String.format("Setter %s not found", setterName));
     }
 
+    /*
+        value being rounded
+        scale is the Significant Digits represented as that number to the power of 10.
+            Example:
+                Significant Digits = 3
+                Scale = 10^3 (1000)
+     */
+    public static double RoundNumberOfSignificantDigitsScale(double value, double scale) {
+       return Math.round(value * scale) / scale;
+    }
+
+    public static double RoundNumberOfSignificantDigits(double value, int significantDigits) {
+        if(significantDigits == 0) return Math.round(value);
+
+        final double scale = Math.pow(10, significantDigits);
+        return Math.round(value * scale) / scale;
+    }
+
+    public static String FmtDuration(Duration duration) {
+        final long hours = duration.toHours();
+        final int minutes = duration.toMinutesPart();
+        final int seconds = duration.toSecondsPart();
+        final int milliseconds = duration.toMillisPart();
+
+        if(hours > 0) {
+            return String.format("%02dH%02dM%02d.%03dS",
+                                    hours,
+                                    minutes,
+                                    seconds,
+                                    milliseconds);
+        }
+        if(minutes > 0) {
+            return String.format("%02dM%02d.%03dS",
+                                    minutes,
+                                    seconds,
+                                    milliseconds);
+        }
+        if(seconds > 0) {
+            return String.format("%02d.%03dS",
+                    seconds,
+                    milliseconds);
+        }
+        return String.format("%,dMS", milliseconds);
+    }
+
+    public static String FmtInt(int value) {
+        if(value >= 1_000_000_000) {
+            return String.format("%,fG",
+                    RoundNumberOfSignificantDigits((double) value/1_000_000_000.0, 3));
+        }
+        if(value >= 1000000) {
+            return String.format("%,fM",
+                    RoundNumberOfSignificantDigits((double) value/1000000.0, 3));
+        }
+        if(value >= 1000) {
+            return String.format("%,fK",
+                    RoundNumberOfSignificantDigits((double) value/1000.0, 3));
+        }
+        return String.format("%,d", value);
+    }
 }

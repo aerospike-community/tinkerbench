@@ -145,13 +145,12 @@ public class Main extends TinkerBench2Args {
             String msg = String.format("Application\tStarted: %s\tEnded: %s%n",
                                                 Helpers.GetLocalTimeZone(appStartTime),
                                                 Helpers.GetLocalTimeZone(appEndTime));
-            if(this.promEnabled) {
-                final String grafanaRange = Helpers.PrintGrafanaRangeJson(appStartTime,
+            final String grafanaRange = Helpers.PrintGrafanaRangeJson(appStartTime,
                                                                     appEndTime);
-                if (grafanaRange != null) {
-                    msg += String.format("%s%n", grafanaRange);
-                }
+            if (grafanaRange != null) {
+                msg += String.format("%s%n", grafanaRange);
             }
+
             Helpers.Println(System.out,
                     msg,
                     Helpers.BLACK,

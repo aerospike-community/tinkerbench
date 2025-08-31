@@ -439,12 +439,11 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
                                                     Helpers.GetLocalTimeZone(startDateTime),
                                                     Helpers.GetLocalTimeZone(stopDateTime));
 
-                if(openTelemetry.isEnabled()) {
-                    final String grafanaRange = Helpers.PrintGrafanaRangeJson(startDateTime, stopDateTime);
-                    if(grafanaRange != null) {
-                        msg += String.format("%s%n", grafanaRange);
-                    }
+                final String grafanaRange = Helpers.PrintGrafanaRangeJson(startDateTime, stopDateTime);
+                if(grafanaRange != null) {
+                    msg += String.format("%s%n", grafanaRange);
                 }
+
                 Helpers.Println(System.out,
                         msg,
                         Helpers.BLACK,
@@ -556,6 +555,8 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
             final long totalCount = getSuccessCount()
                     + getErrorCount()
                     + getAbortedCount();
+            final double pctQPSDiff = Helpers.RoundNumberOfSignificantDigits((getCallsPerSecond() / getTargetCallsPerSecond()) * 100.0, 2);
+            final double pctDurDiff = Helpers.RoundNumberOfSignificantDigits(((double) getRunningDuration().toMillis() / getTargetRunDuration().toMillis()) * 100.0, 2);
 
             printStream.printf("%s Summary for %s:%n",
                     warmup ? "Warmup " : "Workload",
@@ -563,22 +564,27 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
             printStream.printf("\tStatus: %s%n", abortRun.get()
                     ? getStatus() + " (Signaled)"
                     : getStatus());
-            printStream.printf("\tRuntime Duration: %s%n", getRunningDuration());
+            printStream.printf("\tRuntime Duration: %s (%.2f%% of Target Duration)%n",
+                                    Helpers.FmtDuration(getRunningDuration()),
+                                    pctDurDiff);
 
-            printStream.println("\tSuccessful Operations");
-            printStream.printf("\t\tMean OPS: %,.2f%n", getCallsPerSecond());
-            printStream.printf("\t\tOperations: %,d%n", getSuccessCount());
-            printStream.printf("\t\tAccumulative Duration: %s%n", getAccumSuccessDuration());
+            printStream.println("\tSuccessful Queries");
+            printStream.printf("\t\tMean QPS: %,.2f (%.2f%% of Target Rate of %s)%n",
+                                getCallsPerSecond(),
+                                pctQPSDiff,
+                                Helpers.FmtInt(getTargetCallsPerSecond()));
+            printStream.printf("\t\tQueries: %,d%n", getSuccessCount());
+            printStream.printf("\t\tCPU Time: %s%n", getAccumSuccessDuration());
 
-            printStream.println("\tOperation Errors");
-            printStream.printf("\t\tMean OPS: %,.2f%n", getErrorsPerSecond());
+            printStream.println("\tQuery Errors");
+            printStream.printf("\t\tMean EPS: %,.2f%n", getErrorsPerSecond());
             printStream.printf("\t\tErrors: %,d%n", getErrorCount());
-            printStream.printf("\t\tAccumulative Duration: %s%n", getAccumErrorDuration());
+            printStream.printf("\t\tCPU Time: %s%n", getAccumErrorDuration());
+            printStream.printf("\tAborted Queries: %,d%n", getAbortedCount());
 
-            printStream.printf("\tAccumulative of all Operation Durations: %s%n", getAccumDuration());
-
-            printStream.printf("\tAborted Operations: %,d%n", getAbortedCount());
-            printStream.printf("\tTotal Number of All Operations: %,d%n", totalCount);
+            printStream.println("\tAll Operations");
+            printStream.printf("\t\tCPU Time: %s%n", getAccumDuration());
+            printStream.printf("\t\tTotals: %,d%n", totalCount);
         }
         //Queue Depth Report
         {
@@ -669,27 +675,33 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
                         queryRunnable.Name());
                 final double[] desiredPercentiles = {50.0, 90.0, 95.0, 99.0, 99.9};
                 final double scale = numberOfSignificantDigitsScale;
+                final String percentileFmtStr = String.format("\t\t%%,.2f\t\t%%,.%df\t\t%%,d%%n",
+                                                                numberOfSignificantValueDigits);
+                final String overviewFmtStr = String.format("Mean is %%,.%dfms%%nMaximum is %%,.%dfms%%nStdDeviation is %%,.%df%%n",
+                                                                numberOfSignificantValueDigits,
+                                                                numberOfSignificantValueDigits,
+                                                                numberOfSignificantValueDigits);
 
                 printStream.printf("\t\tPercentile\tValue [ms]\tCount%n");
                 for (double desiredPercentile : desiredPercentiles) {
                     final Pair<Double, Long> latencyCnt = getLatencyMSCountAtPercentile(desiredPercentile);
 
-                    printStream.printf("\t\t%,.2f\t\t%,.3f\t\t%,d%n",
+                    printStream.printf(percentileFmtStr,
                             desiredPercentile,
                             latencyCnt.getValue0(),
                             latencyCnt.getValue1());
                 }
                 final double meanValue = histogram.getMean();
-                final double meanRoundedValue = Math.round((meanValue / Helpers.NS_TO_MS) * scale) / scale;
+                final double meanRoundedValue = Helpers.RoundNumberOfSignificantDigitsScale(meanValue / Helpers.NS_TO_MS, scale);
                 final long maxValue = histogram.getMaxValue();
-                final double maxRoundedValue = Math.round((maxValue / Helpers.NS_TO_MS) * scale) / scale;
+                final double maxRoundedValue = Helpers.RoundNumberOfSignificantDigitsScale(maxValue / Helpers.NS_TO_MS, scale);
                 final double stdValue = histogram.getStdDeviation();
-                final double stdRoundedValue = Math.round((stdValue / Helpers.NS_TO_MS) * scale) / scale;
+                final double stdRoundedValue = Helpers.RoundNumberOfSignificantDigitsScale(stdValue / Helpers.NS_TO_MS, scale);
 
-                printStream.printf("Mean is %,.3fms%nMaximum is %,.3fms%nStdDeviation is %,.3f%n",
-                        meanRoundedValue,
-                        maxRoundedValue,
-                        stdRoundedValue);
+                printStream.printf(overviewFmtStr,
+                                    meanRoundedValue,
+                                    maxRoundedValue,
+                                    stdRoundedValue);
             }
         }
         printStream.println();
