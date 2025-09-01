@@ -549,15 +549,15 @@ public class Helpers {
 
     public static String FmtInt(int value) {
         if(value >= 1_000_000_000) {
-            return String.format("%,fG",
+            return String.format("%,.3fG",
                     RoundNumberOfSignificantDigits((double) value/1_000_000_000.0, 3));
         }
         if(value >= 1000000) {
-            return String.format("%,fM",
+            return String.format("%,.3fM",
                     RoundNumberOfSignificantDigits((double) value/1000000.0, 3));
         }
         if(value >= 1000) {
-            return String.format("%,fK",
+            return String.format("%,.3fK",
                     RoundNumberOfSignificantDigits((double) value/1000.0, 3));
         }
         return String.format("%,d", value);

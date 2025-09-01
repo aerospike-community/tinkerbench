@@ -2,7 +2,6 @@ package com.aerospike;
 
 import org.HdrHistogram.*;
 
-import org.apache.tinkerpop.gremlin.driver.exception.ResponseException;
 import org.apache.tinkerpop.gremlin.process.traversal.util.TraversalInterruptedException;
 import org.javatuples.Pair;
 import org.slf4j.Logger;
@@ -13,7 +12,6 @@ import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Vector;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -71,6 +69,7 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
                                      Duration targetRunDuration,
                                      boolean warmup,
                                      TinkerBench2Args cliArgs) {
+
         this.hdrHistFmt = cliArgs.hdrHistFmt;
         this.abortRun = cliArgs.abortRun;
         this.terminateRun = cliArgs.terminateRun;
@@ -1016,4 +1015,5 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
                 toString());
 
     }
+
 }

@@ -29,9 +29,10 @@ Below are the arguments and description:
 -   \--ags, -a (String, Default localhost) – One or more graph nodes’ IP address or host name. To provide multiple nodes, each node must be paired with this argument. **Examples**:
     -   `–ags myGraphNodeName`
     -   `-ags 10.1.1.1123`
-    -   `-a 10.1.1.1123 -a 10.1.1.1124 -a 10.1.1.1125` Providing multiple graph node addresses
+    -   `“-a 10.1.1.1123 -ags 10.1.1.1124 -a 10.1.1.1125”`  
+        Example of providing multiple graph node addresses
 -   \--port (Integer, Default 8182) – Graph node’s connection port number.
--   \--QueriesPerSec, -q (Integer, Default 100) -- The targeted number of queries per seconds. TinkerBench will try to achieve and maintain this target for the query duration based on the scheduler and worker arguments. See \<\*\*tuning\> for additional information.
+-   \--QueriesPerSec, -qps, -q (Integer, Default 100) -- The targeted number of queries per seconds. TinkerBench will try to achieve and maintain this target for the query duration based on the scheduler and worker arguments. See \<\*\*tuning\> for additional information.
 -   \--duration, -d (Time, Default 15 minutes) -- The time duration the query is executed for analysis. This would be the main workload for complete analysis. This duration should be long enough for TinkerBench to achieve its’ targeted query rate. The value can take multiple forms. They are:
     -   [ISO 8601](https://docs.oracle.com/javase/8/docs/api/java/time/format/DateTimeFormatter.html) format **Example**: PT1H2M3.5S – one hour, 2 minutes and 3.5 seconds
     -   A number (integer) of seconds **Example**: 45 – 45 seconds
@@ -39,28 +40,30 @@ Below are the arguments and description:
         -   1h30s – one hour and 30 seconds
         -   2hrs45seconds – two hours and 45 seconds
         -   3hours5mins30s – three hours, 5 minutes, and 30 seconds
--   \--WarmupDuration, -wu (Time, Default disabled) – The query “warmup” duration. The warmup is run using the same graph connection that will be used by the main query workload. The warmup helps the graph database to optimize the query and aids TinkerBench in achieving the targeted rate during the main workload analysis. This takes the same value format as the “duration” argument above. A value of zero (0) will disabled the warmup which is the default.
+-   \--WarmupDuration, -wm, -wu (Time, Default disabled) – The query “warmup” duration. The warmup is run using the same graph connection that will be used by the main query workload. The warmup helps the graph database to optimize the query and aids TinkerBench in achieving the targeted rate during the main workload analysis. This takes the same value format as the “duration” argument above. A value of zero (0) will disabled the warmup which is the default.
 -   \--schedulers, -s (Integer, Default depends on cores) – Schedulers are used to manage workers to control the query rate. The default number of schedules is based on the quarter of the number of cores of the machine TinkerBench is currently executing on. A value of -1 will indicate to use the default value. For more information, see the \<\*\*tuning\> section. **Example**: 20 core machine -\> there will be 4 schedulers.
 -   \--workers, -w (Integer, Default depends on cores) -- The number of workers per scheduler. A worker is responsible for executing a single query instance and collecting data from that instance for analysis. The default number of workers is based on half of the number of cores of the machine TinkerBench is currently executing on. A value of -1 will indicate to use the default value. For more information, see the \<\*\*tuning\> section. **Example**: 20 core machines -\> there will be 10 workers per scheduler (total of 40 workers over 4 schedulers).
 -   \--IdSampleSize, -sample (Integer, Default 500,000) – The number of vertex ids that will be retrieved from the database that will be used as a vertex id by the query, if required. If the query doesn’t use a random vertex id, this feature is disabled. See argument “*—IdSampleLabel*” for additional information. For more information, see \<\*\*vertex manager\>.
 -   \--IdSampleLabel, -label (String, Default is None) – If provided, this is a label that is used in retrieving the vertex ids from the database. These ids, if required by the query, are used by the query as a random vertex id to the query. If the See argument *“—IdSampleSize*” for additional information. For more information, see \<\*\*vertex manager\>.
--   \-prom (Flag) – If provided, enables the [Prometheus](https://prometheus.io/) exporter which provides near real-time metrics of the running TinkerBench application in TinkerBench [Grafana](https://grafana.com/grafana/dashboards/) dashboard. For more information, see \<\*\*prom\> section.
--   \-HdrHistFmt -- If provided, the summary console output upon exit of the TinkerBench application will provide an [HdrHistogram](https://github.com/HdrHistogram) Latency table. This table can be used by the [HdrHistogram plotter](https://hdrhistogram.github.io/HdrHistogram/plotFiles.html). If not provided a “Summary latency” is provided. For more information, see the [Output](#understanding-output) section. **Note**: The HdrHistogram table is always provided in the log file, if logging is enabled.
+-   \--Prometheus, -prom (Flag) – If provided, enables the [Prometheus](https://prometheus.io/) exporter which provides near real-time metrics of the running TinkerBench application in TinkerBench [Grafana](https://grafana.com/grafana/dashboards/) dashboard. For more information, see \<\*\*prom\> section.
+-   \--HdrHistFmt, -hg -- If provided, the summary console output upon exit of the TinkerBench application will provide an [HdrHistogram](https://github.com/HdrHistogram) Latency table. This table can be used by the [HdrHistogram plotter](https://hdrhistogram.github.io/HdrHistogram/plotFiles.html). If not provided a “Summary latency” is provided. For more information, see the [Output](#understanding-output) section. **Note**: The HdrHistogram table is always provided in the log file, if logging is enabled.
 -   \--Errors, -e (Integer, Default 150) – The total number of error occurrences that will cause TinkerBench to shutdown query analysis and display the console summary.
 -   \--version, -V – Prints the TinkerBench and Gremlin client version information.
 
 ### Advance or Rarely Used Arguments
 
--   \--aerospike, -as (Key/Value Pair) – One or more [Aerospike graph traversal configuration options](https://aerospike.com/docs/graph/reference/config/) as a key/value pair (OptionName=OptionValue). This argument can only be used for Aerospike options (not Gremlin options, see “—gremlin” argument). You are not required to include the “aerospike” prefix before the option name. For each option, you need to provide this argument. **Examples**:
-    -   `-as graph.parallelize=10 -as client.policy.maxRetries=2` Provides the aerospike.graph.parallelize and aerospike.client.policy.maxRetries configuration for this run
-    -   `-as aerospike.graph-service.gremlinPool=4`
--   \--clusterBuildConfigFile, -b (File Path) – [Gremlin cluster builder configuration](https://www.gremlin.com/docs/getting-started-agent-configuration) file.
+-   \-background (Flag) – This flag will indicate that TinkerBench2 will be running as a “background” process. In this mode, certain console output (e.g., progression bar) is suppressed.
+-   \--clusterBuildConfigFile, -bf (File Path) – [Gremlin cluster builder configuration](https://www.gremlin.com/docs/getting-started-agent-configuration) file.
+-   \--clusterBuild, -b (Key/Value Pair) – One or more [Cluster Builder](https://tinkerpop.apache.org/javadocs/current/full/org/apache/tinkerpop/gremlin/driver/Cluster.Builder.html) options as a key/value pair (OptionName=OptionValue). Examples:
+    -   “-b maxConnectionPoolSize=10 -b maxInProcessPerConnection=100”  
+        This will update the maximum size of the ConnectionPool and the maximum number of in-flight requests for a Connection.
 -   \--gremlin, -g (Key/Value Pair) – One or more Gremlin traversal source configuration options (i.e., [step modulator](https://tinkerpop.apache.org/docs/current/tutorials/gremlins-anatomy/)) as a key/value pair (OptionName=OptionValue). **Example**:
-    -   `-g evaluationTimeout=30000 -g paging=2` This will update the traversal with an “evaluation time” of 30 seconds and a “paging” value of 2
+    -   `“-g evaluationTimeout=30000 -g paging=2”`  
+        This will update the traversal with an “evaluation time” of 30 seconds and a “paging” value of 2
 -   \--shutdown, -sd (Time, Default 15 seconds) -- Additional time to wait after workload completion (normal or aborted) to allow for proper cleanup. Typically, the default provides enough time for cleanup.
 -   \--prometheusPort (Integer, Default 19090) – The endpoint port used by [Prometheus](https://prometheus.io/docs/prometheus/latest/configuration/configuration/) to obtain the metrics used by the Granfa dashboard.
 -   \--CloseWait (Time, Default 5 seconds) – The wait interval used upon application exit to ensure Prometheus has obtained all the required information. This value should match or exceed the ['scrape interval](https://prometheus.io/docs/prometheus/latest/configuration/configuration/)' in the Prometheus ymal file. This argument is ignored, if Prometheus is disabled (*-no-prom*). **Note**: It is recommended that the scrape interval for the Prometheus TinkerBench job be set to 5 seconds.
--   \-result (Flag) -- Enables the results of **every** Gremlin query execution to be displayed and logged. Should only be used for debugging purposes.
+-   \--result, -r (Flag) -- Enables the results of **every** Gremlin query execution to be displayed and logged. Should only be used for debugging purposes.
 -   \-debug (Flag) -- Enables application debugging tracing and “DEBUG” logging. Should only be used for debugging purposes.
 
 # Understanding Workload and Runtime Stages
@@ -148,7 +151,7 @@ Note that there could be different reasons why the workload was stopped (termina
 | ![A yellow post-it note with a red pin AI-generated content may be incorrect.](media/NotePencil.png) | A Ctrl/Command-C will cause TinkerBench2 to terminal query execution. All Summary Reports will still be produced. In this manner, you can stop long running executions but still receive the reports. |
 |------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 
--   Due to Error – The maximum number of errors was reached or a fatal error was encountered resulting in termination.
+-   Due to Error – The maximum number of errors was reached, or a fatal error was encountered resulting in termination.
 -   Due to Timeout – Query execution progression was not being made based on the Gremlin timeout and execution was terminated.
 
 In any abnormal termination, Stage 6 (Report Results) will always be run providing any results up to the termination.

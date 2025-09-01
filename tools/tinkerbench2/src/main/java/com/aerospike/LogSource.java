@@ -11,7 +11,6 @@ import java.io.Closeable;
 import java.io.PrintStream;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public final class LogSource {

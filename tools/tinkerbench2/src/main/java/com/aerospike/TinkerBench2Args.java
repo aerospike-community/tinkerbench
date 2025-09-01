@@ -64,13 +64,13 @@ public abstract class TinkerBench2Args implements Callable<Integer> {
             defaultValue = "15M")
     Duration duration;
 
-    @Option(names = {"-q", "--QueriesPerSec"},
+    @Option(names = {"-q", "-qps", "--QueriesPerSec"},
             description = "The number of queries per seconds that the workload should reach and maintain. Default is ${DEFAULT-VALUE}",
             defaultValue = "100")
     int queriesPerSecond;
 
-    @Option(names = {"-a", "--ags"},
-            description = "Specify multiple AGS host by -a agsHost1 -a agsHost2, etc.  Default is '${DEFAULT-VALUE}'",
+    @Option(names = {"-a", "--ags", "--server"},
+            description = "Specify the Aerospike Graph Server's host name or IP address.%nMultiple AGS hosts can be given by providing this option multiple times.%nExample:%n\t-a agsHost1 -a agsHost2, etc.%nDefault is '${DEFAULT-VALUE}'",
             defaultValue = "localhost")
     String[] agsHosts;
 
@@ -89,13 +89,13 @@ public abstract class TinkerBench2Args implements Callable<Integer> {
             description = "Cluster builder options.%nMust be in the form of 'PropertyName=PropertyValue'.%nExample:%n\t-b maxConnectionPoolSize=10%n\t-b maxInProcessPerConnection=100%nYou can specify this command multiple time (one per option).")
     GraphConfigOptions[] clusterBuilderOptions;
 
-    @Option(names = {"-wu", "--WarmupDuration"},
+    @Option(names = {"-wu", "-wm", "--WarmupDuration"},
             converter = DurationConverter.class,
             description = "The warmup time duration (wall clock).%nA zero duration will disable the warmup.%nThe format can be in Hour(s)|H|Hr(s), Minute(s)|M|Min(s), and/or Second(s)|S|Sec(s), ISO 8601 format (PT1H2M3.5S), or just an integer value which represents seconds.%nExample:%n\t1h30s -> One hours and 30 seconds%n\t45 -> 45 seconds...%nDefault is ${DEFAULT-VALUE}",
             defaultValue = "0")
     Duration warmupDuration;
 
-    @Option(names = {"-g", "--gremlin"},
+    @Option(names = {"-g", "-t", "--gremlin"},
             converter = GraphConfigOptionsConverter.class,
             description = "Traversal configuration options.%nMust be in the form of 'PropertyName=PropertyValue'.%nExample:%n\t-g evaluationTimeout=30000%nYou can specify this command multiple time (one per option).")
     GraphConfigOptions[] gremlinConfigOptions;
@@ -163,7 +163,7 @@ public abstract class TinkerBench2Args implements Callable<Integer> {
 
     @Option(names = "-background",
             negatable  = false,
-            description = "If provided, certain console output is suppressed or reduced.")
+            description = "If provided, certain console output (e.g., progression bar) is suppressed.")
     public boolean backgroundMode;
 
     public final AtomicBoolean abortRun = new AtomicBoolean(false);

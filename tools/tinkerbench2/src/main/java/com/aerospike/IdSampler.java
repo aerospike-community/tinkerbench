@@ -1,8 +1,6 @@
 package com.aerospike;
 
-import org.apache.tinkerpop.gremlin.driver.exception.ResponseException;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
-import org.apache.tinkerpop.gremlin.process.traversal.step.map.MatchStep;
 
 import java.util.*;
 import java.util.concurrent.CompletionException;
