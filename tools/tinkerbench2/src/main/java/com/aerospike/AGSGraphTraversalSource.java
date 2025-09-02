@@ -6,6 +6,7 @@ import org.apache.tinkerpop.gremlin.process.remote.RemoteConnectionException;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
 
 import java.io.Closeable;
+import java.util.ArrayList;
 import java.util.List;
 
 import static org.apache.tinkerpop.gremlin.process.traversal.AnonymousTraversalSource.traversal;
@@ -15,7 +16,7 @@ public final class AGSGraphTraversalSource  implements AGSGraphTraversal, Closea
     private final Cluster cluster;
     private final GraphTraversalSource g;
     private final List<GraphTraversalSource> gs = null;
-    private final List<Cluster> clusters = null;
+    private final List<Cluster> clusters = new ArrayList<>();
     private final OpenTelemetry openTelemetry;
     private final LogSource logger = LogSource.getInstance();
 
