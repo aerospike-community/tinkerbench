@@ -9,6 +9,7 @@ import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSo
 import org.javatuples.Pair;
 
 import javax.script.*;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -30,7 +31,7 @@ public final class EvalQueryWorkloadProvider extends QueryWorkloadProvider {
     String formatDefinedId;
     //Can just use the id directory, no string format required...
     boolean formatIdRequired;
-    List<Bindings> bindings;
+    List<Bindings> bindings = new ArrayList<>();
     ThreadLocal<Bytecode> bytecodeThreadLocal;
     boolean prepared = false;
     final AtomicBoolean compiled = new AtomicBoolean(false);
