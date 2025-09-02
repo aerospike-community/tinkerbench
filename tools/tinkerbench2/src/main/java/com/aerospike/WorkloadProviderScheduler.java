@@ -38,6 +38,7 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
     private final AtomicBoolean terminateRun;
     private final AtomicBoolean terminateWorkers = new AtomicBoolean();
     private final AtomicBoolean waitingSchedulerShutdown = new AtomicBoolean();
+    private final AtomicBoolean summaryPrinted = new AtomicBoolean();
     private final int errorThreshold;
     private final Boolean warmup;
     private final Histogram histogram;
@@ -55,6 +56,8 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
     private final LogSource logger = LogSource.getInstance();
 
     private final List<Future<?>> schedulerFutures = new Vector<>();
+
+    private final Thread shutdownThread;
 
     private WorkloadStatus status;
     private Progressbar progressbar = null;
@@ -117,6 +120,9 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
                                 warmup,
                                 null);
         setStatus(WorkloadStatus.Initialized);
+
+        shutdownThread = new Thread(this::SignalAbortWorkLoadPrintResults);
+        Runtime.getRuntime().addShutdownHook(shutdownThread);
     }
 
     public WorkloadProviderScheduler(OpenTelemetry openTelemetry,
@@ -320,6 +326,7 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
             final int useScheduler = schedulers;
             final int base = callsPerSecond / useScheduler;
             final int remainder = callsPerSecond % useScheduler;
+            summaryPrinted.set(false);
             waitingSchedulerShutdown.set(false);
             setStatus(WorkloadStatus.PendingRun);
 
@@ -394,73 +401,45 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
     @Override
     public void close() {
 
-        if(status == WorkloadStatus.Shutdown
-                || status == WorkloadStatus.PendingShutdown)
-            return;
-
-        if(progressbar != null) {
-            progressbar.close();
-            progressbar = null;
+        if(!abortRun.get()) {
+            Runtime.getRuntime().removeShutdownHook(shutdownThread);
         }
-
-        boolean alreadyCompleted = status == WorkloadStatus.Completed;
-
-        if(queryRunnable != null) {
-            System.out.printf("Pending Shutdown for %s %s%n",
-                    queryRunnable.WorkloadType().toString(),
-                    queryRunnable.Name());
-        }
-
-        setStatus(WorkloadStatus.PendingShutdown);
-        if(!schedulerPool.isTerminated()) {
-            for (Future<?> schedulerFuture : schedulerFutures) {
-                schedulerFuture.cancel(true);
-            }
-        }
-        shutdownAndAwaitTermination(workerPool, "Worker");
-        shutdownAndAwaitTermination(schedulerPool, "Scheduler");
-        setStatus(WorkloadStatus.Shutdown);
-
-        if(!alreadyCompleted && queryRunnable != null) {
-            System.out.printf("Running Post-process for %s %s %s...",
-                                warmup ? "Warmup" : "Workload",
-                                queryRunnable.WorkloadType().toString(),
-                                queryRunnable.Name());
-            queryRunnable.postProcess();
-            System.out.println(" Completed");
-        }
-
-        if(queryRunnable != null) {
-
-            if(startDateTime != null && stopDateTime != null) {
-                String msg = String.format("%s\tStarted: %s\tEnded: %s%n",
-                                                    warmup ? "Warmup" : "Workload",
-                                                    Helpers.GetLocalTimeZone(startDateTime),
-                                                    Helpers.GetLocalTimeZone(stopDateTime));
-
-                final String grafanaRange = Helpers.PrintGrafanaRangeJson(startDateTime, stopDateTime);
-                if(grafanaRange != null) {
-                    msg += String.format("%s%n", grafanaRange);
-                }
-
-                Helpers.Println(System.out,
-                        msg,
-                        Helpers.BLACK,
-                        Helpers.GREEN_BACKGROUND);
-                logger.info(msg);
-            }
-            final String msg = String.format("Shutdown for %s %s %s Completed%n",
-                                            warmup ? "Warmup" : "Workload",
-                                            queryRunnable.WorkloadType().toString(),
-                                            queryRunnable.Name());
-            System.out.println(msg);
-            logger.info(msg);
-        }
+        closeInternal();
     }
 
     @Override
     public void SignalAbortWorkLoad() {
+        logger.PrintDebug("WorkloadProviderScheduler", "SignalAbortWorkLoad Setting...");
+
         abortRun.set(true);
+
+        logger.PrintDebug("WorkloadProviderScheduler", "SignalAbortWorkLoad Set...");
+    }
+
+    @Override
+    public void SignalAbortWorkLoadPrintResults() {
+        logger.PrintDebug("SignalAbortWorkLoad", "SignalAbortWorkLoadPrintResults Starting...");
+        final WorkloadStatus currentStatus = getStatus();
+
+        SignalAbortWorkLoad();
+
+        if(currentStatus == WorkloadStatus.Running
+            || currentStatus == WorkloadStatus.WaitingCompletion) {
+            awaitTermination();
+        }
+        if(currentStatus == WorkloadStatus.Completed) {
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException ignored) {}
+            PrintSummary();
+        }
+        if(!openTelemetry.isEnabled()) {
+            try {
+                Thread.sleep(shutdownTimeout.toMillis());
+            } catch (InterruptedException ignored) {}
+        }
+        closeInternal();
+        logger.PrintDebug("SignalAbortWorkLoad", "SignalAbortWorkLoadPrintResults End...");
     }
 
     /*
@@ -709,6 +688,9 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
 
     public WorkloadProvider PrintSummary() {
 
+        //Stop any attempt  to re-print...
+        if(summaryPrinted.get()) { return this; }
+        summaryPrinted.set(true);
         try {
             Thread.sleep(1000);
         } catch (InterruptedException ignored) { }
@@ -1014,6 +996,72 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
                 poolName,
                 toString());
 
+    }
+
+    private void closeInternal() {
+
+        if(status == WorkloadStatus.Shutdown
+                || status == WorkloadStatus.PendingShutdown)
+            return;
+
+        if(progressbar != null) {
+            progressbar.close();
+            progressbar = null;
+        }
+
+        boolean alreadyCompleted = status == WorkloadStatus.Completed;
+
+        if(queryRunnable != null) {
+            System.out.printf("Pending Shutdown for %s %s%n",
+                    queryRunnable.WorkloadType().toString(),
+                    queryRunnable.Name());
+        }
+
+        setStatus(WorkloadStatus.PendingShutdown);
+        if(!schedulerPool.isTerminated()) {
+            for (Future<?> schedulerFuture : schedulerFutures) {
+                schedulerFuture.cancel(true);
+            }
+        }
+        shutdownAndAwaitTermination(workerPool, "Worker");
+        shutdownAndAwaitTermination(schedulerPool, "Scheduler");
+        setStatus(WorkloadStatus.Shutdown);
+
+        if(!alreadyCompleted && queryRunnable != null) {
+            System.out.printf("Running Post-process for %s %s %s...",
+                    warmup ? "Warmup" : "Workload",
+                    queryRunnable.WorkloadType().toString(),
+                    queryRunnable.Name());
+            queryRunnable.postProcess();
+            System.out.println(" Completed");
+        }
+
+        if(queryRunnable != null) {
+
+            if(startDateTime != null && stopDateTime != null) {
+                String msg = String.format("%s\tStarted: %s\tEnded: %s%n",
+                        warmup ? "Warmup" : "Workload",
+                        Helpers.GetLocalTimeZone(startDateTime),
+                        Helpers.GetLocalTimeZone(stopDateTime));
+
+                final String grafanaRange = Helpers.PrintGrafanaRangeJson(startDateTime, stopDateTime);
+                if(grafanaRange != null) {
+                    msg += String.format("%s%n", grafanaRange);
+                }
+
+                Helpers.Println(System.out,
+                        msg,
+                        Helpers.BLACK,
+                        Helpers.GREEN_BACKGROUND);
+                logger.info(msg);
+            }
+            final String msg = String.format("Shutdown for %s %s %s Completed%n",
+                    warmup ? "Warmup" : "Workload",
+                    queryRunnable.WorkloadType().toString(),
+                    queryRunnable.Name());
+            System.out.println(msg);
+            logger.info(msg);
+        }
     }
 
 }

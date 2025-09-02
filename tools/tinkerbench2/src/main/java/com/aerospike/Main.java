@@ -4,6 +4,7 @@ import picocli.CommandLine;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.util.concurrent.atomic.AtomicReference;
 
 public class Main extends TinkerBench2Args {
 
@@ -169,9 +170,9 @@ public class Main extends TinkerBench2Args {
             if (mainInstance.terminateRun.get()) {
                 System.out.println("Shutdown initiated...");
             } else {
-                System.out.println("Abort initiated. Performing cleanup...");
                 mainInstance.abortRun.set(true);
                 mainInstance.abortSIGRun.set(true);
+                System.out.println("Abort initiated. Performing cleanup...");
             }
         }));
 
