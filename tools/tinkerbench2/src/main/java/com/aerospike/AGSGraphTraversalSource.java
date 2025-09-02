@@ -39,7 +39,7 @@ public final class AGSGraphTraversalSource  implements AGSGraphTraversal, Closea
                 clusterBuilder.port(args.port);
 
                 for (String host : args.agsHosts) {
-                    clusterBuilder.addContactPoint(host);
+                    clusterBuilder.addContactPoint(host.split(":")[0]);
                 }
             }
 
