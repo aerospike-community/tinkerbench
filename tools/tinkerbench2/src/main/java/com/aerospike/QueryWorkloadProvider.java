@@ -3,6 +3,8 @@ package com.aerospike;
 import org.apache.tinkerpop.gremlin.driver.Cluster;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
 
+import java.util.List;
+
 /*
 Implements required interfaces to execute a workload AGS query.
  */
@@ -117,6 +119,10 @@ public abstract class QueryWorkloadProvider implements QueryRunnable {
     @Override
     public GraphTraversalSource G() {
         return this.agsGraphTraversal.G();
+    }
+
+    public List<GraphTraversalSource> Gs() {
+        return this.agsGraphTraversal.Gs();
     }
 
     /*

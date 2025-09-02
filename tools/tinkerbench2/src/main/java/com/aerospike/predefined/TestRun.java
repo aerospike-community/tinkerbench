@@ -5,6 +5,8 @@ import org.apache.tinkerpop.gremlin.driver.Cluster;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
 import org.javatuples.Pair;
 
+import java.util.List;
+
 public class TestRun implements QueryRunnable {
 
     private final WorkloadProvider provider;
@@ -145,6 +147,11 @@ public class TestRun implements QueryRunnable {
      */
     @Override
     public GraphTraversalSource G() {
+        return null;
+    }
+
+    @Override
+    public List<GraphTraversalSource> Gs() {
         return null;
     }
 

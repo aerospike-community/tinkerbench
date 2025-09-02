@@ -9,7 +9,9 @@ import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSo
 import org.javatuples.Pair;
 
 import javax.script.*;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -28,7 +30,7 @@ public final class EvalQueryWorkloadProvider extends QueryWorkloadProvider {
     String formatDefinedId;
     //Can just use the id directory, no string format required...
     boolean formatIdRequired;
-    Bindings bindings;
+    List<Bindings> bindings;
     ThreadLocal<Bytecode> bytecodeThreadLocal;
     boolean prepared = false;
     final AtomicBoolean compiled = new AtomicBoolean(false);
@@ -157,8 +159,11 @@ public final class EvalQueryWorkloadProvider extends QueryWorkloadProvider {
         engine = new GremlinLangScriptEngine();
 
         logger.PrintDebug("PrepareCompile", "Binding to g");
-        bindings = engine.createBindings();
-        bindings.put(traversalSource, G());
+        final List<GraphTraversalSource> gs = Gs();
+        for (GraphTraversalSource g : gs) {
+            bindings.add(engine.createBindings());
+            bindings.get(bindings.size() - 1).put(traversalSource, g);
+        }
 
         try {
             logger.PrintDebug("PrepareCompile", "Generating Bytecode for \"%s\"", gremlinString);
@@ -173,7 +178,7 @@ public final class EvalQueryWorkloadProvider extends QueryWorkloadProvider {
                 try {
                     final Bytecode result = ((DefaultGraphTraversal<?, ?>)
                                                 engine.eval(String.format(gremlinString, finalSampleId),
-                                                        bindings))
+                                                        getBindings()))
                                                 .getBytecode();
                     compiled.set(true);
                     return result;
@@ -220,6 +225,12 @@ public final class EvalQueryWorkloadProvider extends QueryWorkloadProvider {
                         : "Completed");
     }
 
+    AtomicInteger counter = new AtomicInteger(0);
+    private Bindings getBindings() {
+        return bindings.get(counter.getAndIncrement() % bindings.size());
+    }
+
+
     public String BytecodeTranslator() {
         final Bytecode bytecode = bytecodeThreadLocal.get();
         if(bytecode != null) {
@@ -256,7 +267,7 @@ public final class EvalQueryWorkloadProvider extends QueryWorkloadProvider {
 
         // If close not performed, there seems to be a leak according to the profiler
         final Traversal.Admin<?,?> resultTraversal = engine.eval(bytecodeThreadLocal.get(),
-                                                                            bindings,
+                                                                            getBindings(),
                                                                             traversalSource);
         if (isPrintResult) {
             resultTraversal.forEachRemaining(this::PrintResult);

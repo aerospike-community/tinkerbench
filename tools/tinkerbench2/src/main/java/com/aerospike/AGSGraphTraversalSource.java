@@ -6,6 +6,7 @@ import org.apache.tinkerpop.gremlin.process.remote.RemoteConnectionException;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
 
 import java.io.Closeable;
+import java.util.List;
 
 import static org.apache.tinkerpop.gremlin.process.traversal.AnonymousTraversalSource.traversal;
 
@@ -13,6 +14,8 @@ public final class AGSGraphTraversalSource  implements AGSGraphTraversal, Closea
 
     private final Cluster cluster;
     private final GraphTraversalSource g;
+    private final List<GraphTraversalSource> gs = null;
+    private final List<Cluster> clusters = null;
     private final OpenTelemetry openTelemetry;
     private final LogSource logger = LogSource.getInstance();
 
@@ -38,6 +41,17 @@ public final class AGSGraphTraversalSource  implements AGSGraphTraversal, Closea
                 for (String host : args.agsHosts) {
                     clusterBuilder.addContactPoint(host);
                 }
+            }
+
+            for (final String host : args.agsHosts) {
+                final Cluster.Builder tmpBuilder = args.clusterConfigurationFile == null
+                        ? Cluster.build()
+                        : Cluster.build(args.clusterConfigurationFile);
+                String hostPort[] = host.split(":");
+                tmpBuilder.addContactPoint(hostPort[0]);
+                tmpBuilder.port(Integer.parseInt(hostPort[1]));
+                clusters.add(tmpBuilder.create());
+                gs.add(traversal().withRemote(DriverRemoteConnection.using(clusters.get(clusters.size()-1))));
             }
 
             if(args.clusterBuilderOptions != null) {
@@ -230,6 +244,10 @@ public final class AGSGraphTraversalSource  implements AGSGraphTraversal, Closea
     @Override
     public GraphTraversalSource G() {
         return this.g;
+    }
+
+    public List<GraphTraversalSource> Gs() {
+        return this.gs;
     }
 
     /**
