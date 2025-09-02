@@ -15,7 +15,7 @@ public final class AGSGraphTraversalSource  implements AGSGraphTraversal, Closea
 
     private final Cluster cluster;
     private final GraphTraversalSource g;
-    private final List<GraphTraversalSource> gs = null;
+    private final List<GraphTraversalSource> gs = new ArrayList<>();
     private final List<Cluster> clusters = new ArrayList<>();
     private final OpenTelemetry openTelemetry;
     private final LogSource logger = LogSource.getInstance();
