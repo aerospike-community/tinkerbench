@@ -25,7 +25,7 @@ Below are the arguments and description:
         -   `g.V(3).out().limit(5).path().by(values('code','city').fold()).tolist()`
         -   `g.V(%s).out().limit(5).path().by(values('code','city').fold()).tolist()` Where ‘%s’ will be substituted with a random vertex id from the vertex manager. For more information see \<\*\*vertex manager\>.
     -   A Predefined Query. A query defined using the TinkerBench framework. For more information see \<\*\*predefine reference\>.
-    -   The keyword ‘List’. If provided all other arguments are ignored. This will list all the predefined queries found in the [Java class path](https://en.wikipedia.org/wiki/Classpath). For more information see \<predefine reference\>.
+    -   The keyword ‘List’. If provided all other arguments are ignored. This will list all the predefined queries found in the [Java class path](https://en.wikipedia.org/wiki/Classpath). For more information see \<\*\*predefine reference\>.
 -   \--ags, -a (String, Default localhost) – One or more graph nodes’ IP address or host name. To provide multiple nodes, each node must be paired with this argument. **Examples**:
     -   `–ags myGraphNodeName`
     -   `-ags 10.1.1.1123`
@@ -182,7 +182,7 @@ This stage produces the results of the query execution. This report is brekon do
         -   25% depth under 1 – 25% of the time the queue depth was under 1.
         -   50% depth under 3 – 50% of the time the queue depth was under 3. This includes the 25% depth.
 -   Error Details  
-    If errors occurred during query execution, this reporting will be presented. It will show a summary description of the error plus different levels of the number of occurrences. It is not meant for detail debugging. That can only be provided by enabled logging where the complete exception information with backtraces is provided. See the [Logging](#logging) section for details.  
+    If any error occurred during query execution, an “Error summary” report will be presented. It will show a summary description and the number of occurrences of this error. It is not meant for detail debugging. That can only be provided by enabled logging, see the [Logging](#logging) section for details.  
     ![A screenshot of a computer program AI-generated content may be incorrect.](media/ConsoleSummaryErrorDetail.png)
 -   Latency Percentile  
     This will provide the latency information using the actual query latency value without any overhead of the worker or scheduler. The latency is captured at the nanosecond but presented in milliseconds. TinkerBench2 uses the [HdrHistogram](https://github.com/HdrHistogram/HdrHistogram) package for all the recording and analyzing of this data. There are two forms of the latency report.
@@ -204,7 +204,7 @@ This stage produces the results of the query execution. This report is brekon do
 
 ## Logging
 
-Logging is disabled by default. Logging can be enabled by updating the [logback.xml](https://logback.qos.ch/) file. Below is the logback file used by TinkerBench2.
+Logging is disabled by default. Logging can be enabled by updating the [logback.xml](https://logback.qos.ch/) file. Below is the logback file provided by TinkerBench2.
 
 ```
 <configuration>
@@ -229,7 +229,7 @@ This file can be found in the TinkerBench2 jar or in [GitHub](https://github.com
 
 ### Enable File Logging
 
-To enable simple file logging using the provided logback file, just uncomment the “appender” tag and “logger” tag with the “appender-ref” tab. Comment out the original “logger” tab. This will enable a logging file to file named “tinkerbench2.log” under the folder “logs”. Below is an example where file logging is enabled.
+To enable simple file logging using the provided logback file, just uncomment the “appender” tag and “logger” tag with the “appender-ref” tab. Comment out the original “logger” tab. This will enable a logging file named “tinkerbench2.log” under the folder “logs”. Below is an example enabling logging.
 
 ```
 <configuration>
@@ -257,10 +257,23 @@ java -Dlogback.configurationFile=.\mylogback.xml tinkerbench2-2.0.14-jar-with-de
 
 ### Other Configurations
 
-TinkerBench2 uses [Simple Logging Facade package](https://www.slf4j.org/) and can be configured to used different logging providers and configuration options. This type of configuration is outside the scope of this documentation.
+TinkerBench2 uses [Simple Logging Facade package](https://www.slf4j.org/) and can be configured to used different logging providers and configuration options. This advance logging configuration is outside the scope of this documentation.
 
-### Logging File Format
+### Typical Logging File Format
 
-The logging format can be changed by means of the logback.xml file. The examples are based on the default provided by TinkerBench2.
+The default logging in TinkerBench2 provides all the same information as displayed on the [Console](#console) except it always produces the full HdrHistogram report.
+
+Below is a typical example of the logs:
+
+![A screen shot of a computer screen AI-generated content may be incorrect.](media/LoggingSampleOutput.png)
+
+### Logging Errors
+
+All errors during execution will be fully logged. This provides the most detail around an error. This behavior is different as compared to how errors are [displayed in the console](#understanding-errors). Below is an example of how errors are logged:
+
+![A screen shot of a computer screen](media/LoggingErrorOutput.png)
+
+| ![A yellow post-it note with a red pin AI-generated content may be incorrect.](media/NotePencil.png) | If “-debug” flag is provided, all tracing and debug messages are also captured in the log file.  |
+|------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------|
 
 ## Grafana Dashboard
