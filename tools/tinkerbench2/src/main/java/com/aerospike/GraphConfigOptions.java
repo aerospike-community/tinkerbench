@@ -5,7 +5,7 @@ import java.util.regex.Pattern;
 
 public class GraphConfigOptions {
 
-    private static final Pattern kvPattern = Pattern.compile("^(?<key>[^=]+)=(?<value>.+)$");
+    private static final Pattern kvPattern = Pattern.compile("^\"?(?<key>[^=]+)=(?<value>[^\"]+)\"?$");
 
     private final String key;
     private final Object value;
@@ -25,7 +25,7 @@ public class GraphConfigOptions {
     }
 
     public GraphConfigOptions(String key, Object value) {
-        this.key = key;
+        this.key = key.trim();
         this.value = value;
     }
 

@@ -69,8 +69,9 @@ public abstract class TinkerBench2Args implements Callable<Integer> {
             defaultValue = "100")
     int queriesPerSecond;
 
-    @Option(names = {"-a", "--ags", "--server"},
-            description = "Specify the Aerospike Graph Server's host name or IP address.%nMultiple AGS hosts can be given by providing this option multiple times.%nExample:%n\t-a agsHost1 -a agsHost2, etc.%nDefault is '${DEFAULT-VALUE}'",
+    @Option(names = {"-h", "-a", "--host"},
+            description = "Specify the Aerospike Graph Server's host name or IP address.%nMultiple AGS hosts can be given by providing this option multiple times.%nExample:%n\t-h agsHost1 -h agsHost2, etc.%nDefault is '${DEFAULT-VALUE}'",
+            split = ",",
             defaultValue = "localhost")
     String[] agsHosts;
 
@@ -84,8 +85,9 @@ public abstract class TinkerBench2Args implements Callable<Integer> {
             description = "A Cluster Build Configuration File. Default is ${DEFAULT-VALUE}")
     File clusterConfigurationFile;
 
-    @Option(names = {"-b", "--clusterBuild"},
+    @Option(names = {"-b", "--clusterBuilder"},
             converter = GraphConfigOptionsConverter.class,
+            split = ",",
             description = "Cluster builder options.%nMust be in the form of 'PropertyName=PropertyValue'.%nExample:%n\t-b maxConnectionPoolSize=10%n\t-b maxInProcessPerConnection=100%nYou can specify this command multiple time (one per option).")
     GraphConfigOptions[] clusterBuilderOptions;
 
@@ -97,6 +99,7 @@ public abstract class TinkerBench2Args implements Callable<Integer> {
 
     @Option(names = {"-g", "-t", "--gremlin"},
             converter = GraphConfigOptionsConverter.class,
+            split = ",",
             description = "Traversal configuration options.%nMust be in the form of 'PropertyName=PropertyValue'.%nExample:%n\t-g evaluationTimeout=30000%nYou can specify this command multiple time (one per option).")
     GraphConfigOptions[] gremlinConfigOptions;
 
@@ -408,8 +411,9 @@ public abstract class TinkerBench2Args implements Callable<Integer> {
     }
 
     static final class GraphConfigOptionsConverter implements CommandLine.ITypeConverter<GraphConfigOptions> {
+
         @Override
-        public GraphConfigOptions convert(String value) throws IllegalArgumentException, FileNotFoundException {
+        public GraphConfigOptions convert(String value) throws IllegalArgumentException {
             if(value == null || value.isEmpty()) { return null; }
 
             return GraphConfigOptions.Create(value);

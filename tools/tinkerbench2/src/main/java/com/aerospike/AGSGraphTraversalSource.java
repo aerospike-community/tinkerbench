@@ -35,8 +35,27 @@ public final class AGSGraphTraversalSource  implements AGSGraphTraversal, Closea
             if( args.clusterConfigurationFile == null) {
                 clusterBuilder.port(args.port);
 
-                for (String host : args.agsHosts) {
-                    clusterBuilder.addContactPoint(host);
+                try {
+                    for (String host : args.agsHosts) {
+                        clusterBuilder.addContactPoint(host);
+                    }
+                } catch (IllegalArgumentException e) {
+                    if (e.getMessage().startsWith("No such host is known")) {
+                        String msg = String.format("Could not connect to Database '%s' at port %d.%n\t%s",
+                                                    String.join(",", args.agsHosts),
+                                                    args.port,
+                                                    e.getMessage());
+                        logger.error(msg, e);
+                        System.err.printf("%s%n\tAborting Run...%n",
+                                            msg);
+                        openTelemetry.addException(e);
+                        args.abortRun.set(true);
+                        this.g = null;
+                        this.cluster = null;
+                        return;
+                    } else {
+                        throw e;
+                    }
                 }
             }
 
@@ -191,7 +210,7 @@ public final class AGSGraphTraversalSource  implements AGSGraphTraversal, Closea
                         logger.error(msg, e);
                         System.err.printf("%s%n\tAborting Run...%n",
                                             msg);
-                        openTelemetry.addException((Exception) e.getCause());
+                        openTelemetry.addException((Exception)e.getCause());
                         args.abortRun.set(true);
                     }
                     else {
@@ -201,18 +220,18 @@ public final class AGSGraphTraversalSource  implements AGSGraphTraversal, Closea
             }
         } catch (Exception e) {
             logger.error("Error creating GraphTraversalSource", e);
-            if(args.clusterConfigurationFile == null)
+            if (args.clusterConfigurationFile == null)
                 System.err.printf("Error occurred trying to connect to '%s' at port %d%n%n",
-                                        String.join(",", args.agsHosts),
-                                        args.port);
+                        String.join(",", args.agsHosts),
+                        args.port);
             else
                 System.err.printf("Error occurred trying to connect using builder file '%s'%n%n",
-                                    args.clusterConfigurationFile);
+                        args.clusterConfigurationFile);
             System.err.printf("\tError is %s%n",
-                                e.getClass().getSimpleName());
+                    e.getClass().getSimpleName());
             System.err.printf("\tError Message is %s%n",
-                                e.getMessage());
-            if(logger.loggingEnabled())
+                    e.getMessage());
+            if (logger.loggingEnabled())
                 System.err.println("\tReview log for error details...");
             else
                 System.err.println("\tEnable logging for error details...");
