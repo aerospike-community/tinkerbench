@@ -2,7 +2,7 @@
 
 To obtain the command-line arguments with description and examples run TinkerBench with the “—help” flag. If an argument is not valid, an error message is displayed providing feedback so that a proper value is supplied.
 
-| ![image](media/NotePencil.png) | Arguments can be passed in as a [Java property file](https://localizely.com/java-properties-file/) instead of the command line. If a property file is provided, you can override the file’s property values by means of the command line. For more information, see [Using a Property File section](#using-a-cli-property-file). |
+| ![image](media/gremlin-apache.png) | Arguments can be passed in as a [Java property file](https://localizely.com/java-properties-file/) instead of the command line. If a property file is provided, you can override the file’s property values by means of the command line. For more information, see [Using a Property File section](#using-a-cli-property-file). |
 |------------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 
 Below are the arguments and description:
