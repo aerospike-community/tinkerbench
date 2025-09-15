@@ -1,5 +1,7 @@
 # Understanding Errors
 
+![Error](media/error-images.png)
+
 If an error or exception is encountered, TinkerBench2 will determine if can proceed with execution of the query. If the error is fatal (e.g., cannot connect to the database, query syntax error, etc.), Tinkerbench2 will terminate, and it may or may not produce a [summary report](./understanding_output.md#stage-6-report-result).
 
 The error will always be reported to the console typically in an abbreviated format.
