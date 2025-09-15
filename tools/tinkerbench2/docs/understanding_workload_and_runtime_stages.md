@@ -1,3 +1,4 @@
+![Workload](media/gremlin-logo-Running.png)
 # Understanding Workload and Runtime Stages
 
 TikerBench2 has two workload run types. They are:
