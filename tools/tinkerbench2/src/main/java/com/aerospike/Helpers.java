@@ -210,14 +210,23 @@ public class Helpers {
 
     public static List<Class<?>> getClassesInPackage(String packageName) {
         String path = packageName.replaceAll("[.]", "/");
-        List<Class<?>> classes = new ArrayList<>();
-        List<String> classPathEntries = new ArrayList<>(List.of(System.getProperty("java.class.path").split(
-                File.pathSeparator
-        )));
+        final List<Class<?>> classes = new ArrayList<>();
+        final List<String> classPathEntries = new ArrayList<>();
 
-        classPathEntries.addAll(List.of(System.getProperty("extension").split(
-                File.pathSeparator
-        )));
+        {
+            final String tbqryjar = System.getProperty("TBQryJar");
+            if (tbqryjar != null) {
+                classPathEntries.addAll(List.of(tbqryjar.split(
+                        File.pathSeparator
+                )));
+            }
+            final String classPath = System.getProperty("java.class.path");
+            if (classPath != null) {
+                classPathEntries.addAll(List.of(classPath.split(
+                        File.pathSeparator
+                )));
+            }
+        }
 
         String name;
         for (String classpathEntry : classPathEntries) {
