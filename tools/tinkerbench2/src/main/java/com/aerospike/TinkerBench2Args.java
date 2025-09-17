@@ -547,19 +547,17 @@ public abstract class TinkerBench2Args implements Callable<Integer> {
 
         if(!missing(queryNameOrString)
                 && queryNameOrString.equalsIgnoreCase("list")) {
-            List<String> classes = Helpers.findAllPredefinedQueries("com.aerospike.predefined");
-            if(classes.isEmpty()) {
+            List<QueryRunnable> queries = Helpers.findAllPredefinedQueries();
+            if(queries.isEmpty()) {
                 System.err.println("There were no predefined queries found.");
             } else {
                 Helpers.Println(System.out,
                             "Following is a list of Predefined Queries:",
                                 Helpers.BLACK,
                                 Helpers.YELLOW_BACKGROUND);
-                for(String className : classes) {
-                    String queryName = className;
+                for(QueryRunnable instance : queries) {
+                    String queryName = instance.Name();
                     try {
-                        final QueryRunnable instance = Helpers.GetQuery(className, null, null, null, false);
-                        queryName = instance.Name();
                         if(instance.getDescription() != null) {
                             queryName += String.format(" -- %s", instance.getDescription());
                             queryName = queryName.replace("\t", "\t\t");

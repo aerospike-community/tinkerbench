@@ -11,13 +11,18 @@ import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 
 import java.lang.reflect.Method;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.net.URLClassLoader;
 import java.time.*;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
+import java.util.function.Function;
 import java.util.jar.JarEntry;
 import java.util.jar.JarInputStream;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 public class Helpers {
 
@@ -89,24 +94,60 @@ public class Helpers {
         Println(printStream, msg, textColor, null);
     }
 
-    public static QueryRunnable GetQuery(String queryName,
+    public static <T, R> List<T> removeDuplicates(List<T> list, Function<T, R> keyExtractor) {
+        Set<R> seenKeys = new HashSet<>();
+        return list.stream()
+                .filter(e -> seenKeys.add(keyExtractor.apply(e)))
+                .collect(Collectors.toList());
+    }
+
+    private static final List<Class<?>> PreDefinedClasses = new  ArrayList<Class<?>>();
+
+    public static Class<?> getClass(String jarFilePath, String className) throws ClassNotFoundException {
+        try {
+            return Class.forName(className);
+        } catch (ClassNotFoundException ignore) {
+            try {
+                URL[] urls = {new URL("jar:file:" + jarFilePath + "!/")};
+                try (URLClassLoader cl = URLClassLoader.newInstance(urls)) {
+                    return cl.loadClass(className);
+                } catch (IOException e) {
+                    throw new ClassNotFoundException(className, e);
+                }
+            } catch (MalformedURLException e) {
+                throw new ClassNotFoundException(className, e);
+            }
+        }
+    }
+
+    public static Class<?> getClass(String className) throws ClassNotFoundException {
+
+        if(PreDefinedClasses.isEmpty()) {
+            findAllPredefinedQueries();
+        }
+        if(PreDefinedClasses.isEmpty()) {
+            Class.forName(className);
+        } else {
+            Class<?> clazz = PreDefinedClasses.stream().filter(c -> c.getName().equals(className)).findFirst().orElse(null);
+            if(clazz != null) {
+                return clazz;
+            }
+        }
+        throw new ClassNotFoundException(className);
+    }
+
+    public static QueryRunnable GetQuery(Class<?> queryClass,
                                          WorkloadProvider provider,
                                          AGSGraphTraversal graphTraversal,
                                          IdManager idManager,
-                                         boolean debug) throws ClassNotFoundException, NoSuchMethodException, SecurityException, InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException {
+                                         boolean debug) throws NoSuchMethodException, SecurityException, InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException {
 
         final LogSource logger = LogSource.getInstance();
 
         try {
+            logger.PrintDebug("GetQuery", "Creating Instance %s",
+                                queryClass.getName());
 
-            logger.PrintDebug("GetQuery", "Creating Instance %s", queryName);
-
-            if(!queryName.startsWith("com.aerospike.predefined.")) {
-                if(!queryName.contains("."))
-                    queryName = "com.aerospike.predefined." + queryName;
-            }
-
-            Class<?> queryClass = Class.forName(queryName);
             Constructor<?> constructor = queryClass.getConstructor(WorkloadProvider.class,
                                                                     AGSGraphTraversal.class,
                                                                     IdManager.class);
@@ -118,6 +159,40 @@ public class Helpers {
             logger.PrintDebug ("SetQuery", "Created  Instance %s", instance.toString());
 
             return (QueryRunnable) instance;
+        } catch (NoSuchMethodException e) {
+            logger.Print("SetQuery",true,"Constructor not found for %s", queryClass.getName());
+            logger.error(String.format("SetQuery (Constructor not found for %s)", queryClass.getName()), e);
+            throw e;
+        } catch (InstantiationException | IllegalAccessException | InvocationTargetException e) {
+            logger.Print("SetQuery",true,"Error instantiating class for %s", queryClass.getName());
+            logger.error(String.format("SetQuery (Error instantiating class for %s)", queryClass.getName()), e);
+            throw e;
+        }
+    }
+
+
+    public static QueryRunnable GetQuery(String queryName,
+                                         WorkloadProvider provider,
+                                         AGSGraphTraversal graphTraversal,
+                                         IdManager idManager,
+                                         boolean debug) throws ClassNotFoundException, NoSuchMethodException, SecurityException, InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException {
+
+        final LogSource logger = LogSource.getInstance();
+
+        try {
+            logger.PrintDebug("GetQuery", "Creating Instance %s", queryName);
+
+            if(!queryName.startsWith("com.aerospike.predefined.")) {
+                if(!queryName.contains("."))
+                    queryName = "com.aerospike.predefined." + queryName;
+            }
+
+            Class<?> queryClass = getClass(queryName);
+            return GetQuery(queryClass,
+                            provider,
+                            graphTraversal,
+                            idManager,
+                            debug);
         } catch (ClassNotFoundException e) {
             logger.Print("SetQuery", true, "Class %s not found", queryName);
             logger.error(String.format("SetQuery (Class %s not Found)", queryName), e);
@@ -136,59 +211,84 @@ public class Helpers {
     public static List<Class<?>> getClassesInPackage(String packageName) {
         String path = packageName.replaceAll("[.]", "/");
         List<Class<?>> classes = new ArrayList<>();
-        String[] classPathEntries = System.getProperty("java.class.path").split(
+        List<String> classPathEntries = new ArrayList<>(List.of(System.getProperty("java.class.path").split(
                 File.pathSeparator
-        );
+        )));
+
+        classPathEntries.addAll(List.of(System.getProperty("extension").split(
+                File.pathSeparator
+        )));
 
         String name;
         for (String classpathEntry : classPathEntries) {
             if (classpathEntry.endsWith(".jar")) {
                 File jar = new File(classpathEntry);
+                String classPath = null;
                 try {
                     JarInputStream is = new JarInputStream(new FileInputStream(jar));
                     JarEntry entry;
-                    while((entry = is.getNextJarEntry()) != null) {
+                    while ((entry = is.getNextJarEntry()) != null) {
                         name = entry.getName();
                         if (name.endsWith(".class") && name.contains(path)) {
-                            String classPath = name.substring(0, entry.getName().length() - 6);
+                            classPath = name.substring(0, entry.getName().length() - 6);
                             classPath = classPath.replaceAll("[\\|/]", ".");
-                            classes.add(Class.forName(classPath));
+                            try {
+                                classes.add(getClass(classpathEntry, classPath));
+                            } catch (ClassNotFoundException e1) {
+                                String msg = String.format("Class '%s' (%s) not found in JVM. Searching for '%s'",
+                                        classPath,
+                                        classpathEntry,
+                                        packageName);
+                                LogSource.getInstance().error(msg, e1);
+                                LogSource.getInstance().Print("getClassesInPackage", true, msg);
+                            }
                         }
                     }
                 } catch (Exception ignored) { }
             } else {
+                String classPath = null;
                 try {
                     File base = new File(classpathEntry + File.separatorChar + path);
                     for (File file : Objects.requireNonNull(base.listFiles())) {
                         name = file.getName();
                         if (name.endsWith(".class")) {
                             name = name.substring(0, name.length() - 6);
-                            classes.add(Class.forName(packageName + "." + name));
+                            classPath = packageName + "." + name;
+                            try {
+                                classes.add(getClass(classpathEntry, classPath));
+                            } catch (ClassNotFoundException e1) {
+                                String msg = String.format("Class '%s' (%s) not found in JVM. Searching for '%s'",
+                                                            classPath,
+                                                            classpathEntry,
+                                                            packageName);
+                                LogSource.getInstance().error(msg, e1);
+                                LogSource.getInstance().Print("getClassesInPackage", true, msg);
+                            }
                         }
                     }
                 } catch (Exception ignored) { }
             }
         }
 
-        return classes;
+        return removeDuplicates(classes, Class::getName);
     }
 
-    public static List<String> findAllPredefinedQueries(String packageName) {
+    public static List<QueryRunnable> findAllPredefinedQueries(String packageName) {
         final LogSource logger = LogSource.getInstance();
 
         List<Class<?>> classes = getClassesInPackage(packageName);
 
         if(!classes.isEmpty()) {
-            List<String> queries = new ArrayList<>();
+            PreDefinedClasses.addAll(classes);
+
+            List<QueryRunnable> queries = new ArrayList<>();
             for (Class<?> c : classes) {
                 try {
                     Constructor<?> constructor = c.getConstructor(WorkloadProvider.class,
                                                                     AGSGraphTraversal.class,
                                                                     IdManager.class);
                     Object instance = constructor.newInstance(null, null, null);
-                    QueryRunnable query = (QueryRunnable) instance;
-
-                    queries.add(c.getName());
+                    queries.add((QueryRunnable) instance);
                 }
                 catch (NoSuchMethodException e) {
                     logger.Print("findAllPredefinedQueries",true,"Constructor not found for Predefined List");
@@ -199,11 +299,15 @@ public class Helpers {
                 }
             }
 
-            Collections.sort(queries);
+            queries.sort(Comparator.comparing(QueryRunnable::Name));
             return queries;
         }
 
         return  Collections.emptyList();
+    }
+
+    public static List<QueryRunnable> findAllPredefinedQueries() {
+        return findAllPredefinedQueries("com.aerospike.predefined");
     }
 
     public static String GetShortClassName(final String className) {

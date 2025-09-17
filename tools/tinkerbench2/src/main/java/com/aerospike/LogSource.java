@@ -101,15 +101,18 @@ public final class LogSource {
                                         name,
                                         msg)
                             .replace("%", "%%");
-        String fmtMsg = String.format("%s INFO %s%n",
-                                        formattedDateTime,
-                                        msgStr);
 
         if(err) {
+            String fmtMsg = String.format("%s ERROR %s%n",
+                                            formattedDateTime,
+                                            msgStr);
             System.err.printf(fmtMsg);
             this.error(msgStr);
         }
         else {
+            String fmtMsg = String.format("%s INFO %s%n",
+                                            formattedDateTime,
+                                            msgStr);
             System.out.printf(fmtMsg);
             this.info(msgStr);
         }
