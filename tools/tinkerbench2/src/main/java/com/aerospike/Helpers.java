@@ -14,6 +14,8 @@ import java.lang.reflect.Method;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
+import java.security.CodeSource;
+import java.security.ProtectionDomain;
 import java.time.*;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
@@ -99,6 +101,23 @@ public class Helpers {
         return list.stream()
                 .filter(e -> seenKeys.add(keyExtractor.apply(e)))
                 .collect(Collectors.toList());
+    }
+
+    public static String getJarFile(Class<?> aClass) {
+        // Get the ProtectionDomain
+        final ProtectionDomain protectionDomain = aClass.getProtectionDomain();
+
+        // Get the CodeSource
+        final CodeSource codeSource = protectionDomain.getCodeSource();
+
+        // Get the location URL
+        if (codeSource != null) {
+            final URL location = codeSource.getLocation();
+            if (location != null) {
+                return location.getPath();
+            }
+        }
+        return null;
     }
 
     private static final List<Class<?>> PreDefinedClasses = new  ArrayList<Class<?>>();
@@ -214,15 +233,21 @@ public class Helpers {
         final List<String> classPathEntries = new ArrayList<>();
 
         {
-            final String tbqryjar = System.getProperty("TBQryJar");
-            if (tbqryjar != null) {
-                classPathEntries.addAll(List.of(tbqryjar.split(
+            final String tbqryjaroverride = System.getProperty("TBQryJarOvr");
+            if (tbqryjaroverride != null) {
+                classPathEntries.addAll(List.of(tbqryjaroverride.split(
                         File.pathSeparator
                 )));
             }
             final String classPath = System.getProperty("java.class.path");
             if (classPath != null) {
                 classPathEntries.addAll(List.of(classPath.split(
+                        File.pathSeparator
+                )));
+            }
+            final String tbqryjar = System.getProperty("TBQryJar");
+            if (tbqryjar != null) {
+                classPathEntries.addAll(List.of(tbqryjar.split(
                         File.pathSeparator
                 )));
             }
@@ -288,8 +313,13 @@ public class Helpers {
         List<Class<?>> classes = getClassesInPackage(packageName);
 
         if(!classes.isEmpty()) {
-            PreDefinedClasses.addAll(classes);
-
+            if(logger.isDebug()) {
+                logger.PrintDebug("findAllPredefinedQueries",
+                                    "Found Classes: %s",
+                                        classes.stream()
+                                                .map(c -> c.getName() + " -- " + getJarFile(c))
+                                                .collect(Collectors.joining(",\n\t")));
+            }
             List<QueryRunnable> queries = new ArrayList<>();
             for (Class<?> c : classes) {
                 try {
@@ -298,6 +328,7 @@ public class Helpers {
                                                                     IdManager.class);
                     Object instance = constructor.newInstance(null, null, null);
                     queries.add((QueryRunnable) instance);
+                    PreDefinedClasses.add(c);
                 }
                 catch (NoSuchMethodException e) {
                     logger.Print("findAllPredefinedQueries",true,"Constructor not found for Predefined List");
