@@ -11,12 +11,13 @@ Below are the arguments and description:
     -   A Gremlin query string. This string will be compiled and executed for analysis. **Examples**:
         -   `g.V(3).out().limit(5).path().by(values('code','city').fold()).tolist()`
         -   `g.V(%s).out().limit(5).path().by(values('code','city').fold()).tolist()` Where ‘%s’ will be substituted with a random vertex id from the vertex manager. For more information see \<\*\*vertex manager\>.
-    -   A Predefined Query. A query defined using the TinkerBench framework. For more information see \<\*\*predefine reference\>.
-    -   The keyword ‘List’. If provided all other arguments are ignored. This will list all the predefined queries found in the [Java class path](https://en.wikipedia.org/wiki/Classpath). For more information see \<\*\*predefine reference\>.
--   \--host, -h, -a (String, Default localhost) – One or more graph nodes’ IP address or host name. To provide multiple nodes, each node must be paired with this argument. **Examples**:
-    -   `–h myGraphNodeName`
+    -   A Predefined Query. A query defined using the TinkerBench framework. For more information see [Writing Predefined/Advance Queries](./writing_predefined_queries.md).
+    -   The keyword ‘List’. If provided all other arguments are ignored. This will list all the predefined queries found in the [Java class path](https://en.wikipedia.org/wiki/Classpath). For more information see [Writing Predefined/Advance Queries](./writing_predefined_queries.md).
+-   \--host, -n, -a (String, Default localhost) – One or more graph nodes’ IP address or host name. To provide multiple nodes, each node must be paired with this argument. **Examples**:
+    -   `–n myGraphNodeName`
     -   `--host 10.1.1.1123`
-    -   `“-h 10.1.1.1123 -h 10.1.1.1124 -h 10.1.1.1125”`
+    -   `-n 10.1.1.1123 -n 10.1.1.1124 -n 10.1.1.1125`
+    -   `-n 10.1.1.1123,10.1.1.1124,10.1.1.1125`
         Example of providing multiple graph node addresses
 -   \--port (Integer, Default 8182) – Graph node’s connection port number.
 -   \--QueriesPerSec, -qps, -q (Integer, Default 100) -- The targeted number of queries per seconds. TinkerBench will try to achieve and maintain this target for the query duration based on the scheduler and worker arguments. See \<\*\*tuning\> for additional information.
@@ -32,7 +33,7 @@ Below are the arguments and description:
 -   \--workers, -w (Integer, Default depends on cores) -- The number of workers per scheduler. A worker is responsible for executing a single query instance and collecting data from that instance for analysis. The default number of workers is based on half of the number of cores of the machine TinkerBench is currently executing on. A value of -1 will indicate to use the default value. For more information, see the \<\*\*tuning\> section. **Example**: 20 core machines -\> there will be 10 workers per scheduler (total of 40 workers over 4 schedulers).
 -   \--IdSampleSize, -sample (Integer, Default 500,000) – The number of vertex ids that will be retrieved from the database that will be used as a vertex id by the query, if required. If the query doesn’t use a random vertex id, this feature is disabled. See argument “*—IdSampleLabel*” for additional information. For more information, see \<\*\*vertex manager\>.
 -   \--IdSampleLabel, -label (String, Default is None) – If provided, this is a label that is used in retrieving the vertex ids from the database. These ids, if required by the query, are used by the query as a random vertex id to the query. If the See argument *“—IdSampleSize*” for additional information. For more information, see \<\*\*vertex manager\>.
--   \--Prometheus, -prom (Flag) – If provided, enables the [Prometheus](https://prometheus.io/) exporter which provides near real-time metrics of the running TinkerBench application in TinkerBench [Grafana](https://grafana.com/grafana/dashboards/) dashboard. For more information, see \<\*\*prom\> section.
+-   \--Prometheus, -prom (Flag) – If provided, enables the [Prometheus](https://prometheus.io/) exporter which provides near real-time metrics of the running TinkerBench application in TinkerBench [Grafana](https://grafana.com/grafana/dashboards/) dashboard. For more information, see [Grafana Dashboard](./grafana_dashboard.md) section.
 -   \--HdrHistFmt, -hg -- If provided, the summary console output upon exit of the TinkerBench application will provide an [HdrHistogram](https://github.com/HdrHistogram) Latency table. This table can be used by the [HdrHistogram plotter](https://hdrhistogram.github.io/HdrHistogram/plotFiles.html). If not provided a “Summary latency” is provided. For more information, see the [Output](./understanding_output.md) section. **Note**: The HdrHistogram table is always provided in the log file, if logging is enabled.
 -   \--Errors, -e (Integer, Default 150) – The total number of error occurrences that will cause TinkerBench to shutdown query analysis and display the console summary.
 -   \--version, -V – Prints the TinkerBench and Gremlin client version information.

@@ -69,8 +69,8 @@ public abstract class TinkerBench2Args implements Callable<Integer> {
             defaultValue = "100")
     int queriesPerSecond;
 
-    @Option(names = {"-h", "-a", "--host"},
-            description = "Specify the Aerospike Graph Server's host name or IP address.%nMultiple AGS hosts can be given by providing this option multiple times.%nExample:%n\t-h agsHost1 -h agsHost2, etc.%nDefault is '${DEFAULT-VALUE}'",
+    @Option(names = {"-n", "-a", "--host"},
+            description = "Specify the Aerospike Graph Server's host name or IP address.%nMultiple AGS hosts can be given by providing this option multiple times.%nExample:%n\t-n agsHost1 -n agsHost2, etc.%nDefault is '${DEFAULT-VALUE}'",
             split = ",",
             defaultValue = "localhost")
     String[] agsHosts;
