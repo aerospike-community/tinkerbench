@@ -30,7 +30,7 @@ This ticker shows the following runtime information:
 -   The number of seconds elapsed and the provided duration
 -   Running clock
 -   Current Query Per Second
--   Pending number of queries waiting for execution (Queue Depth). For more information see \<\*\*tuning\> section.
+-   Pending number of queries waiting for execution (Queue Depth). For more information see [tuning](./tuning.md) section.
 -   Number of encountered errors
 
 ### Stage 5 (Postprocessing/Cleanup)
@@ -72,7 +72,7 @@ This stage produces the results of the query execution. This report is brekon do
 -   Summary
     ![A yellow rectangular sign with black text AI-generated content may be incorrect.](media/ConsoleSummarySum.png)
 -   Client Query Queue Depth
-    This section provides insight into TinkerBench2 query performance. For more information see \<\*\*tuning\> section.
+    This section provides insight into TinkerBench2 query performance. For more information see [tuning](./tuning.md) section.
     ![A yellow screen with black text AI-generated content may be incorrect.](media/ConsoleSummaryDepth.png)
     -   The queue’s average and maximum queue depth. The percentage next to the maximum indicates how many times TinkerBench2 hit the maximum depth.
     -   The percentage breakdown indicates the distribution of percentage at that queue depth. For example:

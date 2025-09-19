@@ -138,6 +138,7 @@ Below are a subsrt of methods that can aid in development:
 
 - **getLogger** This method returns the logging instance.
 - **getOpenTelemetry** This method returns the [Open Telemetry](https://opentelemetry.io/docs/languages/java/) instance used to update [Prometheus](https://opentelemetry.io/blog/2024/prom-and-otel/).
+- **getVId** This returns a random vertix id from the [Id Manager](./vertex_id_manager.md) or null, if this feature is disabled.
 - **isWarmup** This method returns true to indicate the upcoming query execution is for a warm up phase. False to indicate actual workload run.
 - **isPrintResult** Returns true to indicate that the result of the query should be printed to the console or log. See **PrintResult** method.
 - **PrintResult** This method will print the argument to console and log.
