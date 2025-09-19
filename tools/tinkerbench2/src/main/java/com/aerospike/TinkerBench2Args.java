@@ -131,7 +131,7 @@ public abstract class TinkerBench2Args implements Callable<Integer> {
             defaultValue = "com.aerospike.IdSampler")
     IdManager idManager;
 
-    @Option(names = {"-sample", "--IdSampleSize"},
+    @Option(names = {"-sample", "--IdSampleSize" },
             description = "The Id sample size of vertices used by the IdManager. Zero to disable. Default is ${DEFAULT-VALUE}",
             defaultValue = "500000")
     int idSampleSize;
@@ -380,7 +380,7 @@ public abstract class TinkerBench2Args implements Callable<Integer> {
         @Override
         public IdManager convert(String value) throws IllegalArgumentException {
             try {
-                Class<?> idManagerClass = Class.forName(value);
+                Class<?> idManagerClass = Helpers.getClass(value);
                 if (IdManager.class.isAssignableFrom(idManagerClass)) {
                     return (IdManager) idManagerClass.getDeclaredConstructor().newInstance();
                 } else {
