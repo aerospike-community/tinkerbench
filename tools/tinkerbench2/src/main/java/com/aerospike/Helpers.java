@@ -141,11 +141,16 @@ public class Helpers {
 
     public static Class<?> getClass(String className) throws ClassNotFoundException {
 
+        if(className.startsWith("com.aerospike.")
+                && !className.startsWith("com.aerospike.predefined.")) {
+            return Class.forName(className);
+        }
+
         if(PreDefinedClasses.isEmpty()) {
             findAllPredefinedQueries();
         }
         if(PreDefinedClasses.isEmpty()) {
-            Class.forName(className);
+            return Class.forName(className);
         } else {
             Class<?> clazz = PreDefinedClasses.stream().filter(c -> c.getName().equals(className)).findFirst().orElse(null);
             if(clazz != null) {

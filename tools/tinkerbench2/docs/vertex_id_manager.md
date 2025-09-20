@@ -105,7 +105,7 @@ java tinkerbench2-2.0.15-jar-with-dependencies.jar AirRoutesQuery1
 
 TinkerBench2 supports the use of custom Vertex Id Manager by extending the current manager or writing a new manager.
 
-To create a new Id Manger the new manager must extend from the **IdManager** interface.
+To create a new Id Manger, the new manager must extend from the **IdManager** interface.
 
 Custom Vertex Id Manager can be extended/created by means of the TinkerBench2 Predefine Jar file. For more information, see [Writing Predefined Queries](./writing_predefined_queries.md) section.
 
@@ -116,3 +116,9 @@ To utilize a custom manager provide the class name to the "--**IdManager**" argu
 ```bash
 java tinkerbench2-2.0.15-jar-with-dependencies.jar AirRoutesQuery1 --IdManager myIdManager
 ```
+
+## Errors
+
+If the Vertex Id manager is enabled and no ids are retreived the following error is thrown:
+
+![No Id Error](./media/vertexIdMgrErrNoIds.png)
