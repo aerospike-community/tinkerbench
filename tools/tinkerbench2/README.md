@@ -83,4 +83,6 @@ java tinkerbench2-2.0.15-jar-with-dependencies.jar AirRoutesQuery1 -n 10.0.0.1 -
 
 ## [Writing Custom PreDefined Queries](docs/writing_predefined_queries.md)
 
+## [Tuning TinkerBench2](docs/tuning.md)
+
 ## [Grafana Dashboard](docs/grafana_dashboard.md)
