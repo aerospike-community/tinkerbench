@@ -1,14 +1,23 @@
 package com.aerospike;
 
+import com.opencsv.exceptions.CsvValidationException;
+import me.tongfei.progressbar.ProgressBar;
+import me.tongfei.progressbar.ProgressBarBuilder;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
 
+import java.io.File;
 import java.util.*;
 import java.util.concurrent.CompletionException;
+
+import com.opencsv.CSVReaderHeaderAware;
+import java.io.FileReader;
+import java.io.IOException;
 
 public class IdSampler implements  IdManager {
     private static final int ID_SAMPLE_SIZE = 500_000;
     private List<Object> sampledIds = null;
     final Random random = new Random();
+    String label = null;
 
     public IdSampler() {
         // Constructor can be used for initialization if needed
@@ -58,6 +67,8 @@ public class IdSampler implements  IdManager {
             sampledIds = null;
             logger.PrintDebug("IdSampler", "IdSampler disabled");
         } else {
+            this.label = label;
+
             try {
                 if(label == null || label.isEmpty()) {
                     System.out.println("Obtaining Vertices Ids...");
@@ -137,5 +148,111 @@ public class IdSampler implements  IdManager {
     @Override
     public boolean isInitialized() {
         return sampledIds != null && !sampledIds.isEmpty();
+    }
+
+    @Override
+    public long importFile(final String filePath,
+                               final OpenTelemetry openTelemetry,
+                               final LogSource logger,
+                               final int sampleSize,
+                               final String label) {
+
+        if(sampleSize <= 0) {
+            sampledIds = null;
+            logger.PrintDebug("IdSampler.importFile", "IdSampler disabled");
+        } else {
+            this.label = label;
+
+            if(sampledIds == null) {
+                sampledIds = new ArrayList<>();
+            } else if(sampledIds.size() >= sampleSize) {
+                return 0;
+            }
+
+            File file = null;
+            if(Helpers.hasWildcard(filePath)) {
+                long latency = 0;
+
+                try (ProgressBar progressBar = new ProgressBarBuilder()
+                                                    .setTaskName("Loading vertices ids")
+                                                    .hideEta()
+                                                    .build()) {
+                    final List<File> files = Helpers.GetFiles(null, filePath);
+                    progressBar.maxHint(files.size());
+
+                    for (File importFile : files) {
+                        progressBar.setExtraMessage("Reading File " + importFile.getName());
+                        progressBar.step();
+                        latency += importFile(importFile.getPath(), openTelemetry, logger, sampleSize, label);
+                    }
+                    progressBar.setExtraMessage(String.format("Loaded %,d vertices", sampledIds.size()));
+                    if (openTelemetry != null) {
+                        openTelemetry.setIdMgrGauge("*",
+                                label,
+                                sampleSize,
+                                sampledIds.size(),
+                                latency);
+                    }
+                    progressBar.refresh();
+                }
+                return latency;
+            } else {
+                file = new File(filePath);
+                if(file.isDirectory()) {
+                    File wildCardPath = new File(file, "*.csv");
+                    return importFile(wildCardPath.getPath(),
+                                        openTelemetry,
+                                        logger,
+                                        sampleSize,
+                                        label);
+                }
+            }
+
+            if(!file.exists()) {
+                logger.Print("IdSampler.importFile", true, "File does not exist: " + filePath);
+            }
+            long startTime = System.currentTimeMillis();
+            try (CSVReaderHeaderAware reader = new CSVReaderHeaderAware(new FileReader(file))) {
+                Map<String, String> row;
+                while ((row = reader.readMap()) != null) {
+                    // Access data using header names
+                    String idValue = row.get("-id");
+
+                    if(label == null || label.isEmpty()) {
+                        sampledIds.add(Helpers.DetermineValue(idValue));
+                    } else {
+                        String labelValue = row.get("-label");
+                        if(label.equals(labelValue)) {
+                            sampledIds.add(Helpers.DetermineValue(idValue));
+                        }
+                    }
+                    if(sampledIds.size() >= sampleSize) {
+                        break;
+                    }
+                }
+            } catch (IOException | CsvValidationException e) {
+                logger.Print("IdSampler.importFile Error in reading CSV file " + file, e);
+            }
+
+            long latency = System.currentTimeMillis() - startTime;
+            if(openTelemetry != null) {
+                openTelemetry.setIdMgrGauge(file.getName(),
+                        label,
+                        sampleSize,
+                        sampledIds.size(),
+                        latency);
+            }
+            logger.PrintDebug("IdSampler.importFile",
+                            "Obtain Samples: Label: '%s' Count: %d",
+                                label, sampledIds.size());
+
+            return latency;
+        }
+        return 0;
+    }
+
+    @Override
+    public void exportFile(final String file) {
+        return;
     }
 }

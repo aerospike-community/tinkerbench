@@ -23,6 +23,7 @@
         <logback.version>1.5.18</logback.version>
         <hdrhistogram.version>2.2.2</hdrhistogram.version>
         <progressbar.version>0.10.1</progressbar.version>
+        <opencsv.version>5.12.0</opencsv.version>
     </properties>
 
     <dependencies>
@@ -113,6 +114,14 @@
             <version>${progressbar.version}</version>
             <!-- https://tongfei.me/progressbar/ -->
             <!-- https://github.com/ctongfei/progressbar -->
+        </dependency>
+
+        <!-- opencsv -->
+        <dependency>
+            <groupId>com.opencsv</groupId>
+            <artifactId>opencsv</artifactId>
+            <version>${opencsv.version}</version>
+            <!-- http://opencsv.sf.net -->
         </dependency>
     </dependencies>
 

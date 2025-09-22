@@ -136,6 +136,10 @@ public abstract class TinkerBench2Args implements Callable<Integer> {
             defaultValue = "500000")
     int idSampleSize;
 
+    @Option(names = {"-import", "--ImportIds" },
+            description = "Import Vertices ids from a CSV File(s). Default is ${DEFAULT-VALUE}")
+    String importIdsPath;
+
     @Option(names = {"-label", "--IdSampleLabel"},
             description = "The Label used to obtain Id samples used by the IdManager. Null to obtain the vertices based on the Id sample size.")
     String labelSample;

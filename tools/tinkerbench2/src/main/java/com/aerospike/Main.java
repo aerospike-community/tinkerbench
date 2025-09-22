@@ -37,17 +37,31 @@ public class Main extends TinkerBench2Args {
                 return;
 
             if(!args.appTestMode && !args.idManager.isInitialized()) {
-                args.idManager.init(agsGraphTraversal.G(),
-                                    openTel,
-                                    logger,
-                                    workloadRunner.getSampleSize() < 0
-                                            ? args.idSampleSize
-                                            : workloadRunner.getSampleSize(),
-                                    workloadRunner.getSampleLabelId() == null
-                                            ? args.labelSample
-                                            : (args.labelSample == null
+                if(args.importIdsPath != null) {
+                    args.idManager.importFile(args.importIdsPath,
+                                                openTel,
+                                                logger,
+                                                workloadRunner.getSampleSize() < 0
+                                                        ? args.idSampleSize
+                                                        : workloadRunner.getSampleSize(),
+                                                workloadRunner.getSampleLabelId() == null
+                                                        ? args.labelSample
+                                                        : (args.labelSample == null
+                                                        ? workloadRunner.getSampleLabelId()
+                                                        : args.labelSample));
+                } else {
+                    args.idManager.init(agsGraphTraversal.G(),
+                                        openTel,
+                                        logger,
+                                        workloadRunner.getSampleSize() < 0
+                                                ? args.idSampleSize
+                                                : workloadRunner.getSampleSize(),
+                                        workloadRunner.getSampleLabelId() == null
+                                                ? args.labelSample
+                                                : (args.labelSample == null
                                                 ? workloadRunner.getSampleLabelId()
                                                 : args.labelSample));
+                }
             }
 
             workloadRunner.PrepareCompile();

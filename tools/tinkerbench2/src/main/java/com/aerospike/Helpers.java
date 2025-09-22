@@ -14,6 +14,7 @@ import java.lang.reflect.Method;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
+import java.nio.file.*;
 import java.security.CodeSource;
 import java.security.ProtectionDomain;
 import java.time.*;
@@ -25,6 +26,7 @@ import java.util.jar.JarInputStream;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class Helpers {
 
@@ -710,5 +712,57 @@ public class Helpers {
                     RoundNumberOfSignificantDigits((double) value/1000.0, 3));
         }
         return String.format("%,d", value);
+    }
+
+    public static boolean hasWildcard(String filePath) {
+        if (filePath == null || filePath.isEmpty()) {
+            return false;
+        }
+        return filePath.contains("*") || filePath.contains("?");
+    }
+
+    public static List<File> GetFiles(String startDir, String wildcardPattern) {
+
+        if (wildcardPattern == null || wildcardPattern.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        Path startPath;
+
+        if(startDir == null) {
+            File globFile = new File(wildcardPattern);
+            File parent = globFile.getParentFile();
+            if(parent != null && parent.exists()) {
+                startPath = parent.toPath();
+                wildcardPattern = globFile.getName();
+            } else {
+                startPath = Paths.get(System.getProperty("user.dir"));
+            }
+        } else {
+            startPath = Paths.get(startDir);
+        }
+
+        List<Path> matchingFiles = new ArrayList<>();
+        try (DirectoryStream<Path> stream = Files.newDirectoryStream(startPath, wildcardPattern)) {
+            for (Path entry : stream) {
+                matchingFiles.add(entry);
+            }
+        } catch (IOException e) {
+            LogSource.getInstance().error(String.format("Error while trying to list files in path '%s' for pattern '%s'",
+                                                            startDir,
+                                                            wildcardPattern),
+                                            e);
+        }
+
+        if(LogSource.getInstance().isDebug()) {
+            for (Path file : matchingFiles) {
+                String msg = String.format("Found file '%s'", file.getFileName());
+                LogSource.getInstance().PrintDebug("GetFiles",  msg);
+            }
+        }
+
+        return matchingFiles.stream()
+                                .map(Path::toFile)
+                                .collect(Collectors.toList());
     }
 }
