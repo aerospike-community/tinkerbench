@@ -127,6 +127,28 @@ If the Vertex Id manager is enabled and no ids are retreived the following error
 
 TinkerBench2 can import a vertex CSV file to be used as the vertex ids for the workload.
 
+If "--label" or "--IdSampleSize" arguments are provided, the number of ids imported will be based on the sample size argument. If a label is provided, only those ids associated with the label are imported.
+
+The path argument can be one of the following:
+
+- A path with wildcards
+- A directory where any "*.csv" files within that folder will be imported.
+- A file path with a file name and extension
+
+### Import Command Line
+
+```bash
+java tinkerbench2-2.0.15-jar-with-dependencies.jar AirRoutesQuery1 --ImportIds ./savedids.csv
+```
+
+```bash
+java tinkerbench2-2.0.15-jar-with-dependencies.jar AirRoutesQuery1 --ImportIds ./*.csv
+```
+
+```bash
+java tinkerbench2-2.0.15-jar-with-dependencies.jar AirRoutesQuery1 --ImportIds ../myfolder/
+```
+
 ### Vertex CSV File Format
 
 The file must have the following header:
@@ -140,7 +162,7 @@ or
 ```
 Where "-id" is the vertex id. The optional "-label" column can include the associated label.
 
-### Example
+#### Example
 
 ```
 -id
@@ -155,7 +177,7 @@ Where "-id" is the vertex id. The optional "-label" column can include the assoc
 3277
 ```
 
-### Example with Labels
+#### Example with Labels
 
 ```
 -id,-label
@@ -172,5 +194,19 @@ Where "-id" is the vertex id. The optional "-label" column can include the assoc
 
 When the optional "label" column is defined and the id doesn't have an associated label, the id must be terminated by a comma.
 
-| ![image](media/gremlin-apache.png) | Additional columns can be provided. These additional columns will be ignored. |
+| ![image](media/gremlin-apache.png) | Additional columns can be provided. These additional columns will be ignored.|
 |------------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+
+## Exporting Vertexes to a File
+
+Vertex Ids that have been imported by wither the import command or the Id Device Manager can be expoerted using the "--ExportIds" aegument.
+
+This will export all imported ids.
+
+The value to "--ExportIds" should be a valid file path with file name and extension. If the path doens't exists it will be created. If the file exist, it will be overwritten without warning.
+
+### Export Command Line
+
+```bash
+java tinkerbench2-2.0.15-jar-with-dependencies.jar AirRoutesQuery1 --ExportIds ./savedids.csv
+```
