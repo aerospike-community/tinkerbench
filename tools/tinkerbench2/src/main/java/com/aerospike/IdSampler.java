@@ -5,22 +5,40 @@ import me.tongfei.progressbar.ProgressBar;
 import me.tongfei.progressbar.ProgressBarBuilder;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
 
-import java.io.File;
+import java.io.*;
 import java.util.*;
 import java.util.concurrent.CompletionException;
 
 import com.opencsv.CSVReaderHeaderAware;
-import java.io.FileReader;
-import java.io.IOException;
 
 public class IdSampler implements  IdManager {
     private static final int ID_SAMPLE_SIZE = 500_000;
     private List<Object> sampledIds = null;
     final Random random = new Random();
+    boolean disabled = false;
     String label = null;
 
     public IdSampler() {
         // Constructor can be used for initialization if needed
+    }
+
+    @Override
+    public boolean CheckIdsExists(final LogSource logger) {
+
+        if(disabled) {
+            return false;
+        }
+
+        if(sampledIds.isEmpty()) {
+            String msg = label == null || label.isEmpty()
+                    ? "No Vertex Ids returned and at least one Id is required! Maybe you need to disable Id Sampling?"
+                    : String.format("No Vertex Ids returned for label '%s'. At least one Id is required! Is this label correct or maybe you need to disable Id Sampling?",
+                    label);
+            logger.Print("IdSampler", true, msg);
+
+            throw new ArrayIndexOutOfBoundsException(msg);
+        }
+        return true;
     }
 
     private static List<Object> getSampledIds(final GraphTraversalSource g,
@@ -65,6 +83,7 @@ public class IdSampler implements  IdManager {
 
         if(sampleSize <= 0) {
             sampledIds = null;
+            disabled = true;
             logger.PrintDebug("IdSampler", "IdSampler disabled");
         } else {
             this.label = label;
@@ -111,16 +130,6 @@ public class IdSampler implements  IdManager {
             }
             logger.PrintDebug("IdSampler", "Obtain Samples: Label: '%s' Count: %d", label, sampledIds.size());
 
-            if(sampledIds.isEmpty()) {
-                String msg = label == null || label.isEmpty()
-                                ? "No Vertex Ids returned and at least one Id is required! Maybe you need to disable Id Sampling?"
-                                : String.format("No Vertex Ids returned for label '%s'. At least one Id is required! Is this label correct or maybe you need to disable Id Sampling?",
-                                                label);
-                logger.Print("IdSampler", true, msg);
-
-                throw new ArrayIndexOutOfBoundsException(msg);
-            }
-
             final long runningLatency = end - start;
             if(openTelemetry != null) {
                 openTelemetry.setIdMgrGauge(this.getClass().getSimpleName(),
@@ -157,8 +166,9 @@ public class IdSampler implements  IdManager {
                                final int sampleSize,
                                final String label) {
 
-        if(sampleSize <= 0) {
+        if(sampleSize <= 0 || disabled) {
             sampledIds = null;
+            disabled = true;
             logger.PrintDebug("IdSampler.importFile", "IdSampler disabled");
         } else {
             this.label = label;
@@ -169,7 +179,7 @@ public class IdSampler implements  IdManager {
                 return 0;
             }
 
-            File file = null;
+            File file;
             if(Helpers.hasWildcard(filePath)) {
                 long latency = 0;
 
@@ -188,10 +198,10 @@ public class IdSampler implements  IdManager {
                     progressBar.setExtraMessage(String.format("Loaded %,d vertices", sampledIds.size()));
                     if (openTelemetry != null) {
                         openTelemetry.setIdMgrGauge("*",
-                                label,
-                                sampleSize,
-                                sampledIds.size(),
-                                latency);
+                                                        label,
+                                                        sampleSize,
+                                                        sampledIds.size(),
+                                                        latency);
                     }
                     progressBar.refresh();
                 }
@@ -209,7 +219,10 @@ public class IdSampler implements  IdManager {
             }
 
             if(!file.exists()) {
-                logger.Print("IdSampler.importFile", true, "File does not exist: " + filePath);
+                logger.Print("IdSampler.importFile",
+                                true,
+                            "File does not exist: " + filePath);
+                return 0;
             }
             long startTime = System.currentTimeMillis();
             try (CSVReaderHeaderAware reader = new CSVReaderHeaderAware(new FileReader(file))) {
@@ -243,9 +256,12 @@ public class IdSampler implements  IdManager {
                         sampledIds.size(),
                         latency);
             }
+
             logger.PrintDebug("IdSampler.importFile",
-                            "Obtain Samples: Label: '%s' Count: %d",
-                                label, sampledIds.size());
+                            "Obtain Samples from '%s' using Label '%s' Read %d",
+                                file.getAbsolutePath(),
+                                label,
+                                sampledIds.size());
 
             return latency;
         }
@@ -253,7 +269,66 @@ public class IdSampler implements  IdManager {
     }
 
     @Override
-    public void exportFile(final String file) {
-        return;
+    public void exportFile(final String filePath,
+                           final LogSource logger) {
+
+        if(filePath != null && isInitialized() && !disabled) {
+            File exportFile = Helpers.CrateFolderFilePath(filePath);
+            String header;
+            boolean writeLabel;
+
+            if (label == null || label.isEmpty()) {
+                header = "-id";
+                writeLabel = false;
+            } else {
+                writeLabel = true;
+                header = "-id,-label";
+            }
+
+            logger.PrintDebug("IdSampler.exportFile",
+                                "Writing %d with Label '%s' into '%s'",
+                                        sampledIds.size(),
+                                        label,
+                                        exportFile.getAbsolutePath());
+
+            try (ProgressBar progressBar = new ProgressBarBuilder()
+                                                .setInitialMax(sampledIds.size())
+                                                .setTaskName("Exporting vertices ids")
+                                                .hideEta()
+                                                .build();
+                    BufferedWriter writer = new BufferedWriter(new FileWriter(exportFile))) {
+
+                progressBar.setExtraMessage(exportFile.getName());
+
+                // Write the header
+                writer.write(header);
+                writer.newLine(); // Add a new line after the header
+
+                for(Object id : sampledIds) {
+                    progressBar.step();
+                    writer.write(id.toString());
+                    if(writeLabel) {
+                        writer.write(",");
+                        writer.write(label);
+                    }
+                    writer.newLine();
+                }
+
+                progressBar.refresh();
+                logger.PrintDebug("IdSampler.exportFile",
+                                    "Written %d with Label '%s' into '%s'",
+                                    sampledIds.size(),
+                                    label,
+                                    exportFile.getAbsolutePath());
+            } catch (IOException e) {
+                logger.Print("IdSampler.exportFile Error in exporting file " + filePath, e);
+            }
+        } else if (filePath == null) {
+            logger.PrintDebug("IdSampler.exportFile", "IdSampler file not provided");
+        } else if (disabled) {
+            logger.PrintDebug("IdSampler.exportFile", "IdSampler disabled");
+        } else {
+            logger.Print("IdSampler.exportFile", true, "Cannot export Vertex Ids because there are no Ids!");
+        }
     }
 }

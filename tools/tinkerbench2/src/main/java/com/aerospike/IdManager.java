@@ -5,6 +5,9 @@ import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSo
 import java.io.File;
 
 public interface IdManager {
+
+    boolean CheckIdsExists(final LogSource logger);
+
     void init(final GraphTraversalSource g,
                 final OpenTelemetry openTelemetry,
                 final LogSource logger,
@@ -19,5 +22,7 @@ public interface IdManager {
                        final LogSource logger,
                        final int sampleSize,
                        final String label);
-    void exportFile(final String file);
+
+    void exportFile(final String filePath,
+                    final LogSource logger);
 }

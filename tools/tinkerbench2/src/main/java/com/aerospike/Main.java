@@ -37,30 +37,32 @@ public class Main extends TinkerBench2Args {
                 return;
 
             if(!args.appTestMode && !args.idManager.isInitialized()) {
+                final int sampleSIze = workloadRunner.getSampleSize() < 0
+                                        ? args.idSampleSize
+                                        : workloadRunner.getSampleSize();
+                final String label = workloadRunner.getSampleLabelId() == null
+                                        ? args.labelSample
+                                        : (args.labelSample == null
+                                            ?  workloadRunner.getSampleLabelId()
+                                            : args.labelSample);
                 if(args.importIdsPath != null) {
                     args.idManager.importFile(args.importIdsPath,
                                                 openTel,
                                                 logger,
-                                                workloadRunner.getSampleSize() < 0
-                                                        ? args.idSampleSize
-                                                        : workloadRunner.getSampleSize(),
-                                                workloadRunner.getSampleLabelId() == null
-                                                        ? args.labelSample
-                                                        : (args.labelSample == null
-                                                        ? workloadRunner.getSampleLabelId()
-                                                        : args.labelSample));
+                                                sampleSIze,
+                                                label);
                 } else {
                     args.idManager.init(agsGraphTraversal.G(),
                                         openTel,
                                         logger,
-                                        workloadRunner.getSampleSize() < 0
-                                                ? args.idSampleSize
-                                                : workloadRunner.getSampleSize(),
-                                        workloadRunner.getSampleLabelId() == null
-                                                ? args.labelSample
-                                                : (args.labelSample == null
-                                                ? workloadRunner.getSampleLabelId()
-                                                : args.labelSample));
+                                        sampleSIze,
+                                        label);
+                }
+                args.idManager.CheckIdsExists(logger);
+
+                if(args.exportIdsPath != null) {
+                    args.idManager.exportFile(args.exportIdsPath,
+                                               logger);
                 }
             }
 

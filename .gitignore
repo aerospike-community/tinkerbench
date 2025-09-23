@@ -41,3 +41,5 @@ build/
 tools/tinkerbench2/~$README.md
 
 tools/tinkerbench2/~WRL1624.tmp
+
+tools/tinkerbench2/src/test/idsexport.csv

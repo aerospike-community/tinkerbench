@@ -765,4 +765,34 @@ public class Helpers {
                                 .map(Path::toFile)
                                 .collect(Collectors.toList());
     }
+
+    public static File CrateFolderFilePath(String filePath) {
+        File file = new File(filePath);
+
+        if(file.exists()) {
+            return file;
+        }
+
+        File directoryFile = file.getParentFile();
+
+        if(directoryFile == null) {
+            return file;
+        }
+
+        try {
+            if (!directoryFile.exists()) {
+                if(directoryFile.mkdirs()) {
+                    return file;
+                }
+                throw new IOException("Unable to create directory " + directoryFile);
+            }
+
+        } catch (Exception e) {
+            LogSource.getInstance().error(String.format("Error while trying to create the folder '%s'",
+                            directoryFile),
+                    e);
+        }
+
+        return file;
+    }
 }
