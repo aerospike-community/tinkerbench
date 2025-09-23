@@ -122,3 +122,55 @@ java tinkerbench2-2.0.15-jar-with-dependencies.jar AirRoutesQuery1 --IdManager m
 If the Vertex Id manager is enabled and no ids are retreived the following error is thrown:
 
 ![No Id Error](./media/vertexIdMgrErrNoIds.png)
+
+## Importing Vertex CSV File
+
+TinkerBench2 can import a vertex CSV file to be used as the vertex ids for the workload.
+
+### Vertex CSV File Format
+
+The file must have the following header:
+
+```
+-id
+```
+or
+```
+-id,-label
+```
+Where "-id" is the vertex id. The optional "-label" column can include the associated label.
+
+### Example
+
+```
+-id
+342
+1464
+728
+635
+3294
+3235
+2988
+2688
+3277
+```
+
+### Example with Labels
+
+```
+-id,-label
+342,airport
+1464,airport
+728,
+635,city
+3294,city
+3235,airport
+2988,city
+2688,
+3277,airport
+```
+
+When the optional "label" column is defined and the id doesn't have an associated label, the id must be terminated by a comma.
+
+| ![image](media/gremlin-apache.png) | Additional columns can be provided. These additional columns will be ignored. |
+|------------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|

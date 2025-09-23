@@ -232,6 +232,7 @@ public class IdSampler implements  IdManager {
                 }
             } catch (IOException | CsvValidationException e) {
                 logger.Print("IdSampler.importFile Error in reading CSV file " + file, e);
+                throw new RuntimeException(e);
             }
 
             long latency = System.currentTimeMillis() - startTime;
