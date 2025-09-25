@@ -3,7 +3,7 @@
 
 TikerBench2 has two workload run types. They are:
 
--   Warmup – Conducted if the warmup duration *(--WarmupDuration*) is defined. This executes the query like “workload” for the purpose of “warming up” the database. Meeting the targeted QPS rate may or may not occur. Summary results are captured and reported. This run is not required.
+-   Warmup – Conducted if the warmup duration (`--WarmupDuration`) is defined. This executes the query like “workload” for the purpose of “warming up” the database. Meeting the targeted QPS rate may or may not occur. Summary results are captured and reported. This run is not required.
 -   Workload – This preforms the “**main”** workload and strides to make and maintain the QPS rate for the duration of the run. Results are captured and reported based on the configuration provided.
 
 When TinkerBench2 executes it goes through the following stages:

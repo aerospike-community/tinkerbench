@@ -8,7 +8,7 @@ The error will always be reported to the console typically in an abbreviated for
 
 ![](media/ConsoleErrorMsg.png)
 
-If an error occurs during query execution and is not fatal, TinkerBench2 will continue Query execution until the error trigger limit is reached defined by –*Errors* argument. Once the error limit is reached, TinkerBench2 will terminate all queries and execution. A [summary report](./understanding_output.md#stage-6-report-result) is produced.
+If an error occurs during query execution and is not fatal, TinkerBench2 will continue Query execution until the error trigger limit is reached defined by `--Errors` argument. Once the error limit is reached, TinkerBench2 will terminate all queries and execution. A [summary report](./understanding_output.md#stage-6-report-result) is produced.
 
 ## Obtaining Error Details
 

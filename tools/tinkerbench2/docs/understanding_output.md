@@ -87,13 +87,13 @@ This stage produces the results of the query execution. This report is brekon do
         This report is the default and provides a subset of the complete HdrHistogram report. This report contains the latency percentiles, average, maximum, and deviation.
         ![A screenshot of a computer program AI-generated content may be incorrect.](media/ConsoleHdrHistSummary.png)
     -   Full Report
-        This report is produced if the “—*HdrHistFmt*” flag is provided. It produces a complete HdrHistogram report that can be consumed by the [HdrHistogram Plotter](https://hdrhistogram.github.io/HdrHistogram/plotFiles.html).
+        This report is produced if the `--HdrHistFmt` flag is provided. It produces a complete HdrHistogram report that can be consumed by the [HdrHistogram Plotter](https://hdrhistogram.github.io/HdrHistogram/plotFiles.html).
         **Note**: If logging is enabled, the full HdrHistogram reported is always rendered in the log.
         ![](media/ConsoleHdrHistGram.png)
         -   Value column is the latency in milliseconds for that percentile.
         -   The percentile column is the percentage that latency is at or better.
         -   The count column is the number of queries that make up that percentile.
-        -   The “1/(1-Percentil)” (Inverse percentiles) column focus to the proportion of requests meeting specific performance targets.
+        -   The “1/(1-Percentile)” (Inverse percentiles) column focus to the proportion of requests meeting specific performance targets.
 
 ### Typical Complete Console Output
 
@@ -170,5 +170,5 @@ All errors during execution will be fully logged. This provides the most detail 
 
 ![A screen shot of a computer screen](media/LoggingErrorOutput.png)
 
-| ![A yellow post-it note with a red pin AI-generated content may be incorrect.](media/NotePencil.png) | If “-debug” flag is provided, all tracing and debug messages are also captured in the log file. |
+| ![A yellow post-it note with a red pin AI-generated content may be incorrect.](media/NotePencil.png) | If `-debug` flag is provided, all tracing and debug messages are also captured in the log file. |
 |------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------|

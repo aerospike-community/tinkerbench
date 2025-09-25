@@ -73,7 +73,7 @@ java tinkerbench2-2.0.15-jar-with-dependencies.jar AirRoutesQuery1 -n 10.0.0.1 -
 
 # Topics
 
-## [Understanding the Command Line Interface (CLI)](docs/uderstanding_command_line_interface.md)
+## [Understanding the Command Line Interface (CLI)](docs/understanding_command_line_interface.md)
 
 ## [Understanding Workload and Runtime Stages](docs/understanding_workload_and_runtime_stages.md)
 
