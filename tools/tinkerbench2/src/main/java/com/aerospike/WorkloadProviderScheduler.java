@@ -897,7 +897,9 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
                 }
                 RecordDepth(pendingCount.decrementAndGet());
                 openTelemetry.decrPendingTransCounter();
-                progressbar.step();
+                if(progressbar != null) {
+                    progressbar.step();
+                }
             }
         }
     }
