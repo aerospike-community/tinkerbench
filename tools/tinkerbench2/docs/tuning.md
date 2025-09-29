@@ -82,7 +82,15 @@ This behavior suggests that either the TinkerBench2 node, the AGS node(s), and/o
 
 TinkerBench2 can maintain the targeted QPS even if errors are occurring. If an error occurs during the execution of a query, that query's latency is not recorded.
 
+If you reach the maximum error threshold (defaults to 150), it can be increased (or decreased) using the "[--Errors](./understanding_command_line_interface.md)" argument.
+
 ![QPS with Errors](./media/QueryDeothPercentQPSErrors1.png)
+
+##### Under QPS with Errors
+
+If you reach the maximum error threshold (defaults to 150), it can be increased using the "[--Errors](./understanding_command_line_interface.md)" argument.
+
+It is, also, suggested youi decrease the number of schedulers (e.g., 1 or 2) and keep the current number of workers. This sometimes will ease the errors and possibly reach the targeted QPS.
 
 ### Grafana Dashboard
 
