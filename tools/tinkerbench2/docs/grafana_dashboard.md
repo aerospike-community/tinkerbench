@@ -69,6 +69,7 @@ scrape_configs:
 **Warning**:  For an accurate QPS, please review the reports produced in the logs or displayed on the console. This information only provides an estimated QPS.
 11. Query Depth Queue that provides an estimated based on the Prometheus scrap interval. See [Tuning section](./tuning.md) for more information.
 12. A list of errors and an overview summary of the error with the number of occurrences.
+**Note** that if you hoover the mouse over the error text, additional information is displayed.
 13. The number of errors over time.
 
 | ![image](media/gremlin-apache.png) | For the most accurate QPS and Latency, refer to the [console](./understanding_output.md#understanding-output) reports and [log](./understanding_output.md#logging) reports. The dashboard is based on averages over the scraping rates. |
