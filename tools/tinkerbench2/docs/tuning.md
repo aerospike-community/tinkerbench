@@ -49,21 +49,54 @@ The Query Depth Report provides the following information:
 
 These percentiles help to determine the efficiency of TinkerBench2's QPS maintenance.
 
+#### Maintaining QPS without Errors
+
+Below is an example of a normal workload execution. Note the low occurrence rate even though the depth reached 31, no errors, and targeted QPS.
+
+![Occurrence Rate](./media/QueryDeothPercentQPS1.png)
+
 ##### Under QPS without Errors
 
-If TinkerBench2 is not maintaining the QPS; try increasing the number of worker by the "occurrence  percentage" if this percentage is over 10%. If TinkerBench2 is using 10 workers and the rate is 10%, try increasing the workers to 11.
+If TinkerBench2 is not maintaining the QPS; try increasing the number of worker by 25%, if the QPS is reached above 90% of the targeted QPS.
 
-If the "occurrence  percentage" is less than 10%, try increasing the number of workers by 25%.
+![Occurrence Rate Under QPS](./media/QueryDeothPercentNotQPSNoErrors1.png)
+
+In the above example, the targeted QPS was 3K but we only obtained 2.8K QPS (94.98%). In this case, multiple the current number of workers (e.g., 20) by 25% which results in trying 25 workers for the next run.
+
+If the QPS is below 90% of the targeted QPS, and the "occurrence rate" is above 50%, increase the number of workers by the "occurrence rate".
+
+![Occurrence Rate Under QPS](./media/QueryDeothPercentNotQPSNoErrors2.png)
+
+In the above example, the targeted QPS was 4K but we only obtained 3.2K QPS (79.84%). In this case, multiple the current number of workers (e.g., 40) by 99% (occurrence rate) which results in trying 79 workers for the next run.
+
+If you apply the above formula and the updated number of workers (e.g., 79 workers) resulted in a very similar QPS percent difference and "occurrence rate" between the runs without any errors.
+
+This behavior suggests that either the TinkerBench2 node, the AGS node(s), and/or the Aerospike database cluster may have resouce issues (e.g., CPU, network, memeory, etc).
+
+![Occurrence Rate Under QPS](./media/QueryDeothPercentNotQPSNoErrors3.png)
+
+| ![image](media/gremlin-apache.png) | Typically increasing the number of schedulers will not acheive the target QPS. It is suggested that TinkerBench2 use the calculated number of schedulers. |
+|------------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 
 ##### Maintaining QPS with Errors
 
+TinkerBench2 can maintain the targeted QPS even if errors are occurring. If an error occurs during the execution of a query, that query's latency is not recorded.
 
+![QPS with Errors](./media/QueryDeothPercentQPSErrors1.png)
 
- If the maximum depth's value is the same value for all the percentiles and the "occurrence rate" is over 10% with errors, this indicates a component (e.g., client platform, AGS, Aerospike DB, etc.) of the environment is underpowered. If this occurs, an evaulation of the enviorment is recommended.
+### Grafana Dashboard
 
-Below is an example:
+If the "[--prometheus](understanding_command_line_interface.md)" switch is enabled, the Query Depth can be monitored using the TinkerBench2 Grafana [dashboard](grafana_dashboard.md).
 
+The "Client Queue Depth" panel displays the depth at based on the [Prometheus scrape interval](https://prometheus.io/docs/prometheus/latest/configuration/configuration/).
 
+Below is an example of this panel:
+![grafana depth panel](./media/GrafanaQueryQueueDepth.png)
 
+Below is the corresponding console report.
+![grafana depth console](./media/GrafanaQueryQueueDepthConsole.png)
 
+Note the difference between the console report and the Grafana panel. The Prometheus scrape interval was set to 15 seconds on a 1 minute run. As such, the panel's granularity is poor. The console's report is based on real time captures.
 
+| ![image](media/gremlin-apache.png) | Console and log reports are always the most accurate source of information and any observations should be made on these reports. The Grafana dashboard is an overview of the progress of the workload. |
+|------------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
