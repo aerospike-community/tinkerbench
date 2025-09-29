@@ -2046,7 +2046,7 @@
             "type": "prometheus",
             "uid": "${DATASOURCE}"
           },
-          "description": "Average Rate for Period range",
+          "description": "Average Rate for last Period range",
           "fieldConfig": {
             "defaults": {
               "color": {
@@ -2178,7 +2178,7 @@
               "useBackend": false
             }
           ],
-          "title": "Running Average Rate",
+          "title": "Running Average Rate (last segment)",
           "transformations": [
             {
               "id": "configFromData",
@@ -2200,7 +2200,7 @@
             "type": "prometheus",
             "uid": "${DATASOURCE}"
           },
-          "description": "Average across all nodes counted into buckets from 0 to 2^16",
+          "description": "Estimated latency based on scraping rate. It is suggested to obtain accurate latency percentiles to view the console/log reports.",
           "fieldConfig": {
             "defaults": {
               "decimals": 0,
@@ -2313,7 +2313,7 @@
               "refId": "P999"
             }
           ],
-          "title": "Latency Percentiles",
+          "title": "Latency Percentiles (Estimated)",
           "type": "stat"
         }
       ],
@@ -2847,7 +2847,7 @@
         "type": "prometheus",
         "uid": "${DATASOURCE}"
       },
-      "description": "Average Rate for Period range",
+      "description": "Average Rate for Last Period range",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -2979,7 +2979,7 @@
           "useBackend": false
         }
       ],
-      "title": "Running Average Rate",
+      "title": "Running Average Rate (last segment)",
       "transformations": [
         {
           "id": "configFromData",
@@ -3001,7 +3001,7 @@
         "type": "prometheus",
         "uid": "${DATASOURCE}"
       },
-      "description": "Average across all nodes counted into buckets from 0 to 2^16",
+      "description": "Estimated latency based on scraping rate. It is suggested to obtain accurate latency percentiles to view the console/log reports.",
       "fieldConfig": {
         "defaults": {
           "decimals": 0,
@@ -3114,7 +3114,7 @@
           "refId": "P999"
         }
       ],
-      "title": "Latency Percentiles",
+      "title": "Latency Percentiles (Estimated)",
       "type": "stat"
     },
     {
@@ -3363,7 +3363,7 @@
       "type": "timeseries"
     },
     {
-      "collapsed": false,
+      "collapsed": true,
       "gridPos": {
         "h": 1,
         "w": 24,
@@ -3371,270 +3371,271 @@
         "y": 46
       },
       "id": 23,
-      "panels": [],
+      "panels": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DATASOURCE}"
+          },
+          "description": "All Errors",
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "thresholds"
+              },
+              "custom": {
+                "align": "auto",
+                "cellOptions": {
+                  "type": "auto"
+                },
+                "inspect": false
+              },
+              "decimals": 0,
+              "fieldMinMax": false,
+              "mappings": [],
+              "noValue": "No Errors Detected",
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": 0
+                  }
+                ]
+              },
+              "unit": "locale"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 11,
+            "w": 24,
+            "x": 0,
+            "y": 52
+          },
+          "id": 16,
+          "options": {
+            "cellHeight": "sm",
+            "footer": {
+              "countRows": false,
+              "fields": "",
+              "reducer": [
+                "sum"
+              ],
+              "show": false
+            },
+            "showHeader": true
+          },
+          "pluginVersion": "12.1.0",
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${DATASOURCE}"
+              },
+              "disableTextWrap": false,
+              "editorMode": "builder",
+              "exemplar": false,
+              "expr": "aerospike_workload_ags_exception_total{instance=~\"$client\", workload=~\"$workload\", wltype=~\"$workloadtype\", wlstage=~\"$workloadstage\"}",
+              "format": "time_series",
+              "fullMetaSearch": false,
+              "includeNullMetadata": true,
+              "instant": false,
+              "legendFormat": "__auto",
+              "range": true,
+              "refId": "A",
+              "useBackend": false
+            }
+          ],
+          "title": "All Error",
+          "transformations": [
+            {
+              "id": "reduce",
+              "options": {
+                "includeTimeField": false,
+                "labelsToFields": true,
+                "mode": "seriesToRows",
+                "reducers": [
+                  "max"
+                ]
+              }
+            },
+            {
+              "id": "organize",
+              "options": {
+                "excludeByName": {
+                  "Field": true,
+                  "__name__": true,
+                  "instance": true,
+                  "job": true,
+                  "otel_scope_name": true,
+                  "pid": true,
+                  "startTimeMillis": true,
+                  "startTimeSecs": true,
+                  "wlstage": true
+                },
+                "includeByName": {},
+                "indexByName": {
+                  "Field": 5,
+                  "Max": 4,
+                  "__name__": 6,
+                  "exception": 3,
+                  "exception_type": 2,
+                  "instance": 7,
+                  "job": 8,
+                  "otel_scope_name": 9,
+                  "pid": 10,
+                  "startTimeMillis": 11,
+                  "wltype": 0,
+                  "workload": 1
+                },
+                "renameByName": {
+                  "Max": "Errors",
+                  "exception": "Caused",
+                  "exception_type": "Exception",
+                  "wltype": "Type",
+                  "workload": "Name"
+                }
+              }
+            },
+            {
+              "id": "groupToNestedTable",
+              "options": {
+                "fields": {
+                  "Errors": {
+                    "aggregations": []
+                  },
+                  "Exception": {
+                    "aggregations": [],
+                    "operation": "groupby"
+                  },
+                  "Name": {
+                    "aggregations": [],
+                    "operation": "groupby"
+                  },
+                  "Type": {
+                    "aggregations": [],
+                    "operation": "groupby"
+                  }
+                },
+                "showSubframeHeaders": true
+              }
+            }
+          ],
+          "type": "table"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DATASOURCE}"
+          },
+          "description": "All Errors",
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisBorderShow": false,
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "barWidthFactor": 0.6,
+                "drawStyle": "line",
+                "fillOpacity": 0,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "insertNulls": false,
+                "lineInterpolation": "linear",
+                "lineWidth": 1,
+                "pointSize": 5,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "showPoints": "auto",
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "decimals": 0,
+              "fieldMinMax": false,
+              "mappings": [],
+              "noValue": "No Errors Detected",
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": 0
+                  }
+                ]
+              },
+              "unit": "locale"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 11,
+            "w": 24,
+            "x": 0,
+            "y": 63
+          },
+          "id": 18,
+          "options": {
+            "legend": {
+              "calcs": [],
+              "displayMode": "list",
+              "placement": "bottom",
+              "showLegend": true
+            },
+            "tooltip": {
+              "hideZeros": false,
+              "mode": "single",
+              "sort": "none"
+            }
+          },
+          "pluginVersion": "12.1.0",
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${DATASOURCE}"
+              },
+              "disableTextWrap": false,
+              "editorMode": "builder",
+              "exemplar": false,
+              "expr": "aerospike_workload_ags_exception_total{instance=~\"$client\", workload=~\"$workload\", wltype=~\"$workloadtype\", wlstage=~\"$workloadstage\"}",
+              "format": "time_series",
+              "fullMetaSearch": false,
+              "includeNullMetadata": true,
+              "instant": false,
+              "legendFormat": "{{wlstage}}-{{wltype}} - {{exception_type}}: {{exception}}",
+              "range": true,
+              "refId": "A",
+              "useBackend": false
+            }
+          ],
+          "title": "All Error",
+          "type": "timeseries"
+        }
+      ],
       "title": "Error Information",
       "type": "row"
-    },
-    {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${DATASOURCE}"
-      },
-      "description": "All Errors",
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
-          "custom": {
-            "align": "auto",
-            "cellOptions": {
-              "type": "auto"
-            },
-            "inspect": false
-          },
-          "decimals": 0,
-          "fieldMinMax": false,
-          "mappings": [],
-          "noValue": "No Errors Detected",
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": 0
-              }
-            ]
-          },
-          "unit": "locale"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 11,
-        "w": 24,
-        "x": 0,
-        "y": 47
-      },
-      "id": 16,
-      "options": {
-        "cellHeight": "sm",
-        "footer": {
-          "countRows": false,
-          "fields": "",
-          "reducer": [
-            "sum"
-          ],
-          "show": false
-        },
-        "showHeader": true
-      },
-      "pluginVersion": "12.1.0",
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${DATASOURCE}"
-          },
-          "disableTextWrap": false,
-          "editorMode": "builder",
-          "exemplar": false,
-          "expr": "aerospike_workload_ags_exception_total{instance=~\"$client\", workload=~\"$workload\", wltype=~\"$workloadtype\", wlstage=~\"$workloadstage\"}",
-          "format": "time_series",
-          "fullMetaSearch": false,
-          "includeNullMetadata": true,
-          "instant": false,
-          "legendFormat": "__auto",
-          "range": true,
-          "refId": "A",
-          "useBackend": false
-        }
-      ],
-      "title": "All Error",
-      "transformations": [
-        {
-          "id": "reduce",
-          "options": {
-            "includeTimeField": false,
-            "labelsToFields": true,
-            "mode": "seriesToRows",
-            "reducers": [
-              "max"
-            ]
-          }
-        },
-        {
-          "id": "organize",
-          "options": {
-            "excludeByName": {
-              "Field": true,
-              "__name__": true,
-              "instance": true,
-              "job": true,
-              "otel_scope_name": true,
-              "pid": true,
-              "startTimeMillis": true,
-              "startTimeSecs": true,
-              "wlstage": true
-            },
-            "includeByName": {},
-            "indexByName": {
-              "Field": 5,
-              "Max": 4,
-              "__name__": 6,
-              "exception": 3,
-              "exception_type": 2,
-              "instance": 7,
-              "job": 8,
-              "otel_scope_name": 9,
-              "pid": 10,
-              "startTimeMillis": 11,
-              "wltype": 0,
-              "workload": 1
-            },
-            "renameByName": {
-              "Max": "Errors",
-              "exception": "Caused",
-              "exception_type": "Exception",
-              "wltype": "Type",
-              "workload": "Name"
-            }
-          }
-        },
-        {
-          "id": "groupToNestedTable",
-          "options": {
-            "fields": {
-              "Errors": {
-                "aggregations": []
-              },
-              "Exception": {
-                "aggregations": [],
-                "operation": "groupby"
-              },
-              "Name": {
-                "aggregations": [],
-                "operation": "groupby"
-              },
-              "Type": {
-                "aggregations": [],
-                "operation": "groupby"
-              }
-            },
-            "showSubframeHeaders": true
-          }
-        }
-      ],
-      "type": "table"
-    },
-    {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${DATASOURCE}"
-      },
-      "description": "All Errors",
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "axisBorderShow": false,
-            "axisCenteredZero": false,
-            "axisColorMode": "text",
-            "axisLabel": "",
-            "axisPlacement": "auto",
-            "barAlignment": 0,
-            "barWidthFactor": 0.6,
-            "drawStyle": "line",
-            "fillOpacity": 0,
-            "gradientMode": "none",
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            },
-            "insertNulls": false,
-            "lineInterpolation": "linear",
-            "lineWidth": 1,
-            "pointSize": 5,
-            "scaleDistribution": {
-              "type": "linear"
-            },
-            "showPoints": "auto",
-            "spanNulls": false,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
-          },
-          "decimals": 0,
-          "fieldMinMax": false,
-          "mappings": [],
-          "noValue": "No Errors Detected",
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": 0
-              }
-            ]
-          },
-          "unit": "locale"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 11,
-        "w": 24,
-        "x": 0,
-        "y": 58
-      },
-      "id": 18,
-      "options": {
-        "legend": {
-          "calcs": [],
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": true
-        },
-        "tooltip": {
-          "hideZeros": false,
-          "mode": "single",
-          "sort": "none"
-        }
-      },
-      "pluginVersion": "12.1.0",
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${DATASOURCE}"
-          },
-          "disableTextWrap": false,
-          "editorMode": "builder",
-          "exemplar": false,
-          "expr": "aerospike_workload_ags_exception_total{instance=~\"$client\", workload=~\"$workload\", wltype=~\"$workloadtype\", wlstage=~\"$workloadstage\"}",
-          "format": "time_series",
-          "fullMetaSearch": false,
-          "includeNullMetadata": true,
-          "instant": false,
-          "legendFormat": "{{wlstage}}-{{wltype}} - {{exception_type}}: {{exception}}",
-          "range": true,
-          "refId": "A",
-          "useBackend": false
-        }
-      ],
-      "title": "All Error",
-      "type": "timeseries"
     }
   ],
   "preload": false,
-  "refresh": "10s",
+  "refresh": "5s",
   "schemaVersion": 41,
   "tags": [],
   "templating": {
@@ -3656,9 +3657,7 @@
       {
         "current": {
           "text": "All",
-          "value": [
-            "$__all"
-          ]
+          "value": "$__all"
         },
         "datasource": {
           "type": "prometheus",
@@ -3682,9 +3681,7 @@
       {
         "current": {
           "text": "All",
-          "value": [
-            "$__all"
-          ]
+          "value": "$__all"
         },
         "datasource": {
           "type": "prometheus",
@@ -3708,9 +3705,7 @@
       {
         "current": {
           "text": "All",
-          "value": [
-            "$__all"
-          ]
+          "value": "$__all"
         },
         "datasource": {
           "type": "prometheus",
@@ -3735,9 +3730,7 @@
       {
         "current": {
           "text": "All",
-          "value": [
-            "$__all"
-          ]
+          "value": "$__all"
         },
         "datasource": {
           "type": "prometheus",
@@ -3768,5 +3761,5 @@
   "timezone": "browser",
   "title": "Aerospike Tinker Bench 2",
   "uid": "besk2xu6dpp1ca",
-  "version": 53
+  "version": 54
 }
