@@ -74,3 +74,27 @@ scrape_configs:
 
 | ![image](media/gremlin-apache.png) | For the most accurate QPS and Latency, refer to the [console](./understanding_output.md#understanding-output) reports and [log](./understanding_output.md#logging) reports. The dashboard is based on averages over the scraping rates. |
 |------------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+
+## Using the Grafana Timestamps
+
+On console output (and in the logs), there will be a Grafana Json Timestamp outputted. This timestamp will provided the starting and ending time of a warmup/workload phase and an application starting/ending timestamp.
+
+This [timestamp can be pasted into any Grafana dashboard](https://grafana.com/whats-new/2024-01-28-copy-and-paste-time-range/). This will reposition the dashboard to that timestamp range.
+
+### Workload Phase Timestamp
+
+Below is a warmup/workload phase display:
+
+![Workloaad Timestamp](./media/WorkloadGranfanaTS.png)
+
+The bluse arrow points to the Grafana Timestamp as UTC.
+
+The yellow arrow points to your local timezone timestamp.
+
+Either can work in Grafana but you are required to change the timezone.
+
+### Application Timestamp
+
+Below is an application timestamp display:
+
+![Application Timestamp](./media/ApplicationTimeStamp.png)

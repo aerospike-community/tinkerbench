@@ -103,7 +103,7 @@ This stage produces the results of the query execution. This report is brekon do
 
 Logging is disabled by default. Logging can be enabled by updating the [logback.xml](https://logback.qos.ch/) file. Below is the logback file provided by TinkerBench2.
 
-```
+```xml
 <configuration>
     <!--appender name="FILE" class="ch.qos.logback.core.FileAppender">
         <file>logs/tinkerbench2.log</file>
@@ -128,7 +128,7 @@ This file can be found in the TinkerBench2 jar or in [GitHub](https://github.com
 
 To enable simple file logging using the provided logback file, just uncomment the “appender” tag and “logger” tag with the “appender-ref” tab. Comment out the original “logger” tab. This will enable a logging file named “tinkerbench2.log” under the folder “logs”. Below is an example enabling logging.
 
-```
+```xml
 <configuration>
     <appender name="FILE" class="ch.qos.logback.core.FileAppender">
         <file>logs/tinkerbench2.log</file>
@@ -172,3 +172,13 @@ All errors during execution will be fully logged. This provides the most detail 
 
 | ![A yellow post-it note with a red pin AI-generated content may be incorrect.](media/NotePencil.png) | If `-debug` flag is provided, all tracing and debug messages are also captured in the log file. |
 |------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------|
+
+## Grafana Timestamps
+
+Timestamp ranges are written to the console and log. These time ranges are produced at the end of the workload phase and upon application completion.
+
+They can also be copied and pased into any Grafana dashboard. For more information see this [section](./grafana_dashboard.md#using-the-grafana-timestamps)
+
+Below ia an example:
+
+![workload tmestamp](./media/WorkloadGranfanaTS.png)
