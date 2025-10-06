@@ -201,6 +201,14 @@ public final class EvalQueryWorkloadProvider extends QueryWorkloadProvider {
                 return null;
             });
 
+            logger.PrintDebug("PrepareCompile",
+                    "Executing 'precall'");
+            
+            this.preCall();
+            logger.PrintDebug("PrepareCompile",
+                    "Executing 'call'");
+            this.call();
+
         } catch (Exception e) {
             System.err.printf("ERROR: could not evaluate gremlin script \"%s\". Error: %s\n",
                     gremlinString,
