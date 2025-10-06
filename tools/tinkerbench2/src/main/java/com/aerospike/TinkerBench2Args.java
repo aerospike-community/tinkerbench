@@ -595,6 +595,15 @@ public abstract class TinkerBench2Args implements Callable<Integer> {
     void PrintArguments(boolean onlyProvidedArgs) {
         ParseResult pr = commandlineSpec.commandLine().getParseResult();
 
+        List<String> jvmArgs = Helpers.getJVMArgs();
+
+        if(!jvmArgs.isEmpty()) {
+            System.out.println("JVM Arguments:");
+            for(String arg : jvmArgs) {
+                System.out.println("\t" + arg);
+            }
+        }
+
         System.out.println("Arguments:");
         String[] args = getArguments(onlyProvidedArgs);
 

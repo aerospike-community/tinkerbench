@@ -11,6 +11,7 @@ import java.io.Closeable;
 import java.io.PrintStream;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public final class LogSource {
@@ -251,7 +252,23 @@ public final class LogSource {
     public void title(TinkerBench2Args args) {
 
         logger4j.info("==============> Starting <==============");
-        StringBuilder argStr = new StringBuilder("Arguments:\n");
+
+        StringBuilder argStr = new StringBuilder();
+        List<String> jvmArgs = Helpers.getJVMArgs();
+
+        if(jvmArgs.isEmpty()) {
+            argStr.append("JVM Arguments: None Provided\n");
+        } else {
+            argStr.append("JVM Arguments:\n");
+            for(String arg : jvmArgs) {
+                argStr.append("\t")
+                        .append(arg)
+                        .append("\n");
+            }
+            argStr.append("\n");
+        }
+
+        argStr.append("Arguments:\n");
         for (String arg : args.getArguments(false)) {
             argStr.append("\t")
                     .append(arg)

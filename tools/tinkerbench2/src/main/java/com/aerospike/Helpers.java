@@ -26,7 +26,6 @@ import java.util.jar.JarInputStream;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 public class Helpers {
 
@@ -103,6 +102,14 @@ public class Helpers {
         return list.stream()
                 .filter(e -> seenKeys.add(keyExtractor.apply(e)))
                 .collect(Collectors.toList());
+    }
+
+    public static List<String> getJVMArgs() {
+        // Get the RuntimeMXBean, which provides information about the running Java Virtual Machine.
+        RuntimeMXBean runtimeMxBean = ManagementFactory.getRuntimeMXBean();
+
+        // Get the list of input arguments passed to the JVM.
+        return runtimeMxBean.getInputArguments();
     }
 
     public static String getJarFile(Class<?> aClass) {
