@@ -49,11 +49,11 @@ public interface QueryRunnable extends AGSGraphTraversal,
     QueryRunnable PrintSummary();
 
     /*
-    Returns a label used to obtain the ids in the sampling.
+    Returns labels used to obtain the ids in the sampling.
         If null, the default from the CLI is used.
     Note: If a label is provided in the CLI, that value will override this value.
      */
-    String getSampleLabelId();
+    String[] getSampleLabelId();
 
     /*
     Returns the sampling size.

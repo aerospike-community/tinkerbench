@@ -145,8 +145,9 @@ public abstract class TinkerBench2Args implements Callable<Integer> {
     String exportIdsPath;
 
     @Option(names = {"-label", "--IdSampleLabel"},
-            description = "The Label used to obtain Id samples used by the IdManager. Null to obtain the vertices based on the Id sample size.")
-    String labelSample;
+            split = ",",
+            description = "The Labels used to obtain Id samples used by the IdManager. Null to obtain the vertices based on the Id sample size.%nMultiple Label arguments can be given by providing this option multiple times.%nExample:%n\t-label myLabel1 -label myLabel2, etc.%n\t-label myLabel1,myLabel2")
+    String[] labelsSample;
 
     @Option(names = {"-e","--Errors"},
             description = "The number of errors the workload can encounter before it is aborted. Default is ${DEFAULT-VALUE}",
@@ -506,13 +507,13 @@ public abstract class TinkerBench2Args implements Callable<Integer> {
                     "Argument number of Errors to Abort cannot be zero or negative.");
         }
 
-        if (labelSample != null
-                   && labelSample.equalsIgnoreCase("null")) {
-            labelSample = null;
-        }
-        if (labelSample != null
-                && labelSample.isEmpty()) {
-            labelSample = null;
+        if (labelsSample != null) {
+            if (labelsSample.length == 0
+                || (labelsSample.length == 1
+                        && (labelsSample[0].isEmpty()
+                            || labelsSample[0].equalsIgnoreCase("null")))) {
+                labelsSample = null;
+            }
         }
 
         if(!missing(clusterConfigurationFile) && !clusterConfigurationFile.exists()) {

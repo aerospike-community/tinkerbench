@@ -12,7 +12,7 @@ public interface IdManager {
                 final OpenTelemetry openTelemetry,
                 final LogSource logger,
                 final int sampleSize,
-                final String label);
+                final String[] labels);
 
     boolean isInitialized();
     Object getId();
@@ -21,7 +21,7 @@ public interface IdManager {
                        final OpenTelemetry openTelemetry,
                        final LogSource logger,
                        final int sampleSize,
-                       final String label);
+                       final String[] labels);
 
     void exportFile(final String filePath,
                     final LogSource logger);

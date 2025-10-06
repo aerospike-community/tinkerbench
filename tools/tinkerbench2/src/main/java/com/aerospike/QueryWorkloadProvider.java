@@ -55,11 +55,11 @@ public abstract class QueryWorkloadProvider implements QueryRunnable {
     }
 
     /*
-    Returns a label used to obtain the ids in the sampling.
+    Returns labels used to obtain the ids in the sampling.
         If null, the default from the CLI is used.
      */
     @Override
-    public String getSampleLabelId() { return null; }
+    public String[] getSampleLabelId() { return null; }
 
     /*
     Returns the sampling size.

@@ -15,6 +15,7 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -224,11 +225,21 @@ public final class OpenTelemetryExporter implements com.aerospike.OpenTelemetry 
 
     @Override
     public void setIdMgrGauge(final String mgrClass,
-                                final String label,
+                                final String[] labels,
                                 final int requestedCnt,
                                 final int actualCnt,
                                 final long runtimeMills) {
         if(this.closed.get()) { return; }
+
+        String label = "NA";
+
+        if(labels != null && labels.length > 0) {
+            if(labels.length == 1) {
+                label = labels[0];
+            } else {
+                label = Arrays.toString(labels);
+            }
+        }
 
         final AttributesBuilder attributes = Attributes.builder();
         attributes.putAll(this.hbAttributes[0]);

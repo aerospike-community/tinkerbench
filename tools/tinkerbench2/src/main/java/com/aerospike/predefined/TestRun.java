@@ -81,7 +81,7 @@ public class TestRun implements QueryRunnable {
     Returns null since sampling is not used.
      */
     @Override
-    public String getSampleLabelId() { return  null; }
+    public String[] getSampleLabelId() { return  null; }
 
     /*
     Returns zero to disable id sampling.

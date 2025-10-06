@@ -28,7 +28,7 @@ public final class OpenTelemetryDummy  implements OpenTelemetry {
                       StringBuilder otherInfo) { }
     @Override
     public void setIdMgrGauge(final String mgrClass,
-                              final String label,
+                              final String[] labels,
                               final int requestedCnt,
                               final int actualCnt,
                               final long runtime) {

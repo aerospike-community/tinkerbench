@@ -38,7 +38,7 @@ public class IdentityBenchmarkDevice1 extends QueryWorkloadProvider {
         If a label is provided in the CLI, that one would override this value!
      */
     @Override
-    public final String getSampleLabelId() { return "Device"; }
+    public final String[] getSampleLabelId() { return new String[]{"Device"}; }
 
     /**
      * @return true to indicate that the workload was successful and should be recorded.

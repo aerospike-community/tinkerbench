@@ -4,7 +4,6 @@ import picocli.CommandLine;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
-import java.util.concurrent.atomic.AtomicReference;
 
 public class Main extends TinkerBench2Args {
 
@@ -40,23 +39,25 @@ public class Main extends TinkerBench2Args {
                 final int sampleSIze = workloadRunner.getSampleSize() < 0
                                         ? args.idSampleSize
                                         : workloadRunner.getSampleSize();
-                final String label = workloadRunner.getSampleLabelId() == null
-                                        ? args.labelSample
-                                        : (args.labelSample == null
+                final String[] labels = workloadRunner.getSampleLabelId() == null
+                                        ? args.labelsSample
+                                        : (args.labelsSample == null
                                             ?  workloadRunner.getSampleLabelId()
-                                            : args.labelSample);
+                                            : args.labelsSample);
                 if(args.importIdsPath != null) {
+                    System.out.printf("Importing Ids from '%s'...%n",
+                                        args.importIdsPath);
                     args.idManager.importFile(args.importIdsPath,
                                                 openTel,
                                                 logger,
                                                 sampleSIze,
-                                                label);
+                                                labels);
                 } else {
                     args.idManager.init(agsGraphTraversal.G(),
                                         openTel,
                                         logger,
                                         sampleSIze,
-                                        label);
+                                        labels);
                 }
                 args.idManager.CheckIdsExists(logger);
 

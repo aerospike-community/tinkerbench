@@ -6,7 +6,7 @@ The TinkerBench2 Vertex Id Manager obtains a collection of vertexes based on val
 
 If enabled, TinkerBench2 will collection a sample of vertex id up to the sample size before any query workloads are executed.
 
-It is possible to filter vertex id's based on a label by providing this value to the `--IdSampleLabel` argument. Once provided, only those id are selected.
+It is possible to filter vertex id's based on a label by providing this value to the `--IdSampleLabel` argument. Once provided, only those id are selected. You can provide multiple labels by adding multiple argument value pairs (e.g., `-label mmLabel1 -label myLabel2`or `-label myLabel1,myLabel2` )
 
 Once collected each executing query can receive a random id from this collection based on the presents of the vertex id placeholder.
 

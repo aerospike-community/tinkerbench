@@ -15,7 +15,7 @@ public interface OpenTelemetry extends AutoCloseable {
                StringBuilder otherInfo);
 
     void setIdMgrGauge(final String mgrClass,
-                            final String label,
+                            final String[] labels,
                             final int requestedCnt,
                             final int actualCnt,
                             final long runtime);

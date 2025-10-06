@@ -3,6 +3,7 @@ package com.aerospike;
 import com.opencsv.exceptions.CsvValidationException;
 import me.tongfei.progressbar.ProgressBar;
 import me.tongfei.progressbar.ProgressBarBuilder;
+import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
 
 import java.io.*;
@@ -11,12 +12,14 @@ import java.util.concurrent.CompletionException;
 
 import com.opencsv.CSVReaderHeaderAware;
 
+import static org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__.id;
+import static org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__.label;
+
 public class IdSampler implements  IdManager {
-    private static final int ID_SAMPLE_SIZE = 500_000;
-    private List<Object> sampledIds = null;
+    private List<Map<String,Object>> sampledIds = null;
     final Random random = new Random();
     boolean disabled = false;
-    String label = null;
+    String[] labels = null;
 
     public IdSampler() {
         // Constructor can be used for initialization if needed
@@ -30,10 +33,10 @@ public class IdSampler implements  IdManager {
         }
 
         if(sampledIds.isEmpty()) {
-            String msg = label == null || label.isEmpty()
+            String msg = labels == null || labels.length == 0
                     ? "No Vertex Ids returned and at least one Id is required! Maybe you need to disable Id Sampling?"
-                    : String.format("No Vertex Ids returned for label '%s'. At least one Id is required! Is this label correct or maybe you need to disable Id Sampling?",
-                    label);
+                    : String.format("No Vertex Ids returned for label(s) '%s'. At least one Id is required! Is this label correct or maybe you need to disable Id Sampling?",
+                                        Arrays.toString(labels));
             logger.Print("IdSampler", true, msg);
 
             throw new ArrayIndexOutOfBoundsException(msg);
@@ -41,33 +44,54 @@ public class IdSampler implements  IdManager {
         return true;
     }
 
-    private static List<Object> getSampledIds(final GraphTraversalSource g,
-                                                final String label,
-                                                final int sampleSize,
-                                                final int start,
-                                                final int end) {
+    private void DetermineLabels(String[] useLabels) {
+        if(useLabels == null
+            || useLabels.length == 0
+            || (useLabels.length == 1
+                && (useLabels[0].isEmpty()
+                    || useLabels[0].equalsIgnoreCase("null")))) {
+            this.labels = null;
+        } else {
+            this.labels = useLabels;
+        }
+    }
+
+    private static GraphTraversal<?, Map<String,Object>> hasLabel(final GraphTraversalSource g,
+                                                 final String[] labels) {
+       if(labels == null || labels.length == 0) {
+           return g.V()
+                   .project("id", "label")
+                   .by(id()).by(label());
+       }
+
+       if(labels.length == 1) {
+           return g.V()
+                   .hasLabel(labels[0])
+                   .project("id", "label")
+                   .by(id()).by(label());
+       }
+
+        return g.V()
+                .hasLabel(labels[0],
+                            Arrays.copyOfRange(labels, 1, labels.length))
+                .project("id", "label")
+                .by(id()).by(label());
+    }
+
+    private static List<Map<String,Object>> getSampledIds(final GraphTraversalSource g,
+                                              final String[] labels,
+                                              final int sampleSize,
+                                              final int start,
+                                              final int end) {
+
         if(start == 0 && end == 0) {
-            return label == null || label.isEmpty()
-                    ? g.V()
-                        .limit(sampleSize)
-                        .id()
-                        .toList()
-                    : g.V()
-                        .hasLabel(label)
-                        .id()
-                        .limit(sampleSize)
-                        .toList();
+            return hasLabel(g, labels)
+                    .limit(sampleSize)
+                    .toList();
         }
 
-        return label == null || label.isEmpty()
-                ? g.V()
-                    .range(0, end)
-                    .id()
-                    .toList()
-                : g.V()
-                    .hasLabel(label)
-                    .id()
-                    .range(0, end)
+        return hasLabel(g, labels)
+                    .range(start, end)
                     .toList();
     }
 
@@ -76,31 +100,35 @@ public class IdSampler implements  IdManager {
                      final OpenTelemetry openTelemetry,
                      final LogSource logger,
                      final int sampleSize,
-                     final String label) {
+                     final String[] useLabels) {
 
         long start = 0;
-        long end = 0;
+        long end;
+
+        DetermineLabels(useLabels);
 
         if(sampleSize <= 0) {
             sampledIds = null;
             disabled = true;
             logger.PrintDebug("IdSampler", "IdSampler disabled");
         } else {
-            this.label = label;
-
             try {
-                if(label == null || label.isEmpty()) {
+                if(labels == null || labels.length == 0) {
                     System.out.println("Obtaining Vertices Ids...");
                     logger.info("Obtaining Vertices Ids...");
                 } else {
-                    System.out.printf("Obtaining Vertices Ids for Label '%s'...%n ", label);
-                    logger.info("Obtaining Vertices Ids for Label '{}'...", label);
+                    System.out.printf("Obtaining Vertices Ids for Label(s) '%s'...%n ",
+                                        Arrays.toString(labels));
+                    logger.info("Obtaining Vertices Ids for Label(s) '{}'...",
+                            Arrays.toString(labels));
                 }
 
-                logger.PrintDebug("IdSampler", "Trying to obtain Samples: Label: '%s'", label);
+                logger.PrintDebug("IdSampler",
+                                    "Trying to obtain Samples: Label(s): '%s'",
+                                    Arrays.toString(labels));
 
                 start = System.currentTimeMillis();
-                sampledIds = getSampledIds(g, label, sampleSize, 0, 0);
+                sampledIds = getSampledIds(g, labels, sampleSize, 0, 0);
                 end = System.currentTimeMillis();
             } catch (CompletionException ignored) {
                 //TODO: Really need to rework this to avoid AGS exceptions around large sample sizes...
@@ -110,9 +138,10 @@ public class IdSampler implements  IdManager {
                 } catch (InterruptedException ignored2) {
                 }
                 final int portion = sampleSize / 10;
-                List<Object> portionLst = getSampledIds(g, label, sampleSize,
-                                                    0, portion);
-                sampledIds = new ArrayList<Object>(sampleSize);
+                List<Map<String,Object>> portionLst = getSampledIds(g,
+                                                                    labels, sampleSize,
+                                                                    0, portion);
+                sampledIds = new ArrayList<>(sampleSize);
                 sampledIds.addAll(portionLst);
 
                 for (int i = 1; i < 10; i++) {
@@ -122,26 +151,30 @@ public class IdSampler implements  IdManager {
                         Thread.sleep(500);
                     } catch (InterruptedException ignored2) {
                     }
-                    portionLst = getSampledIds(g, label, sampleSize,
+                    portionLst = getSampledIds(g, labels, sampleSize,
                                                 startRange, endRange);
                     sampledIds.addAll(portionLst);
                 }
                 end = System.currentTimeMillis();
             }
-            logger.PrintDebug("IdSampler", "Obtain Samples: Label: '%s' Count: %d", label, sampledIds.size());
+
+            logger.PrintDebug("IdSampler",
+                                "Obtain Samples: Label(s): '%s' Count: %d",
+                                Arrays.toString(labels),
+                                sampledIds.size());
 
             final long runningLatency = end - start;
             if(openTelemetry != null) {
                 openTelemetry.setIdMgrGauge(this.getClass().getSimpleName(),
-                                            label,
+                                            labels,
                                             sampleSize,
                                             sampledIds.size(),
                                             runningLatency);
             }
 
-            logger.info("Completed retrieving Ids ({}) for label '{}' in {} ms",
+            logger.info("Completed retrieving Ids ({}) for label(s) '{}' in {} ms",
                             sampledIds.size(),
-                            label,
+                            Arrays.toString(labels),
                             runningLatency);
             System.out.println("\tCompleted");
         }
@@ -151,7 +184,7 @@ public class IdSampler implements  IdManager {
     public Object getId() {
         return sampledIds == null
                 ? null
-                : sampledIds.get(random.nextInt(sampledIds.size()));
+                : sampledIds.get(random.nextInt(sampledIds.size())).get("id");
     }
 
     @Override
@@ -164,108 +197,115 @@ public class IdSampler implements  IdManager {
                                final OpenTelemetry openTelemetry,
                                final LogSource logger,
                                final int sampleSize,
-                               final String label) {
+                               final String[] useLabels) {
 
         if(sampleSize <= 0 || disabled) {
             sampledIds = null;
             disabled = true;
+            System.out.println("IdSampler is disabled but an import file was supplied. Ignoring importing of file...");
             logger.PrintDebug("IdSampler.importFile", "IdSampler disabled");
-        } else {
-            this.label = label;
-
-            if(sampledIds == null) {
-                sampledIds = new ArrayList<>();
-            } else if(sampledIds.size() >= sampleSize) {
-                return 0;
-            }
-
-            File file;
-            if(Helpers.hasWildcard(filePath)) {
-                long latency = 0;
-
-                try (ProgressBar progressBar = new ProgressBarBuilder()
-                                                    .setTaskName("Loading vertices ids")
-                                                    .hideEta()
-                                                    .build()) {
-                    final List<File> files = Helpers.GetFiles(null, filePath);
-                    progressBar.maxHint(files.size());
-
-                    for (File importFile : files) {
-                        progressBar.setExtraMessage("Reading File " + importFile.getName());
-                        progressBar.step();
-                        latency += importFile(importFile.getPath(), openTelemetry, logger, sampleSize, label);
-                    }
-                    progressBar.setExtraMessage(String.format("Loaded %,d vertices", sampledIds.size()));
-                    if (openTelemetry != null) {
-                        openTelemetry.setIdMgrGauge("*",
-                                                        label,
-                                                        sampleSize,
-                                                        sampledIds.size(),
-                                                        latency);
-                    }
-                    progressBar.refresh();
-                }
-                return latency;
-            } else {
-                file = new File(filePath);
-                if(file.isDirectory()) {
-                    File wildCardPath = new File(file, "*.csv");
-                    return importFile(wildCardPath.getPath(),
-                                        openTelemetry,
-                                        logger,
-                                        sampleSize,
-                                        label);
-                }
-            }
-
-            if(!file.exists()) {
-                logger.Print("IdSampler.importFile",
-                                true,
-                            "File does not exist: " + filePath);
-                return 0;
-            }
-            long startTime = System.currentTimeMillis();
-            try (CSVReaderHeaderAware reader = new CSVReaderHeaderAware(new FileReader(file))) {
-                Map<String, String> row;
-                while ((row = reader.readMap()) != null) {
-                    // Access data using header names
-                    String idValue = row.get("-id");
-
-                    if(label == null || label.isEmpty()) {
-                        sampledIds.add(Helpers.DetermineValue(idValue));
-                    } else {
-                        String labelValue = row.get("-label");
-                        if(label.equals(labelValue)) {
-                            sampledIds.add(Helpers.DetermineValue(idValue));
-                        }
-                    }
-                    if(sampledIds.size() >= sampleSize) {
-                        break;
-                    }
-                }
-            } catch (IOException | CsvValidationException e) {
-                logger.Print("IdSampler.importFile Error in reading CSV file " + file, e);
-                throw new RuntimeException(e);
-            }
-
-            long latency = System.currentTimeMillis() - startTime;
-            if(openTelemetry != null) {
-                openTelemetry.setIdMgrGauge(file.getName(),
-                        label,
-                        sampleSize,
-                        sampledIds.size(),
-                        latency);
-            }
-
-            logger.PrintDebug("IdSampler.importFile",
-                            "Obtain Samples from '%s' using Label '%s' Read %d",
-                                file.getAbsolutePath(),
-                                label,
-                                sampledIds.size());
-
-            return latency;
+            return 0;
         }
-        return 0;
+
+        if(sampledIds == null) {
+            sampledIds = new ArrayList<>();
+        } else if(sampledIds.size() >= sampleSize) {
+            return 0;
+        }
+
+        File file;
+        if(Helpers.hasWildcard(filePath)) {
+            long latency = 0;
+
+            try (ProgressBar progressBar = new ProgressBarBuilder()
+                                                .setTaskName("Loading vertices ids")
+                                                .hideEta()
+                                                .build()) {
+                final List<File> files = Helpers.GetFiles(null, filePath);
+                progressBar.maxHint(files.size());
+
+                for (File importFile : files) {
+                    progressBar.setExtraMessage("Reading File " + importFile.getName());
+                    progressBar.step();
+                    latency += importFile(importFile.getPath(),
+                                            openTelemetry,
+                                            logger,
+                                            sampleSize,
+                                            labels);
+                }
+                progressBar.setExtraMessage(String.format("Loaded %,d vertices", sampledIds.size()));
+                if (openTelemetry != null) {
+                    openTelemetry.setIdMgrGauge("*",
+                                                    labels,
+                                                    sampleSize,
+                                                    sampledIds.size(),
+                                                    latency);
+                }
+                progressBar.refresh();
+            }
+            return latency;
+        } else {
+            file = new File(filePath);
+            if(file.isDirectory()) {
+                File wildCardPath = new File(file, "*.csv");
+                return importFile(wildCardPath.getPath(),
+                                    openTelemetry,
+                                    logger,
+                                    sampleSize,
+                                    labels);
+            }
+        }
+
+        if(!file.exists()) {
+            logger.Print("IdSampler.importFile",
+                            true,
+                        "File does not exist: " + filePath);
+            return 0;
+        }
+        DetermineLabels(useLabels);
+
+        long startTime = System.currentTimeMillis();
+        try (CSVReaderHeaderAware reader = new CSVReaderHeaderAware(new FileReader(file))) {
+            Map<String, String> row;
+            while ((row = reader.readMap()) != null) {
+                // Access data using header names
+                String idValue = row.get("-id");
+                String labelValue = row.get("-label");
+
+                if(labels == null
+                        || Arrays.asList(labels).contains(labelValue)) {
+                    if(labelValue == null) {
+                        sampledIds.add(Map.of("id", Helpers.DetermineValue(idValue)));
+                    } else {
+                        sampledIds.add(Map.of("id", Helpers.DetermineValue(idValue),
+                                                "label", Helpers.DetermineValue(labelValue)));
+                    }
+                }
+                if(sampledIds.size() >= sampleSize) {
+                    break;
+                }
+            }
+        } catch (IOException | CsvValidationException e) {
+            logger.Print("IdSampler.importFile Error in reading CSV file " + file, e);
+            throw new RuntimeException(e);
+        }
+
+        long latency = System.currentTimeMillis() - startTime;
+        if(openTelemetry != null) {
+            openTelemetry.setIdMgrGauge(file.getName(),
+                                        labels,
+                                        sampleSize,
+                                        sampledIds.size(),
+                                        latency);
+        }
+
+        logger.PrintDebug("IdSampler.importFile",
+                        "Obtain Samples from '%s' using Label(s) '%s' Read %d",
+                            file.getAbsolutePath(),
+                            Arrays.toString(labels),
+                            sampledIds.size());
+
+        return latency;
     }
 
     @Override
@@ -274,21 +314,11 @@ public class IdSampler implements  IdManager {
 
         if(filePath != null && isInitialized() && !disabled) {
             File exportFile = Helpers.CrateFolderFilePath(filePath);
-            String header;
-            boolean writeLabel;
-
-            if (label == null || label.isEmpty()) {
-                header = "-id";
-                writeLabel = false;
-            } else {
-                writeLabel = true;
-                header = "-id,-label";
-            }
+            String header = "-id,-label";
 
             logger.PrintDebug("IdSampler.exportFile",
-                                "Writing %d with Label '%s' into '%s'",
+                                "Writing %d into '%s'",
                                         sampledIds.size(),
-                                        label,
                                         exportFile.getAbsolutePath());
 
             try (ProgressBar progressBar = new ProgressBarBuilder()
@@ -304,21 +334,20 @@ public class IdSampler implements  IdManager {
                 writer.write(header);
                 writer.newLine(); // Add a new line after the header
 
-                for(Object id : sampledIds) {
+                for(Map<String,Object> idmap : sampledIds) {
                     progressBar.step();
-                    writer.write(id.toString());
-                    if(writeLabel) {
-                        writer.write(",");
-                        writer.write(label);
+                    writer.write(idmap.get("id").toString());
+                    writer.write(",");
+                    if(idmap.get("label") != null) {
+                        writer.write(idmap.get("label").toString());
                     }
                     writer.newLine();
                 }
 
                 progressBar.refresh();
                 logger.PrintDebug("IdSampler.exportFile",
-                                    "Written %d with Label '%s' into '%s'",
+                                    "Written %d into '%s'",
                                     sampledIds.size(),
-                                    label,
                                     exportFile.getAbsolutePath());
             } catch (IOException e) {
                 logger.Print("IdSampler.exportFile Error in exporting file " + filePath, e);
