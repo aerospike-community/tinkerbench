@@ -713,7 +713,12 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
         System.out.println();
 
         try {
-            System.out.print(Helpers.YELLOW_BACKGROUND);
+            final double pctQPSDiff = Helpers.RoundNumberOfSignificantDigits((getCallsPerSecond() / getTargetCallsPerSecond()) * 100.0, 2);
+            if(pctQPSDiff > 95.0) {
+                System.out.print(Helpers.LIGHT_GREEN_BACKGROUND);
+            } else {
+                System.out.print(Helpers.YELLOW_BACKGROUND);
+            }
             System.out.print(Helpers.BLACK);
             PrintSummary(System.out, this.hdrHistFmt);
             System.out.flush();

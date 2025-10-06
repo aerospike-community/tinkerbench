@@ -203,7 +203,7 @@ public final class EvalQueryWorkloadProvider extends QueryWorkloadProvider {
 
             logger.PrintDebug("PrepareCompile",
                     "Executing 'precall'");
-            
+
             this.preCall();
             logger.PrintDebug("PrepareCompile",
                     "Executing 'call'");

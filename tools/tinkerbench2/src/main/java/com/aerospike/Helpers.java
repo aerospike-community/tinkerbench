@@ -42,7 +42,9 @@ public class Helpers {
     // Background colors
     public static final String BLACK_BACKGROUND = "\u001B[40m";
     public static final String RED_BACKGROUND = "\u001B[41m";
+    public static final String LIGHT_RED_BACKGROUND = "\u001B[101m";
     public static final String GREEN_BACKGROUND = "\u001B[42m";
+    public static final String LIGHT_GREEN_BACKGROUND = "\u001B[102m";
     public static final String YELLOW_BACKGROUND = "\u001B[43m";
     public static final String BLUE_BACKGROUND = "\u001B[44m";
     public static final String PURPLE_BACKGROUND = "\u001B[45m";
