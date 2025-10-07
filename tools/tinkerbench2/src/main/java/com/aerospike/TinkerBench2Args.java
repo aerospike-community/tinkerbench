@@ -121,7 +121,7 @@ public abstract class TinkerBench2Args implements Callable<Integer> {
 
     @Option(names = {"-cw", "--CloseWait"},
             converter = DurationConverter.class,
-            description = "Close wait interval used upon application exit. This interval ensure all values are picked up by the Prometheus server. This should match the 'scrape_interval' in the PROM ymal file. Can be zero to disable wait. Default is ${DEFAULT-VALUE}",
+            description = "Close wait interval used upon application exit. This interval ensure all values are picked up by the Prometheus server. This should match the 'scrape_interval' in the PROM yaml file. Can be zero to disable wait. Default is ${DEFAULT-VALUE}",
             defaultValue = "15S")
     Duration closeWaitDuration;
 
@@ -174,7 +174,7 @@ public abstract class TinkerBench2Args implements Callable<Integer> {
     public boolean hdrHistFmt;
 
     @Option(names = "-background",
-            negatable  = false,
+            //negatable  = false,
             description = "If provided, certain console output (e.g., progression bar) is suppressed.")
     public boolean backgroundMode;
 
@@ -319,7 +319,7 @@ public abstract class TinkerBench2Args implements Callable<Integer> {
 
     static final class SchedulerConverter implements CommandLine.ITypeConverter<Integer> {
         @Override
-        public Integer convert(String value) throws Exception {
+        public Integer convert(String value) {
             int i = Integer.parseInt(value);
 
             if(i <= 0) {
@@ -332,7 +332,7 @@ public abstract class TinkerBench2Args implements Callable<Integer> {
 
     static final class WorkerConverter implements CommandLine.ITypeConverter<Integer> {
         @Override
-        public Integer convert(String value) throws Exception {
+        public Integer convert(String value)  {
             int i = Integer.parseInt(value);
 
             if(i <= 0) {
@@ -360,7 +360,7 @@ public abstract class TinkerBench2Args implements Callable<Integer> {
         }
 
         @Override
-        public Duration convert(String value) throws Exception {
+        public Duration convert(String value) {
             if(value.startsWith("PT") || value.startsWith("pt")) {
                 return Duration.parse(value.toUpperCase());
             }
@@ -431,7 +431,7 @@ public abstract class TinkerBench2Args implements Callable<Integer> {
 
     static final class AerospikeConfigOptionsConverter implements CommandLine.ITypeConverter<GraphConfigOptions> {
         @Override
-        public GraphConfigOptions convert(String value) throws IllegalArgumentException, FileNotFoundException {
+        public GraphConfigOptions convert(String value) throws IllegalArgumentException {
             if(value == null || value.isEmpty()) { return null; }
 
             if(value.startsWith("aerospike")) {
@@ -572,7 +572,7 @@ public abstract class TinkerBench2Args implements Callable<Integer> {
                             queryName = queryName.replace("\t", "\t\t");
                         }
                         if(instance.getSampleLabelId() != null) {
-                            queryName += String.format("%n\t\tSample Vertices id label of '%s'", instance.getSampleLabelId());
+                            queryName += String.format("%n\t\tSample Vertices id label of '%s'", Arrays.toString(instance.getSampleLabelId()));
                         }
                     } catch (Exception ignored) {}
 
@@ -593,7 +593,6 @@ public abstract class TinkerBench2Args implements Callable<Integer> {
         if false, All provided arguments including defaulted values are printed.
      */
     void PrintArguments(boolean onlyProvidedArgs) {
-        ParseResult pr = commandlineSpec.commandLine().getParseResult();
 
         List<String> jvmArgs = Helpers.getJVMArgs();
 
