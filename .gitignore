@@ -1,4 +1,3 @@
-*.jar
 target/
 !.mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/
@@ -37,9 +36,3 @@ build/
 
 ### Mac OS ###
 .DS_Store
-
-tools/tinkerbench2/~$README.md
-
-tools/tinkerbench2/~WRL1624.tmp
-
-tools/tinkerbench2/src/test/idsexport.csv
