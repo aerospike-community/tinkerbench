@@ -28,19 +28,19 @@ These examples assume the [Air Routes dataset](https://aws.amazon.com/blogs/data
 Displays detail help on every argument.
 
 ```bash
-java TinkerBench-1.0.0-jar-with-dependencies.jar --help
+java tinkerbench-1.0.0-jar-with-dependencies.jar --help
 ```
 
 Displays version information for TinkerBench and TinkerPop modules
 
 ```bash
-java TinkerBench-1.0.0-jar-with-dependencies.jar --version
+java tinkerbench-1.0.0-jar-with-dependencies.jar --version
 ```
 
 Displays details on predefined queries.
 
 ```bash
-java TinkerBench-1.0.0-jar-with-dependencies.jar list
+java tinkerbench-1.0.0-jar-with-dependencies.jar list
 ```
 
 ### Aerospike Graph is running locally (Single Node)
@@ -48,19 +48,19 @@ java TinkerBench-1.0.0-jar-with-dependencies.jar list
 This example runs the predefined query "AirRoutesQuery1" using the default workload duration of 15 minutes at a 100 Queries per Second rate. No warm up will be performed.
 
 ```bash
-java TinkerBench-1.0.0-jar-with-dependencies.jar AirRoutesQuery1
+java tinkerbench-1.0.0-jar-with-dependencies.jar AirRoutesQuery1
 ```
 
 This example runs the predefined query "AirRoutesQuery1" using the default workload duration of 15 minutes at a 100 Queries per Second rate. A warm up 1 minute warm up will be performed before the workload is executed.
 
 ```bash
-java TinkerBench-1.0.0-jar-with-dependencies.jar AirRoutesQuery1 -wu 1M
+java tinkerbench-1.0.0-jar-with-dependencies.jar AirRoutesQuery1 -wu 1M
 ```
 
 This example runs the Gremlin string query using the default workload duration of 15 minutes at a 500 Queries per Second rate. A warm up 2 minute (120 seconds) warm up will be performed before the workload is executed.
 
 ```bash
-java TinkerBench-1.0.0-jar-with-dependencies.jar "g.V(%s).out().limit(5).path().by(values('code','city').fold()).toList()" -wu 120 -qps 500
+java tinkerbench-1.0.0-jar-with-dependencies.jar "g.V(%s).out().limit(5).path().by(values('code','city').fold()).toList()" -wu 120 -qps 500
 ```
 
 ### Aerospike Graph is Running in a Cluster (Multiple Nodes)
@@ -68,7 +68,7 @@ java TinkerBench-1.0.0-jar-with-dependencies.jar "g.V(%s).out().limit(5).path().
 This example runs the predefined query "AirRoutesQuery1" using the default workload duration of 15 minutes at a 100 Queries per Second rate. No warm up will be performed. Connect to three nodes in the Graph cluster.
 
 ```bash
-java TinkerBench-1.0.0-jar-with-dependencies.jar AirRoutesQuery1 -n 10.0.0.1 -n 10.0.0.2 -n 10.0.0.3
+java tinkerbench-1.0.0-jar-with-dependencies.jar AirRoutesQuery1 -n 10.0.0.1 -n 10.0.0.2 -n 10.0.0.3
 ```
 
 # Topics

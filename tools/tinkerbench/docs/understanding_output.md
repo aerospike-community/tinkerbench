@@ -149,7 +149,7 @@ To enable simple file logging using the provided logback file, just uncomment th
 The new logback file needs to be placed in the Java class path (i.e., logback.xml) or you can use the Java runtime command-line system property option for a different location or name. Below is an example:
 
 ```
-java -Dlogback.configurationFile=.\mylogback.xml TinkerBench-2.0.14-jar-with-dependencies.jar
+java -Dlogback.configurationFile=.\mylogback.xml tinkerbench-1.0.0-jar-with-dependencies.jar
 ```
 
 ### Other Configurations

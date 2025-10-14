@@ -94,7 +94,7 @@ You can use the Java runtime command-line system property option to define the l
 Below is an example using the Java runtime command-line method:
 
 ```
-java -Dpicocli.defaults.TinkerBench.path=.\mytbpropfile.properties TinkerBench-2.0.14-jar-with-dependencies.jar
+java -Dpicocli.defaults.TinkerBench.path=.\mytbpropfile.properties tinkerbench-1.0.0-jar-with-dependencies.jar
 ```
 
 | ![image](media/gremlin-apache.png) | Warning: If the proprety's file doesn't exists or the context of the file is incorrect. You may not receive an error indicating an issue with the property file. |

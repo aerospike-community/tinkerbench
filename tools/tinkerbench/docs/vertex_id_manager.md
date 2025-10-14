@@ -44,7 +44,7 @@ g.V(%s).out("REL_DEVICE_TO_INDIVIDUAL").in("REL_DEVICE_TO_INDIVIDUAL")
 ```
 
 ```bash
-java TinkerBench-2.0.15-jar-with-dependencies.jar "g.V(%s).out('REL_DEVICE_TO_INDIVIDUAL').in('REL_DEVICE_TO_INDIVIDUAL')"
+java tinkerbench-1.0.0-jar-with-dependencies.jar "g.V(%s).out('REL_DEVICE_TO_INDIVIDUAL').in('REL_DEVICE_TO_INDIVIDUAL')"
 ```
 
 ### Example 2
@@ -56,7 +56,7 @@ g.V("%s").out("REL_DEVICE_TO_INDIVIDUAL").in("REL_DEVICE_TO_INDIVIDUAL")
 ```
 
 ```bash
-java TinkerBench-2.0.15-jar-with-dependencies.jar "g.V('%s').out('REL_DEVICE_TO_INDIVIDUAL').in('REL_DEVICE_TO_INDIVIDUAL')"
+java tinkerbench-1.0.0-jar-with-dependencies.jar "g.V('%s').out('REL_DEVICE_TO_INDIVIDUAL').in('REL_DEVICE_TO_INDIVIDUAL')"
 ```
 
 ### Example 3 with Label
@@ -68,7 +68,7 @@ g.V("%s").out("REL_DEVICE_TO_INDIVIDUAL").in("REL_DEVICE_TO_INDIVIDUAL")
 ```
 
 ```bash
-java TinkerBench-2.0.15-jar-with-dependencies.jar "g.V('%s').out('REL_DEVICE_TO_INDIVIDUAL').in('REL_DEVICE_TO_INDIVIDUAL')" -label airport
+java tinkerbench-1.0.0-jar-with-dependencies.jar "g.V('%s').out('REL_DEVICE_TO_INDIVIDUAL').in('REL_DEVICE_TO_INDIVIDUAL')" -label airport
 ```
 
 ### Example 4 without using a Random Vertex Id (Id disabled)
@@ -78,7 +78,7 @@ g.V(2070).out("REL_DEVICE_TO_INDIVIDUAL").in("REL_DEVICE_TO_INDIVIDUAL")
 ```
 
 ```bash
-java TinkerBench-2.0.15-jar-with-dependencies.jar "g.V(2070).out('REL_DEVICE_TO_INDIVIDUAL').in('REL_DEVICE_TO_INDIVIDUAL')" --IdSampleSize 0
+java tinkerbench-1.0.0-jar-with-dependencies.jar "g.V(2070).out('REL_DEVICE_TO_INDIVIDUAL').in('REL_DEVICE_TO_INDIVIDUAL')" --IdSampleSize 0
 ```
 
 ## Using a Predefined Query
@@ -98,7 +98,7 @@ G().V( getVId() )
 ```
 
 ```bash
-java TinkerBench-2.0.15-jar-with-dependencies.jar AirRoutesQuery1
+java tinkerbench-1.0.0-jar-with-dependencies.jar AirRoutesQuery1
 ```
 
 ## Writing a Custom Vertex Id Manager
@@ -114,7 +114,7 @@ Custom Vertex Id Manager can be extended/created by means of the TinkerBench Pre
 To utilize a custom manager provide the class name to the `--IdManager` argument.
 
 ```bash
-java TinkerBench-2.0.15-jar-with-dependencies.jar AirRoutesQuery1 --IdManager myIdManager
+java tinkerbench-1.0.0-jar-with-dependencies.jar AirRoutesQuery1 --IdManager myIdManager
 ```
 
 ## Errors
@@ -138,15 +138,15 @@ The path argument can be one of the following:
 ### Import Command Line
 
 ```bash
-java TinkerBench-2.0.15-jar-with-dependencies.jar AirRoutesQuery1 --ImportIds ./savedids.csv
+java tinkerbench-1.0.0-jar-with-dependencies.jar AirRoutesQuery1 --ImportIds ./savedids.csv
 ```
 
 ```bash
-java TinkerBench-2.0.15-jar-with-dependencies.jar AirRoutesQuery1 --ImportIds ./*.csv
+java tinkerbench-1.0.0-jar-with-dependencies.jar AirRoutesQuery1 --ImportIds ./*.csv
 ```
 
 ```bash
-java TinkerBench-2.0.15-jar-with-dependencies.jar AirRoutesQuery1 --ImportIds ../myfolder/
+java tinkerbench-1.0.0-jar-with-dependencies.jar AirRoutesQuery1 --ImportIds ../myfolder/
 ```
 
 ### Vertex CSV File Format
@@ -208,5 +208,5 @@ The value to `--ExportIds` should be a valid file path with file name and extens
 ### Export Command Line
 
 ```bash
-java TinkerBench-2.0.15-jar-with-dependencies.jar AirRoutesQuery1 --ExportIds ./savedids.csv
+java tinkerbench-1.0.0-jar-with-dependencies.jar AirRoutesQuery1 --ExportIds ./savedids.csv
 ```
