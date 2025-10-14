@@ -83,6 +83,8 @@ prometheus=true
 gremlin=evaluationTimeout=30000, paging=2
 ```
 
+An example can be [found here](../src/test/java/custom.properties).
+
 The property key must be the long name of the option (e.g., `--host`, `--duration`, etc.). Any option that can be provided multiple times with different values (e.g., `--host`) are provided as a list of values separated by a comma. Flags (e.g., `--prometheus`) will take a Boolean value (`true` or `false`). Comments should start with a `#`.
 
 ### Enabling the CLI Property File

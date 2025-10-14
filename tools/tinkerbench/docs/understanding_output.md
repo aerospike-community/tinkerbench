@@ -122,7 +122,7 @@ Logging is disabled by default. Logging can be enabled by updating the [logback.
 </configuration>
 ```
 
-This file can be found in the TinkerBench jar or in [GitHub](https://github.com/aerospike-community/tinkerbench/blob/workload/tools/TinkerBench/src/main/resources/logback.xml).
+This file can be found in the TinkerBench jar or in [GitHub](../src/test/java/loopback.xml).
 
 ### Enable File Logging
 
