@@ -20,7 +20,7 @@ JAR_NAME=$(basename "$JAR_FILE")
 mkdir -p bin
 
 # Create the wrapper script
-cat > bin/tinkerbench2 << EOF
+cat > bin/tinkerbench << EOF
 #!/bin/sh
 SCRIPT_DIR="\$(cd "\$(dirname "\$0")" && pwd)"
 java -jar "\$SCRIPT_DIR/../target/$JAR_NAME" "\$@"
