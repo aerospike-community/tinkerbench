@@ -99,7 +99,12 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
                                     this.histogram.getEstimatedFootprintInBytes());
             }
             //Tack pending queries for reporting
-            this.queueDepthTracker = new AtomicHistogram(this.callsPerSecond/2, 0);
+            long highestQueueDepth = this.callsPerSecond/2;
+            if(highestQueueDepth < this.targetRunDuration.toSeconds())
+            {
+                highestQueueDepth = this.targetRunDuration.toSeconds();
+            }
+            this.queueDepthTracker = new AtomicHistogram(highestQueueDepth, 0);
             if(log.isDebugEnabled()) {
                 logger.PrintDebug("WorkloadProviderScheduler",
                         "AtomicHistogram queue depth highestTrackableValue: %,d%n\tnumberOfSignificantValueDigits: %d%n\tFoot print: %,d (bytes)",
