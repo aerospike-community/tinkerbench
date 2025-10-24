@@ -16,7 +16,7 @@ Before loading the graph data, you need to create secondary indexes on the requi
 ```
 2. **Load the Data**
 Bulk load the identity benchmark dataset using the [appropriate method](https://aerospike.com/docs/graph/data-loading). 
-Datasets for multiple scale factors are available [here](https://console.cloud.google.com/storage/browser/identity-benchmark)
+Datasets for multiple scale factors are available [on Google Storage Bucket](https://console.cloud.google.com/storage/browser/identity-benchmark)
 
 | Dataset Name	| Bulk Load Method |
 | ------------ 	| ---------------- |
