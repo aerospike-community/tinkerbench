@@ -547,7 +547,7 @@ public abstract class TinkerBenchArgs implements Callable<Integer> {
             }
         }
 
-        if(queryNameOrString.equals(com.aerospike.predefined.TestRun.class.getSimpleName())) {
+        if(queryNameOrString.startsWith("TestRun")) {
             appTestMode=true;
         }
     }

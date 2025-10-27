@@ -5,14 +5,14 @@ import org.apache.tinkerpop.gremlin.driver.Cluster;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
 import org.javatuples.Pair;
 
-public class TestRun implements QueryRunnable {
+public class TestRunLong implements QueryRunnable {
 
     private final WorkloadProvider provider;
     private final boolean isPrintResults;
 
-    public TestRun(final WorkloadProvider provider,
-                   final AGSGraphTraversal ignored0,
-                   final IdManager ignored1) {
+    public TestRunLong(final WorkloadProvider provider,
+                       final AGSGraphTraversal ignored0,
+                       final IdManager ignored1) {
 
         this.provider = provider;
         if(this.provider == null) {
@@ -24,7 +24,7 @@ public class TestRun implements QueryRunnable {
     }
 
     @Override
-    public String Name() { return "TestRun"; }
+    public String Name() { return "TestRunLong"; }
 
     @Override
     public WorkloadTypes WorkloadType() {
@@ -47,7 +47,7 @@ public class TestRun implements QueryRunnable {
      */
     @Override
     public String getDescription() {
-        return "Test Run that doesn't query the AGS but performs 1 ms sleep.";
+        return "Test Run that doesn't query the AGS but Sleeps for 5 seconds.";
     }
 
     @Override
@@ -132,7 +132,7 @@ public class TestRun implements QueryRunnable {
     @Override
     public final Pair<Boolean,Object> call() throws InterruptedException {
         try {
-            Thread.sleep(1);
+            Thread.sleep(5000);
         } catch (InterruptedException e) {
             System.out.println("QueryTest Exception " + e.getMessage());
             throw e;

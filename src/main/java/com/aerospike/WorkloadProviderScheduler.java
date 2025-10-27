@@ -23,6 +23,7 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
     private static final Logger log = LoggerFactory.getLogger(WorkloadProviderScheduler.class);
 
     private final int schedulers;
+    private final int workers;
     private final ExecutorService schedulerPool;
     private final ExecutorService workerPool;
     private final CountDownLatch shutdownLatch = new CountDownLatch(1);
@@ -83,6 +84,7 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
         this.callsPerSecond = cliArgs.queriesPerSecond;
         this.shutdownTimeout = cliArgs.shutdownTimeout;
         this.schedulers = cliArgs.schedulers;
+        this.workers = cliArgs.workers;
         this.openTelemetry = openTelemetry == null ? new OpenTelemetryDummy() : openTelemetry;
         this.cliArgs = cliArgs;
         this.warmup = warmup;
@@ -102,8 +104,15 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
             long highestQueueDepth = this.callsPerSecond/2;
             if(highestQueueDepth < this.targetRunDuration.toSeconds())
             {
-                highestQueueDepth = this.targetRunDuration.toSeconds();
+                if(this.callsPerSecond <=2) {
+                    highestQueueDepth = this.targetRunDuration.toSeconds()
+                                            * this.workers
+                                            * this.schedulers;
+                } else {
+                    highestQueueDepth = this.targetRunDuration.toSeconds();
+                }
             }
+
             this.queueDepthTracker = new AtomicHistogram(highestQueueDepth, 0);
             if(log.isDebugEnabled()) {
                 logger.PrintDebug("WorkloadProviderScheduler",
@@ -115,7 +124,7 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
         }
 
         schedulerPool = Executors.newFixedThreadPool(this.schedulers);
-        workerPool = Executors.newFixedThreadPool(cliArgs.workers);
+        workerPool = Executors.newFixedThreadPool(this.workers);
 
         this.openTelemetry.Reset(cliArgs,
                                 null,
@@ -155,6 +164,7 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
     The number of defined Schedulers.
      */
     public int getSchedulers() { return schedulers; }
+    public int getWorkers() { return workers; }
 
     /*
     The targeted calls-per-second.
@@ -274,7 +284,7 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
      */
     public Pair<Double,Long> getLatencyMSCountAtPercentile(double desiredPercentile) {
         long percentValue = histogram.getValueAtPercentile(desiredPercentile);
-        return new Pair<Double,Long>(Math.round((percentValue/ Helpers.NS_TO_MS) * numberOfSignificantDigitsScale) / numberOfSignificantDigitsScale,
+        return new Pair<>(Math.round((percentValue/ Helpers.NS_TO_MS) * numberOfSignificantDigitsScale) / numberOfSignificantDigitsScale,
                                         histogram.getCountBetweenValues(0, percentValue));
     }
     /*
@@ -495,7 +505,7 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
                                 &&  schedulerPool.awaitTermination(shutdownTimeout.toSeconds(), TimeUnit.SECONDS))
                         {
                             break;
-                        };
+                        }
                         abortNextTimeout = true;
                         exitTime =  LocalDateTime.now()
                                         .plus(shutdownTimeout);
@@ -806,7 +816,7 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
 
                 logger.Print("Handler.RecordLatency",
                             true,
-                            "Latency Value %,d ns was too large to record. Using Highest Trackable Value of %,d ns...",
+                            "Latency Value %,d ns was too large to record. Using Highest Trackable Value of %,d ns...\n\tNote: Use a lower QPS value...",
                             latency,
                             HighestTrackableValue - 1);
             }
@@ -816,7 +826,7 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
             if (depth < HighestTrackableValueDepth) {
                 queueDepthTracker.recordValue(depth);
             } else {
-                String msg = String.format("Query Queue Depth of %,d is too large! Maximum dept is %,d. Stopping execution...",
+                String msg = String.format("Query Queue Depth of %,d is too large! Maximum dept is %,d. Stopping execution...\n\tNote: Adjust the number of workers, try a lower QPS, or additional resources are required.",
                                             depth,
                                             HighestTrackableValueDepth);
                 System.err.println(msg);
