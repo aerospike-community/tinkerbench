@@ -4,7 +4,7 @@
 set -e
 
 # Build the project
-mvn clean install
+mvn -ntp clean install
 
 # Find the jar file with dependencies
 JAR_FILE=$(find target -name "tinkerbench-*-jar-with-dependencies.jar")
