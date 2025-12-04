@@ -581,6 +581,45 @@ public class Helpers {
         return null;
     }
 
+    /**
+     * Replaces the nth occurrence of a substring in a string.
+     *
+     * @param source The original string.
+     * @param target The substring to find.
+     * @param replacement The replacement substring.
+     * @param occurrence The occurrence number to replace (1 for the first, 2 for the second, etc.).
+     * @return A new string with the specified occurrence replaced, or the original string if the occurrence isn't found.
+     */
+    public static String ReplaceNthOccurrence(String source, String target, String replacement, int occurrence) {
+        if (occurrence <= 0) {
+            return source;
+        }
+
+        int index = -1;
+        int count = 0;
+        int fromIndex = 0;
+
+        // Loop to find the index of the nth occurrence
+        while (count < occurrence && (index = source.indexOf(target, fromIndex)) != -1) {
+            count++;
+            if (count == occurrence) {
+                // Once the nth occurrence is found, break the loop
+                break;
+            }
+            // Update the starting index for the next search
+            fromIndex = index + target.length();
+        }
+
+        if (index == -1) {
+            // If the nth occurrence is not found, return the original string
+            return source;
+        }
+
+        // Reconstruct the string using substring and the replacement
+        // Java Strings are immutable, so a new String is created
+        return source.substring(0, index) + replacement + source.substring(index + target.length());
+    }
+
     public static ZonedDateTime GetLocalTimeZone(final LocalDateTime localDateTime) {
         return localDateTime.atZone(ZoneId.systemDefault());
     }

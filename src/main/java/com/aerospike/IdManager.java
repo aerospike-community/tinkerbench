@@ -16,6 +16,10 @@ public interface IdManager {
 
     boolean isInitialized();
     Object getId();
+    Object getId(int depth);
+    void setDepth(int maxDepth);
+    int getDepth();
+    Object[]  getIds();
 
     long importFile(final String file,
                        final OpenTelemetry openTelemetry,

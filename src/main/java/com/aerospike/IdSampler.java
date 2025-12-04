@@ -181,11 +181,30 @@ public class IdSampler implements  IdManager {
     }
 
     @Override
-    public Object getId() {
+    final public Object getId() {
         return sampledIds == null
                 ? null
                 : sampledIds.get(random.nextInt(sampledIds.size())).get("id");
     }
+
+    /*
+    * This function just returns the Vertex Id, ignoring the int argument.
+     */
+    @Override
+    final public Object getId(int ignored) { return getId(); }
+    @Override
+    final public Object[] getIds() {
+        final Object id = getId();
+        if(id == null) {
+            return new Object[0];
+        }
+        return new Object[]{id};
+    }
+    @Override
+    final public void setDepth(int ignored) {}
+
+    @Override
+    final public int getDepth() { return 1;}
 
     @Override
     public boolean isInitialized() {

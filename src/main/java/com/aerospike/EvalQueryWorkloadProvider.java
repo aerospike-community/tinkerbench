@@ -19,23 +19,20 @@ public final class EvalQueryWorkloadProvider extends QueryWorkloadProvider {
     final LogSource logger;
     final Boolean isPrintResult;
     final IdManager idManager;
-    final Matcher fmtargMatch;
+
+    ///  Array of Id Format Id Args and the Max Depth
+    final Pair<FmtArgInfo[], Integer> idFmtArgsDepth;
+    final AtomicBoolean compiled = new AtomicBoolean(false);
+
+    final Pattern funcPattern = Pattern.compile("^\\s*(?<stmt>.+)\\.(?<func>[^(]+)\\(\\s*\\)\\s*$", Pattern.CASE_INSENSITIVE);
 
     GremlinLangScriptEngine engine;
     String traversalSource;
     Terminator terminator = Terminator.toList;
-    //The string format argument required to format the id...
-    String formatDefinedId;
-    //Can just use the id directory, no string format required...
-    boolean formatIdRequired;
+
     Bindings bindings;
     ThreadLocal<Bytecode> bytecodeThreadLocal;
     boolean prepared = false;
-    final AtomicBoolean compiled = new AtomicBoolean(false);
-
-    final Pattern funcPattern = Pattern.compile("^\\s*(?<stmt>.+)\\.(?<func>[^(]+)\\(\\s*\\)\\s*$", Pattern.CASE_INSENSITIVE);
-    ///This is a much more complete regex to parse the Gremlin string. This will allow an advance Id Manager based on String format params...
-    final Pattern fmtargPattern = Pattern.compile("(?<arg>(?<begin>['\"][^%]*)?%(?<opts>(?:\\\\d+\\\\$)?(?:[-#+ 0,(<]*)?(?:\\\\d*)?(?:\\\\.\\\\d*)?(?:[tT])?)(?:[a-zA-Z])(?<end>[^)'\"]*['\"])?)");
 
     enum Terminator {
         none,
@@ -56,7 +53,7 @@ public final class EvalQueryWorkloadProvider extends QueryWorkloadProvider {
 
         gremlinScript = gremlinScript.replace("'", "\"");
 
-        Matcher matcher = funcPattern.matcher(gremlinScript);
+        final Matcher matcher = funcPattern.matcher(gremlinScript);
         if (matcher.find()) {
             String terminatorString = matcher.group("func").toLowerCase();
             switch (terminatorString) {
@@ -89,15 +86,8 @@ public final class EvalQueryWorkloadProvider extends QueryWorkloadProvider {
 
         this.gremlinString = gremlinScript;
         isPrintResult = isPrintResult();
-
-        fmtargMatch = fmtargPattern.matcher(gremlinString);
-        if (fmtargMatch.find()) {
-            formatDefinedId = fmtargMatch.group("arg");
-            formatIdRequired = true;
-        } else {
-            formatDefinedId = null;
-            formatIdRequired = false;
-        }
+        this.idFmtArgsDepth = FmtArgInfo.determineFmtArgs(gremlinScript);
+        this.idManager.setDepth(this.idFmtArgsDepth.getValue1());
     }
 
     /*private static void GetEngines(ScriptEngineManager manager) {
@@ -129,21 +119,10 @@ public final class EvalQueryWorkloadProvider extends QueryWorkloadProvider {
 
         prepared = true;
         final String[] parts = gremlinString.split("\\.");
-        Object sampleId = null;
 
-        if (formatDefinedId != null && this.idManager.isInitialized()) {
-            sampleId = this.idManager.getId();
-            if(sampleId instanceof String && !formatDefinedId.startsWith("\"")) {
-                formatDefinedId = "\"" + formatDefinedId + "\"";
-                sampleId = String.format(formatDefinedId, sampleId);
-            } else if (fmtargMatch.group("opts") != null
-                    && !fmtargMatch.group("opts").isEmpty()) {
-                sampleId = String.format(formatDefinedId, sampleId);
-            } else {
-                //No need to format the id (can use it directly)
-                formatIdRequired = false;
-            }
-        }
+        final String gremlinString = FmtArgInfo.determineGremlinString(this.idFmtArgsDepth,
+                                                                        this.idManager,
+                                                                        this.gremlinString);
 
         this.traversalSource = parts[0];
 
@@ -163,16 +142,25 @@ public final class EvalQueryWorkloadProvider extends QueryWorkloadProvider {
         try {
             logger.PrintDebug("PrepareCompile", "Generating Bytecode for \"%s\"", gremlinString);
 
-            if(formatDefinedId != null && sampleId == null) {
-                throw new ScriptException(String.format("Script contains a 'id' placeholder but the Id Manager was not initialized (disabled). Id Manager is required!\n'%s'",
+            final Object[] sampleIds = FmtArgInfo.getIds(this.idFmtArgsDepth, this.idManager);
+
+            logger.PrintDebug("PrepareCompile", "Gremlin String Ids: %s", sampleIds);
+
+            if(sampleIds.length == 0 && this.idFmtArgsDepth.getValue0().length > 0) {
+                throw new ScriptException(String.format("Script contains an 'id' placeholder but the Id Manager was not initialized (disabled). Id Manager is required!\n'%s'",
                                                         gremlinString));
             }
+            if(sampleIds.length > this.idManager.getDepth()) {
+                throw new ScriptException(String.format("Script contains Chaining/Depth 'id' placeholders (max. depth of %d) but The Id Manager can only provide a depth of %d. Are you using the Correct Id Manager or Not providing enough id depth?\n'%s'",
+                        this.idFmtArgsDepth.getValue1(),
+                        this.idManager.getDepth(),
+                        gremlinString));
+            }
 
-            final Object finalSampleId = sampleId;
             bytecodeThreadLocal = ThreadLocal.withInitial(() -> {
                 try {
                     final Bytecode result = ((DefaultGraphTraversal<?, ?>)
-                                                engine.eval(String.format(gremlinString, finalSampleId),
+                                                engine.eval(String.format(gremlinString, sampleIds),
                                                         bindings))
                                                 .getBytecode();
                     compiled.set(true);
@@ -256,7 +244,7 @@ public final class EvalQueryWorkloadProvider extends QueryWorkloadProvider {
 
     @Override
     public int getSampleSize() {
-        return formatDefinedId == null ? 0 : -1;
+        return this.idFmtArgsDepth.getValue0().length == 0 ? 0 : -1;
     };
 
     @Override
@@ -304,17 +292,13 @@ public final class EvalQueryWorkloadProvider extends QueryWorkloadProvider {
         if(!getProvider().isAborted()) {
             final Bytecode bytecode = bytecodeThreadLocal.get();
 
-            if (formatDefinedId != null && bytecode != null) {
+            if (this.idFmtArgsDepth.getValue0().length > 0 && bytecode != null) {
                 logger.PrintDebug("EvalQueryWorkloadProvider.preCall", "Pre Call");
-                final Object id = idManager.getId();
+                final Object[] ids = FmtArgInfo.getIds(this.idFmtArgsDepth, this.idManager);
                 final Object[] data = bytecode.getStepInstructions().get(0).getArguments();
-                if (formatIdRequired) {
-                    data[0] = String.format(formatDefinedId, id);
-                } else {
-                    data[0] = id;
-                }
+                data[0] = ids;
                 if (logger.isDebug()) {
-                    logger.PrintDebug("EvalQueryWorkloadProvider.preCall", "Pre Call with id %s", id);
+                    logger.PrintDebug("EvalQueryWorkloadProvider.preCall", "Pre Call with id %s", ids);
                     logger.PrintDebug("EvalQueryWorkloadProvider.preCall", BytecodeTranslator());
                 }
             } else if (bytecode == null) {
@@ -343,10 +327,11 @@ public final class EvalQueryWorkloadProvider extends QueryWorkloadProvider {
     }
 
     public String ToString() {
-        return String.format("{\"query\":\"%s\", \"Prepared\":%s, \"Compiled\":%s, \"formatDefinedId\":\"%s\"}",
+        return String.format("{\"query\":\"%s\", \"Prepared\":%s, \"Compiled\":%s, \"IdsPlaceHolders\":%d \"Depth\":%d}",
                                 this.gremlinString,
                                 this.prepared,
                                 this.compiled.get(),
-                                this.formatDefinedId);
+                                this.idFmtArgsDepth.getValue0().length,
+                                this.idFmtArgsDepth.getValue1());
     }
 }
