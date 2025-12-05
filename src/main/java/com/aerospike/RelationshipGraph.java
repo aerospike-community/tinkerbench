@@ -25,6 +25,10 @@ public final class RelationshipGraph<T> {
     // cache of max depth from each node (simple path depth)
     private final Map<T, Integer> maxDepthCache = new HashMap<>();
 
+    // cache: (node, remainingDepth) -> all paths starting at node
+    private final Map<NodeDepthKey<T>, List<List<T>>> pathCache = new HashMap<>();
+    private record NodeDepthKey<T>(T node, int remainingDepth) {}
+
 
     /**
      * Returns true if the graph contains no nodes and no relationships.
@@ -43,6 +47,7 @@ public final class RelationshipGraph<T> {
         parents.clear();
         distinctChildCount = 0;
         maxDepthCache.clear();
+        pathCache.clear();
     }
 
 
@@ -68,6 +73,7 @@ public final class RelationshipGraph<T> {
 
         // graph structure changed -> invalidate depth cache
         maxDepthCache.clear();
+        pathCache.clear();
     }
 
 
@@ -79,6 +85,7 @@ public final class RelationshipGraph<T> {
         children.computeIfAbsent(node, k -> new LinkedHashSet<>());
         parents.computeIfAbsent(node, k -> new LinkedHashSet<>());
         maxDepthCache.clear();
+        pathCache.clear();
     }
 
 
@@ -207,6 +214,42 @@ public final class RelationshipGraph<T> {
     }
 
     /**
+     * Returns all descendant paths for each top-level parent.
+     *
+     * For each top-level parent (a node with no parents), this method returns
+     * all root-to-descendant paths up to maxDepth.
+     *
+     * - Each path is a List<T> like [root, child, grandchild, ...].
+     * - If a root has no children, it will still have a single path [root].
+     * - Cycles are handled: nodes are not revisited in the same path.
+     *
+     * @param maxDepth maximum depth (number of edges) to traverse.
+     *                 maxDepth = 1 => root -> child only
+     *                 maxDepth = 2 => root -> child -> grandchild, etc.
+     */
+    public Map<T, List<List<T>>> getAllTopLevelPaths(int maxDepth) {
+        if (maxDepth < 0) {
+            throw new IllegalArgumentException("maxDepth must be >= 0");
+        }
+
+        Map<T, List<List<T>>> result = new LinkedHashMap<>();
+
+        Set<T> roots = getTopLevelParents();
+        if (roots.isEmpty()) {
+            // fully cyclic graph: treat all nodes as potential roots
+            roots = getAllNodes();
+        }
+
+        for (T root : roots) {
+            Set<T> pathVisited = new HashSet<>();
+            List<List<T>> pathsFromRoot = getPathsFrom(root, maxDepth, pathVisited);
+            result.put(root, pathsFromRoot);
+        }
+
+        return result;
+    }
+
+    /**
      * Total number of DISTINCT children in the graph.
      * (nodes that have at least one parent).
      */
@@ -263,6 +306,105 @@ public final class RelationshipGraph<T> {
             max = Math.max(max, getMaxDepthFrom(root));
         }
         return max;
+    }
+
+    /**
+     * Depth-first traversal to collect all paths from a starting node.
+     *
+     * @param node         current node
+     * @param depth        current depth (edges from root so far)
+     * @param maxDepth     maximum depth allowed
+     * @param pathVisited  nodes visited in the current path (for cycle detection)
+     * @param currentPath  current path from root to this node
+     * @param outPaths     collected paths
+     */
+    private void collectPathsFrom(T node,
+                                    int depth,
+                                    int maxDepth,
+                                    Set<T> pathVisited,
+                                    Deque<T> currentPath,
+                                    List<List<T>> outPaths) {
+        // Detect cycle in the current path; if seen, stop exploring this branch.
+        if (!pathVisited.add(node)) {
+            return;
+        }
+
+        currentPath.addLast(node);
+
+        Set<T> kids = children.getOrDefault(node, Set.of());
+        boolean isLeafByDepth = depth >= maxDepth;
+        boolean isLeafByStructure = kids.isEmpty();
+
+        if (isLeafByDepth || isLeafByStructure) {
+            // We’ve reached either maxDepth or a structural leaf -> record the path.
+            outPaths.add(List.copyOf(currentPath));
+        } else {
+            for (T child : kids) {
+                collectPathsFrom(child, depth + 1, maxDepth, pathVisited, currentPath, outPaths);
+            }
+        }
+
+        // backtrack
+        currentPath.removeLast();
+        pathVisited.remove(node);
+    }
+
+    /**
+     * Returns all simple paths starting from 'node', with at most 'remainingDepth' edges.
+     * Each path is a List<T> starting with 'node'.
+     *
+     * - Cycles are avoided via 'pathVisited'.
+     * - Uses pathCache to avoid recomputing for the same (node, remainingDepth).
+     */
+    private List<List<T>> getPathsFrom(T node,
+                                        int remainingDepth,
+                                        Set<T> pathVisited) {
+        if (remainingDepth < 0) {
+            return List.of();
+        }
+
+        NodeDepthKey<T> key = new NodeDepthKey<>(node, remainingDepth);
+        List<List<T>> cached = pathCache.get(key);
+        if (cached != null) {
+            return cached;
+        }
+
+        // cycle detection: if node already in current path, treat as leaf (no further expansion)
+        if (!pathVisited.add(node)) {
+            List<List<T>> selfPath = List.of(List.of(node));
+            pathCache.put(key, selfPath);
+            return selfPath;
+        }
+
+        Set<T> kids = children.getOrDefault(node, Set.of());
+
+        // leaf by structure OR depth limit
+        if (kids.isEmpty() || remainingDepth == 0) {
+            List<List<T>> selfPath = List.of(List.of(node));
+            pathCache.put(key, selfPath);
+            pathVisited.remove(node);
+            return selfPath;
+        }
+
+        List<List<T>> result = new ArrayList<>();
+
+        for (T child : kids) {
+            List<List<T>> childPaths = getPathsFrom(child, remainingDepth - 1, pathVisited);
+            for (List<T> childPath : childPaths) {
+                // prepend current node to each child path
+                List<T> newPath = new ArrayList<>(childPath.size() + 1);
+                newPath.add(node);
+                newPath.addAll(childPath);
+                result.add(newPath);
+            }
+        }
+
+        pathVisited.remove(node);
+
+        // store an immutable copy in the cache
+        List<List<T>> immutableResult = List.copyOf(result);
+        pathCache.put(key, immutableResult);
+        return immutableResult;
     }
 
     // Depth-first search to compute max depth from 'node'
@@ -352,14 +494,37 @@ public final class RelationshipGraph<T> {
         pathVisited.add(node);
 
         for (T child : children.getOrDefault(node, Set.of())) {
-            printSubGraph(child, indent + 2, pathVisited);
+            printSubGraph(child, indent + 1, pathVisited);
         }
 
         pathVisited.remove(node);
     }
 
     private void printIndent(int indent) {
-        System.out.print(" ".repeat(Math.max(0, indent)));
+        final int pos = Math.max(0, indent);
+        if(pos > 1) {
+            System.out.print(".".repeat(pos -1));
+        }
+        System.out.print(". ");
+    }
+
+    @Override
+    public String toString() {
+        return """
+        RelationshipGraph {
+            totalNodes           = %d
+            totalEdges           = %d
+            topLevelParents      = %d
+            distinctChildCount   = %d
+            maxDepthOverall      = %d
+        }
+        """.formatted(
+                getAllNodes().size(),
+                getRelationshipCount(),
+                getTopLevelParentCount(),
+                getTotalDistinctChildCount(),
+                getMaxDepthOverall()
+        );
     }
 }
 

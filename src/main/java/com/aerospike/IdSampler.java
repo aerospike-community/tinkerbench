@@ -215,6 +215,28 @@ public class IdSampler implements  IdManager {
         return sampledIds != null && !sampledIds.isEmpty();
     }
 
+    /**
+     * The CSV file requires a header line with the following columns:
+     *      -id     -- Required, The Id value can be a string or internal (one per line)
+     *      -label  -- Optional, A label associated with the id (one per line)
+     * Example:
+     *      -id,-label
+     *      145,labela
+     *      345,labela
+     *      678,labelb
+     *
+     *      -id
+     *      145
+     *      345
+     *      678
+     *
+     * @param filePath -- A CSV file to be used to import Ids. This Path can contain wildcard chars or be a folder where al CSV files will be imported.
+     * @param openTelemetry --The Open Telemetry Instance
+     * @param logger -- Logging instance
+     * @param sampleSize -- the number of ids to import
+     * @param useLabels -- If provided, these labels are used to filter the imported ids.
+     * @return the amount of time to import the Ids
+     */
     @Override
     public long importFile(final String filePath,
                                final OpenTelemetry openTelemetry,
@@ -382,5 +404,16 @@ public class IdSampler implements  IdManager {
         } else {
             logger.Print("IdSampler.exportFile", true, "Cannot export Vertex Ids because there are no Ids!");
         }
+    }
+
+    @Override
+    public String toString() {
+        return """
+        IdSampler {
+            Disabled        = %s
+        }
+        """.formatted(
+                this.disabled
+        );
     }
 }

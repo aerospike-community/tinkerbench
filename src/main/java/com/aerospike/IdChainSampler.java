@@ -6,9 +6,8 @@ import me.tongfei.progressbar.ProgressBar;
 import me.tongfei.progressbar.ProgressBarBuilder;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
 
-import java.io.File;
-import java.io.FileReader;
-import java.io.IOException;
+import java.io.*;
+import java.lang.reflect.Array;
 import java.util.*;
 
 public class IdChainSampler implements  IdManager {
@@ -17,7 +16,7 @@ public class IdChainSampler implements  IdManager {
     final RelationshipGraph<Object> relationshipGraph;
     // A list of defined Ids for Depth Reference...
     final List<Object> currentIds;
-    int requestedDepth = 0;
+    int requestedDepth = -1;
     int actualDepth = -1;
     boolean disabled = false;
 
@@ -49,7 +48,7 @@ public class IdChainSampler implements  IdManager {
     private void clear() {
         relationshipGraph.clear();
         currentIds.clear();
-        requestedDepth = 0;
+        requestedDepth = -1;
         actualDepth = -1;
     }
 
@@ -86,6 +85,10 @@ public class IdChainSampler implements  IdManager {
      */
     @Override
     final public Object getId() {
+        if(currentIds.size() == 1) {
+            return currentIds.getFirst();
+        }
+
         final Set<?> roots = relationshipGraph.getTopLevelParents();
         if (roots.isEmpty()) return null;
         final Object root = Helpers.Unwrap(roots.stream()
@@ -106,6 +109,7 @@ public class IdChainSampler implements  IdManager {
      */
     @Override
     final public Object getId(int depth) {
+        if(depth < 0) return null;
         if(depth == 0) return getId();
         Object parentId;
 
@@ -118,7 +122,7 @@ public class IdChainSampler implements  IdManager {
         } else {
             // Determine Missing Parent(s)
             parentId = getId(depth-1);
-            currentIds.add(parentId);
+            //currentIds.add(parentId);
         }
 
         Object childId = null;
@@ -151,18 +155,31 @@ public class IdChainSampler implements  IdManager {
     }
 
     /**
-     * @param filePath
-     * @param openTelemetry
-     * @param logger
-     * @param sampleSize -- the number of root ids imported
+     * The CSV file may contain a header line (starts with '-') or comment lines (starts with #). These lines are ignored.
+     *      Each line contains an id with its associated children separated by comma.
+     *      An Id can be an integer or string.
+     *
+     * Example:
+     *      23,193,10
+     *      23,193,149
+     *      23,193,31
+     *      23,417,367
+     *      23,417,1557
+     *      23,2,1092
+     *      23,2,1107
+     *
+     * @param filePath -- A CSV file to be used to import Ids. This Path can contain wildcard chars or be a folder where al CSV files will be imported.
+     * @param openTelemetry --The Open Telemetry Instance
+     * @param logger -- Logging instance
+     * @param sampleSize -- the total number of Distinct Ids imported
      * @param labels -- currently ignored
      * @return the amount of time to import the Ids
      */
     @Override
-    public long importFile(String filePath,
-                            OpenTelemetry openTelemetry,
-                            LogSource logger,
-                            int sampleSize,
+    public long importFile(final String filePath,
+                            final OpenTelemetry openTelemetry,
+                            final LogSource logger,
+                            final int sampleSize,
                             final String[] labels) {
 
         if(sampleSize <= 0 || disabled) {
@@ -180,33 +197,21 @@ public class IdChainSampler implements  IdManager {
         File file;
         if(Helpers.hasWildcard(filePath)) {
             long latency = 0;
+            final List<File> files = Helpers.GetFiles(null, filePath);
 
-            try (ProgressBar progressBar = new ProgressBarBuilder()
-                    .setTaskName("Loading vertices ids")
-                    .hideEta()
-                    .build()) {
-                final List<File> files = Helpers.GetFiles(null, filePath);
-                progressBar.maxHint(files.size());
-
-                for (File importFile : files) {
-                    progressBar.setExtraMessage("Reading File " + importFile.getName());
-                    progressBar.step();
-                    latency += importFile(importFile.getPath(),
-                                            openTelemetry,
-                                            logger,
+            for (File importFile : files) {
+               latency += importFile(importFile.getPath(),
+                                        openTelemetry,
+                                        logger,
+                                        sampleSize,
+                                        labels);
+            }
+            if (openTelemetry != null) {
+                openTelemetry.setIdMgrGauge("*",
+                                            labels,
                                             sampleSize,
-                                            labels);
-                }
-                progressBar.setExtraMessage(String.format("Loaded %,d Ids",
-                                                            this.relationshipGraph.getTotalDistinctChildCount()));
-                if (openTelemetry != null) {
-                    openTelemetry.setIdMgrGauge("*",
-                                                labels,
-                                                sampleSize,
-                                                this.relationshipGraph.getTotalDistinctChildCount(),
-                                                latency);
-                }
-                progressBar.refresh();
+                                            this.relationshipGraph.getTotalDistinctChildCount(),
+                                            latency);
             }
             return latency;
         } else {
@@ -229,13 +234,28 @@ public class IdChainSampler implements  IdManager {
         }
 
         long startTime = System.currentTimeMillis();
-        try (CSVReader reader = new CSVReader(new FileReader(file))) {
+        try (ProgressBar progressBar = new ProgressBarBuilder()
+                .setTaskName("Loading ids")
+                .hideEta()
+                .build();
+             CSVReader reader = new CSVReader(new FileReader(file))) {
+
+            progressBar.maxHint(file.length());
+            progressBar.setExtraMessage(String.format("Reading File '%s'",file.getName()));
+
             String[] nextLine;
+            final int currentIds = this.relationshipGraph.getTotalDistinctChildCount();
+
             while ((nextLine = reader.readNext()) != null) {
+
+                final int bytes = Arrays.stream(nextLine) // Create a stream from the array
+                                    .mapToInt(String::length) // Map each string to its length
+                                    .sum() + nextLine.length + 1; // Sum all the lengths
                 if(nextLine.length == 0
                         || nextLine[0].startsWith("#")
                         || nextLine[0].startsWith("-")
                         || nextLine[0].startsWith("/path/")) {
+                    progressBar.stepBy(bytes);
                     continue;
                 }
 
@@ -245,16 +265,29 @@ public class IdChainSampler implements  IdManager {
                 this.relationshipGraph.addPath(Arrays.stream(ids)
                                                 .map(Helpers::DetermineValue)
                                                 .toArray());
-                if(this.relationshipGraph.getTotalDistinctChildCount() >= sampleSize) {
+                progressBar.stepBy(bytes);
+                final int currentTotal =  relationshipGraph.getTotalDistinctChildCount();
+                if(currentTotal >= sampleSize) {
                     break;
                 }
             }
+            progressBar.setExtraMessage(String.format("Loaded %,d Ids from '%s'",
+                                        this.relationshipGraph
+                                            .getTotalDistinctChildCount()-currentIds,
+                                        file.getName()));
+
+            progressBar.refresh();
         } catch (IOException | CsvValidationException e) {
             logger.Print("IdChainSampler.importFile Error in reading CSV file " + file, e);
             throw new RuntimeException(e);
         }
 
-        this.setDepth(relationshipGraph.getMaxDepthOverall());
+        /*
+            Only if it hasn't been previously set
+         */
+        if(this.getDepth() < 0) {
+            this.setDepth(relationshipGraph.getMaxDepthOverall());
+        }
         this.actualDepth = relationshipGraph.getMaxDepthOverall();
 
         long latency = System.currentTimeMillis() - startTime;
@@ -282,5 +315,78 @@ public class IdChainSampler implements  IdManager {
     public void exportFile(String filePath,
                            LogSource logger) {
 
+        if(filePath != null && isInitialized() && !disabled) {
+            File exportFile = Helpers.CrateFolderFilePath(filePath);
+
+            logger.PrintDebug("IdChainSampler.exportFile",
+                                "Writing %d into '%s'",
+                                this.getInitialDepth(),
+                                exportFile.getAbsolutePath());
+
+            try (ProgressBar progressBar = new ProgressBarBuilder()
+                    .setInitialMax(this.relationshipGraph.getTotalDistinctChildCount())
+                    .setTaskName("Exporting vertices ids")
+                    .hideEta()
+                    .build();
+                 BufferedWriter writer = new BufferedWriter(new FileWriter(exportFile))) {
+
+                progressBar.setExtraMessage(exportFile.getName());
+                progressBar.refresh();
+
+                final Map<Object,List<List<Object>>> ids = this.relationshipGraph
+                                                                .getAllTopLevelPaths(3);
+
+                ids.forEach((id, paths) -> {
+                   for (List<Object> path : paths) {
+
+                       try {
+                           final List<String> idStrings = path.stream()
+                                                               .map(Object::toString)
+                                                               .toList();
+                           writer.write(String.join( ",", idStrings));
+                           writer.newLine();
+                           progressBar.stepBy(idStrings.size());
+                       } catch (IOException e) {
+                           logger.Print("IdChainSampler.exportFile Error in exporting file " + filePath, e);
+                       }
+                   }
+                });
+
+                progressBar.refresh();
+                logger.PrintDebug("IdChainSampler.exportFile",
+                                    "Written %d into '%s'",
+                                    actualDepth,
+                                    exportFile.getAbsolutePath());
+            } catch (IOException e) {
+                logger.Print("IdChainSampler.exportFile Error in exporting file " + filePath, e);
+            }
+        } else if (filePath == null) {
+            logger.PrintDebug("IdChainSampler.exportFile", "IdChainSampler file not provided");
+        } else if (disabled) {
+            logger.PrintDebug("IdChainSampler.exportFile", "IdChainSampler disabled");
+        } else {
+            logger.Print("IdChainSampler.exportFile", true, "Cannot export Vertex Ids because there are no Ids!");
+        }
+    }
+
+    @Override
+    public String toString() {
+        return """
+        IdChainSampler {
+            Relation Graph:
+                %s
+            Current Id Tree:
+                %s
+            Actual Depth    = %d
+            Requested Depth = %d
+            Disabled        = %s
+        }
+        """.formatted(
+                this.relationshipGraph,
+                this.currentIds,
+                this.actualDepth,
+                this.requestedDepth,
+                this.disabled
+        );
     }
 }

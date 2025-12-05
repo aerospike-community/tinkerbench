@@ -12,7 +12,7 @@ final class FmtArgInfo {
     final static Pattern fmtargPattern = Pattern.compile("(?<arg>(?<begin>['\"][^%]*)?%(?<opts>(?:(?<pos>\\d+)\\$)?(?:[-#+ 0,(<]*)?(?:\\d*)?(?:\\.\\d*)?(?:[tT])?)(?:[a-zA-Z])(?<end>[^)'\"]*['\"])?)");
 
     public String fmtArgValue;
-    public final int depth;
+    public final int position;
     public char beginQuote;
     public char endQuote;
 
@@ -20,10 +20,10 @@ final class FmtArgInfo {
         this.fmtArgValue = fmtargMatch.group("arg");
         String grpValue = fmtargMatch.group("pos");
         if (grpValue != null) {
-            this.depth = Integer.parseInt(grpValue);
+            this.position = Integer.parseInt(grpValue);
         }
         else {
-            this.depth = -1;
+            this.position = 1;
         }
         grpValue = fmtargMatch.group("begin");
         if (grpValue != null) {
@@ -42,33 +42,33 @@ final class FmtArgInfo {
     public boolean hasQuotes() { return  this.beginQuote != '\0' && this.beginQuote == this.endQuote; }
 
     /*
-     *   @params gremlinString -- The Gremlin String that will be seached looking for Format Arguments.
-     *   @return A pair of Format Arguments Info and the Maximum Depth.
-     *           If depth is -1, no format arguments found...
+     *   @params gremlinString -- The Gremlin String that will be searched looking for Format Arguments.
+     *   @return A pair of Format Arguments Info and the Maximum Position within the format string.
+     *           If position is -1, no format arguments found...
      */
     public static Pair<FmtArgInfo[], Integer> determineFmtArgs(final String gremlinString) {
         final Matcher fmtargMatch = fmtargPattern.matcher(gremlinString);
         final List<FmtArgInfo> fmtArgs = new ArrayList<>();
-        int maxDepth = -1;
+        int maxPos = -1;
 
         while (fmtargMatch.find()) {
             final FmtArgInfo fmtArg = new FmtArgInfo(fmtargMatch);
             fmtArgs.add(fmtArg);
-            if(maxDepth < fmtArg.depth) {
-                maxDepth = fmtArg.depth;
+            if(maxPos < fmtArg.position) {
+                maxPos = fmtArg.position;
             }
         }
-        return Pair.with(fmtArgs.toArray(new FmtArgInfo[0]), maxDepth);
+        return Pair.with(fmtArgs.toArray(new FmtArgInfo[0]), maxPos);
     }
 
     /*
      *   This will ensure proper quoting in the Gremlin String based on the Id data type...
      */
-    public static String determineGremlinString(final Pair<FmtArgInfo[], Integer> fmtArgsDepth,
+    public static String determineGremlinString(final Pair<FmtArgInfo[], Integer> fmtArgsPosition,
                                                 final IdManager idManager,
                                                 final String gremlinString) {
 
-        if(fmtArgsDepth == null || idManager == null || gremlinString == null) {
+        if(fmtArgsPosition == null || idManager == null || gremlinString == null) {
             return gremlinString;
         }
 
@@ -80,7 +80,7 @@ final class FmtArgInfo {
         int pos = 0;
         String newGremlinString = gremlinString;
 
-        for (FmtArgInfo fmtArg : fmtArgsDepth.getValue0()) {
+        for (FmtArgInfo fmtArg : fmtArgsPosition.getValue0()) {
             if(!fmtArg.hasQuotes()) {
                 String replaceArg = "";
                 if(fmtArg.beginQuote == '\0') {
@@ -91,38 +91,19 @@ final class FmtArgInfo {
                     replaceArg += "\"";
                 }
                 newGremlinString = Helpers.ReplaceNthOccurrence(newGremlinString,
-                        fmtArg.fmtArgValue,
-                        replaceArg,
-                        pos);
+                                                                fmtArg.fmtArgValue,
+                                                                replaceArg,
+                                                                pos);
             }
             pos += 1;
         }
         return newGremlinString;
     }
 
-    public static Object[] getIds(final Pair<FmtArgInfo[], Integer> fmtArgsDepth,
+    public static Object[] getIds(final Pair<FmtArgInfo[], Integer> fmtArgsPosition,
                                   final IdManager idManager) {
 
         idManager.Reset();
-        final Object[] depthIds = idManager.getIds();
-
-        if (fmtArgsDepth.getValue0().length == 0) {
-            return depthIds;
-        }
-
-        int idPos = 0;
-        List<Object> ids = new ArrayList<>();
-
-        for (FmtArgInfo fmtArg : fmtArgsDepth.getValue0()) {
-            if (fmtArg.depth < 0) {
-                ids.add(depthIds[0]);
-            } else if (fmtArg.depth > depthIds.length) {
-                ids.add(null);
-            } else {
-                ids.add(depthIds[fmtArg.depth - 1]);
-            }
-        }
-
-        return ids.toArray();
+        return idManager.getIds();
     }
 }

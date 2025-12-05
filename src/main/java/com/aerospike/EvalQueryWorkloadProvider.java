@@ -21,7 +21,7 @@ public final class EvalQueryWorkloadProvider extends QueryWorkloadProvider {
     final IdManager idManager;
 
     ///  Array of Id Format Id Args and the Max Depth
-    final Pair<FmtArgInfo[], Integer> idFmtArgsDepth;
+    final Pair<FmtArgInfo[], Integer> idFmtArgsPos;
     final AtomicBoolean compiled = new AtomicBoolean(false);
 
     final Pattern funcPattern = Pattern.compile("^\\s*(?<stmt>.+)\\.(?<func>[^(]+)\\(\\s*\\)\\s*$", Pattern.CASE_INSENSITIVE);
@@ -86,8 +86,8 @@ public final class EvalQueryWorkloadProvider extends QueryWorkloadProvider {
 
         this.gremlinString = gremlinScript;
         isPrintResult = isPrintResult();
-        this.idFmtArgsDepth = FmtArgInfo.determineFmtArgs(gremlinScript);
-        this.idManager.setDepth(this.idFmtArgsDepth.getValue1());
+        this.idFmtArgsPos = FmtArgInfo.determineFmtArgs(gremlinScript);
+        this.idManager.setDepth(this.idFmtArgsPos.getValue1() - 1);
     }
 
     /*private static void GetEngines(ScriptEngineManager manager) {
@@ -120,7 +120,7 @@ public final class EvalQueryWorkloadProvider extends QueryWorkloadProvider {
         prepared = true;
         final String[] parts = gremlinString.split("\\.");
 
-        final String gremlinString = FmtArgInfo.determineGremlinString(this.idFmtArgsDepth,
+        final String gremlinString = FmtArgInfo.determineGremlinString(this.idFmtArgsPos,
                                                                         this.idManager,
                                                                         this.gremlinString);
 
@@ -142,18 +142,18 @@ public final class EvalQueryWorkloadProvider extends QueryWorkloadProvider {
         try {
             logger.PrintDebug("PrepareCompile", "Generating Bytecode for \"%s\"", gremlinString);
 
-            final Object[] sampleIds = FmtArgInfo.getIds(this.idFmtArgsDepth, this.idManager);
+            final Object[] sampleIds = FmtArgInfo.getIds(this.idFmtArgsPos, this.idManager);
 
             logger.PrintDebug("PrepareCompile", "Gremlin String Ids: %s", sampleIds);
 
-            if(sampleIds.length == 0 && this.idFmtArgsDepth.getValue0().length > 0) {
-                throw new ScriptException(String.format("Script contains an 'id' placeholder but the Id Manager was not initialized (disabled). Id Manager is required!\n'%s'",
+            if(sampleIds.length == 0 && this.idFmtArgsPos.getValue0().length > 0) {
+                throw new ScriptException(String.format("Script contains an 'id' placeholder but the Id Manager was not initialized (disabled?). Id Manager is required!\n'%s'",
                                                         gremlinString));
             }
-            if(sampleIds.length > this.idManager.getDepth()) {
-                throw new ScriptException(String.format("Script contains Chaining/Depth 'id' placeholders (max. depth of %d) but The Id Manager can only provide a depth of %d. Are you using the Correct Id Manager or Not providing enough id depth?\n'%s'",
-                        this.idFmtArgsDepth.getValue1(),
-                        this.idManager.getDepth(),
+            if(sampleIds.length > this.idManager.getInitialDepth()) {
+                throw new ScriptException(String.format("Script contains Chaining/Depth 'id' placeholders (max. position of %d) but The Id Manager can only provide a depth of %d. Are you using the Correct Id Manager, Not providing/importing enough ids, or Gremlin string is incorrect?\n'%s'",
+                        this.idFmtArgsPos.getValue1(),
+                        this.idManager.getInitialDepth(),
                         gremlinString));
             }
 
@@ -244,7 +244,7 @@ public final class EvalQueryWorkloadProvider extends QueryWorkloadProvider {
 
     @Override
     public int getSampleSize() {
-        return this.idFmtArgsDepth.getValue0().length == 0 ? 0 : -1;
+        return this.idFmtArgsPos.getValue0().length == 0 ? 0 : -1;
     };
 
     @Override
@@ -292,9 +292,9 @@ public final class EvalQueryWorkloadProvider extends QueryWorkloadProvider {
         if(!getProvider().isAborted()) {
             final Bytecode bytecode = bytecodeThreadLocal.get();
 
-            if (this.idFmtArgsDepth.getValue0().length > 0 && bytecode != null) {
+            if (this.idFmtArgsPos.getValue0().length > 0 && bytecode != null) {
                 logger.PrintDebug("EvalQueryWorkloadProvider.preCall", "Pre Call");
-                final Object[] ids = FmtArgInfo.getIds(this.idFmtArgsDepth, this.idManager);
+                final Object[] ids = FmtArgInfo.getIds(this.idFmtArgsPos, this.idManager);
                 final Object[] data = bytecode.getStepInstructions().get(0).getArguments();
                 data[0] = ids;
                 if (logger.isDebug()) {
@@ -331,7 +331,7 @@ public final class EvalQueryWorkloadProvider extends QueryWorkloadProvider {
                                 this.gremlinString,
                                 this.prepared,
                                 this.compiled.get(),
-                                this.idFmtArgsDepth.getValue0().length,
-                                this.idFmtArgsDepth.getValue1());
+                                this.idFmtArgsPos.getValue0().length,
+                                this.idFmtArgsPos.getValue1());
     }
 }
