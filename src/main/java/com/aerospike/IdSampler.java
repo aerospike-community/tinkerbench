@@ -201,11 +201,15 @@ public class IdSampler implements  IdManager {
         return new Object[]{id};
     }
     @Override
-    final public void setDepth(int ignored) {}
+    final public void Reset() {}
 
     @Override
-    final public int getDepth() { return 1;}
+    public void setDepth(int ignore) {}
 
+    @Override
+    final public int getDepth() { return 0;}
+    @Override
+    final public int getInitialDepth() { return 0; }
     @Override
     public boolean isInitialized() {
         return sampledIds != null && !sampledIds.isEmpty();

@@ -1,28 +1,28 @@
 package com.aerospike;
 
+import com.opencsv.CSVReader;
 import com.opencsv.exceptions.CsvValidationException;
-import com.opencsv.CSVReaderHeaderAware;
 import me.tongfei.progressbar.ProgressBar;
 import me.tongfei.progressbar.ProgressBarBuilder;
-import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Random;
+import java.io.File;
+import java.io.FileReader;
+import java.io.IOException;
+import java.util.*;
 
 public class IdChainSampler implements  IdManager {
 
     final Random random = new Random();
-    final HierarchyManager hierarchyManager;
+    final RelationshipGraph<Object> relationshipGraph;
     // A list of defined Ids for Depth Reference...
     final List<Object> currentIds;
-    int maxDepth = 0;
+    int requestedDepth = 0;
+    int actualDepth = -1;
     boolean disabled = false;
 
     public IdChainSampler() {
-        hierarchyManager = new HierarchyManager();
+        relationshipGraph = new RelationshipGraph<>();
         currentIds = new ArrayList<Object>();
     }
 
@@ -37,13 +37,20 @@ public class IdChainSampler implements  IdManager {
             return false;
         }
 
-        if(hierarchyManager.isEmpty()) {
+        if(relationshipGraph.isEmpty()) {
             String msg = "No Ids returned and at least one Id is required! Maybe you need to disable Id Sampling?";
             logger.Print("IdSampler", true, msg);
 
             throw new ArrayIndexOutOfBoundsException(msg);
         }
         return true;
+    }
+
+    private void clear() {
+        relationshipGraph.clear();
+        currentIds.clear();
+        requestedDepth = 0;
+        actualDepth = -1;
     }
 
     /**
@@ -67,8 +74,11 @@ public class IdChainSampler implements  IdManager {
      */
     @Override
     public boolean isInitialized() {
-        return !hierarchyManager.isEmpty();
+        return !relationshipGraph.isEmpty();
     }
+
+    @Override
+    final public void Reset() { currentIds.clear(); }
 
     /**
      * This will always reset (clear) the current Id list...
@@ -76,12 +86,13 @@ public class IdChainSampler implements  IdManager {
      */
     @Override
     final public Object getId() {
-        currentIds.clear();
-        final List<?> roots = hierarchyManager.getRootNodes();
+        final Set<?> roots = relationshipGraph.getTopLevelParents();
         if (roots.isEmpty()) return null;
-        final Object root = roots.get(random.nextInt(roots.size()));
+        final Object root = Helpers.Unwrap(roots.stream()
+                                            .skip(random.nextInt(roots.size()))
+                                            .findFirst());
         currentIds.add(root);
-        return roots;
+        return root;
     }
 
     /**
@@ -112,9 +123,12 @@ public class IdChainSampler implements  IdManager {
 
         Object childId = null;
         if(parentId != null) {
-            List<?> children = hierarchyManager.getDirectChildren(parentId);
+            Set<?> children = relationshipGraph.getDirectChildren(parentId);
             if (!children.isEmpty()) {
-                childId = children.get(random.nextInt(children.size()));
+                childId = Helpers.Unwrap(children
+                                            .stream()
+                                            .skip(random.nextInt(children.size()))
+                                            .findFirst());
             }
         }
         currentIds.add(childId);
@@ -123,32 +137,141 @@ public class IdChainSampler implements  IdManager {
     }
 
     @Override
-    final public void setDepth(int maxDepth) { this.maxDepth = maxDepth; }
+    public void setDepth(int depth) { this.requestedDepth = depth; }
 
     @Override
-    final public int getDepth() { return maxDepth; }
+    final public int getDepth() { return requestedDepth; }
+    @Override
+    final public int getInitialDepth() { return actualDepth; }
 
     @Override
     final public Object[] getIds() {
-        getId(maxDepth);
+        getId(requestedDepth);
         return currentIds.toArray();
     }
 
     /**
-     * @param file
+     * @param filePath
      * @param openTelemetry
      * @param logger
-     * @param sampleSize
-     * @param labels
-     * @return
+     * @param sampleSize -- the number of root ids imported
+     * @param labels -- currently ignored
+     * @return the amount of time to import the Ids
      */
     @Override
-    public long importFile(String file,
-                           OpenTelemetry openTelemetry,
-                           LogSource logger,
-                           int sampleSize,
-                           String[] labels) {
-        return 0;
+    public long importFile(String filePath,
+                            OpenTelemetry openTelemetry,
+                            LogSource logger,
+                            int sampleSize,
+                            final String[] labels) {
+
+        if(sampleSize <= 0 || disabled) {
+            this.clear();
+            disabled = true;
+            System.out.println("IdChainSampler is disabled but an import file was supplied. Ignoring importing of file...");
+            logger.PrintDebug("IdChainSampler.importFile", "IdChainSampler disabled");
+            return 0;
+        }
+
+        if(this.relationshipGraph.getTotalDistinctChildCount() >= sampleSize) {
+            return 0;
+        }
+
+        File file;
+        if(Helpers.hasWildcard(filePath)) {
+            long latency = 0;
+
+            try (ProgressBar progressBar = new ProgressBarBuilder()
+                    .setTaskName("Loading vertices ids")
+                    .hideEta()
+                    .build()) {
+                final List<File> files = Helpers.GetFiles(null, filePath);
+                progressBar.maxHint(files.size());
+
+                for (File importFile : files) {
+                    progressBar.setExtraMessage("Reading File " + importFile.getName());
+                    progressBar.step();
+                    latency += importFile(importFile.getPath(),
+                                            openTelemetry,
+                                            logger,
+                                            sampleSize,
+                                            labels);
+                }
+                progressBar.setExtraMessage(String.format("Loaded %,d Ids",
+                                                            this.relationshipGraph.getTotalDistinctChildCount()));
+                if (openTelemetry != null) {
+                    openTelemetry.setIdMgrGauge("*",
+                                                labels,
+                                                sampleSize,
+                                                this.relationshipGraph.getTotalDistinctChildCount(),
+                                                latency);
+                }
+                progressBar.refresh();
+            }
+            return latency;
+        } else {
+            file = new File(filePath);
+            if(file.isDirectory()) {
+                File wildCardPath = new File(file, "*.csv");
+                return importFile(wildCardPath.getPath(),
+                                    openTelemetry,
+                                    logger,
+                                    sampleSize,
+                                    labels);
+            }
+        }
+
+        if(!file.exists()) {
+            logger.Print("IdChainSampler.importFile",
+                    true,
+                    "File does not exist: " + filePath);
+            return 0;
+        }
+
+        long startTime = System.currentTimeMillis();
+        try (CSVReader reader = new CSVReader(new FileReader(file))) {
+            String[] nextLine;
+            while ((nextLine = reader.readNext()) != null) {
+                if(nextLine.length == 0
+                        || nextLine[0].startsWith("#")
+                        || nextLine[0].startsWith("-")
+                        || nextLine[0].startsWith("/path/")) {
+                    continue;
+                }
+
+                final String[] ids = Helpers.TrimTrailingEmptyOrNull(nextLine);
+                if(ids.length == 0) continue;
+
+                this.relationshipGraph.addPath(Arrays.stream(ids)
+                                                .map(Helpers::DetermineValue)
+                                                .toArray());
+                if(this.relationshipGraph.getTotalDistinctChildCount() >= sampleSize) {
+                    break;
+                }
+            }
+        } catch (IOException | CsvValidationException e) {
+            logger.Print("IdChainSampler.importFile Error in reading CSV file " + file, e);
+            throw new RuntimeException(e);
+        }
+
+        this.setDepth(relationshipGraph.getMaxDepthOverall());
+        this.actualDepth = relationshipGraph.getMaxDepthOverall();
+
+        long latency = System.currentTimeMillis() - startTime;
+        if(openTelemetry != null) {
+            openTelemetry.setIdMgrGauge(file.getName(),
+                                        labels,
+                                        sampleSize,
+                                        this.relationshipGraph.getTotalDistinctChildCount(),
+                                        latency);
+        }
+
+        logger.PrintDebug("IdChainSampler.importFile",
+                            "Obtain Samples from '%s' Read %d",
+                            file.getAbsolutePath(),
+                            this.relationshipGraph.getTotalDistinctChildCount());
+
+        return latency;
     }
 
     /**

@@ -103,6 +103,7 @@ final class FmtArgInfo {
     public static Object[] getIds(final Pair<FmtArgInfo[], Integer> fmtArgsDepth,
                                   final IdManager idManager) {
 
+        idManager.Reset();
         final Object[] depthIds = idManager.getIds();
 
         if (fmtArgsDepth.getValue0().length == 0) {

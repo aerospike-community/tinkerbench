@@ -620,6 +620,37 @@ public class Helpers {
         return source.substring(0, index) + replacement + source.substring(index + target.length());
     }
 
+    public static String[] TrimTrailingEmptyOrNull(String[] array) {
+        if (array == null) {
+            return null;
+        }
+
+        int newLength = array.length;
+        // Iterate backward to find the first non-null, non-empty element
+        for (int i = array.length - 1; i >= 0; i--) {
+            if (array[i] == null || array[i].isEmpty()) {
+                newLength--;
+            } else {
+                break; // Stop when a valid element is found
+            }
+        }
+
+        // Copy the valid part of the array into a new, smaller array
+        return Arrays.copyOf(array, newLength);
+    }
+
+    /*
+    *   If object is an Optional instance, it will unwrap it and return the actual value or null.
+    *   @param obj -- Possible Optional instance
+    *   @return the actual value or null, if not present...
+     */
+    public static Object Unwrap(Object obj) {
+        if (obj instanceof Optional<?> opt) {
+            return opt.orElse(null);
+        }
+        return obj;
+    }
+
     public static ZonedDateTime GetLocalTimeZone(final LocalDateTime localDateTime) {
         return localDateTime.atZone(ZoneId.systemDefault());
     }
