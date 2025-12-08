@@ -157,11 +157,19 @@ public final class EvalQueryWorkloadProvider extends QueryWorkloadProvider {
                         gremlinString));
             }
 
+            final String sampleQuery = String.format("Sample Gremlin Query: '%s'",
+                                                        String.format(gremlinString, sampleIds));
+            logger.info(sampleQuery);
+            Helpers.Println(System.out,
+                            sampleQuery,
+                            Helpers.BLACK,
+                            Helpers.GREEN_BACKGROUND);
+
             bytecodeThreadLocal = ThreadLocal.withInitial(() -> {
                 try {
                     final Bytecode result = ((DefaultGraphTraversal<?, ?>)
                                                 engine.eval(String.format(gremlinString, sampleIds),
-                                                        bindings))
+                                                            bindings))
                                                 .getBytecode();
                     compiled.set(true);
                     return result;
@@ -177,11 +185,11 @@ public final class EvalQueryWorkloadProvider extends QueryWorkloadProvider {
                     getProvider().SignalAbortWorkLoad();*/
                 } catch (Exception e) {
                     System.err.printf("ERROR: could not evaluate gremlin script \"%s\". Error: %s\n",
-                            gremlinString,
-                            e.getMessage());
+                                        gremlinString,
+                                        e.getMessage());
                     logger.error(String.format("ERROR: could not evaluate gremlin script \"%s\". Error: %s\n",
-                                    gremlinString,
-                                    e.getMessage()),
+                                                gremlinString,
+                                                e.getMessage()),
                             e);
                     getProvider().AddError(e);
                     getProvider().SignalAbortWorkLoad();

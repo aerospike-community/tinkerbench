@@ -4,13 +4,16 @@ import com.opencsv.CSVReader;
 import com.opencsv.exceptions.CsvValidationException;
 import me.tongfei.progressbar.ProgressBar;
 import me.tongfei.progressbar.ProgressBarBuilder;
-import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
 
+import org.apache.tinkerpop.gremlin.jsr223.GremlinLangScriptEngine;
+import org.apache.tinkerpop.gremlin.structure.util.reference.ReferencePath;
+
+import javax.script.Bindings;
 import java.io.*;
-import java.lang.reflect.Array;
 import java.util.*;
+import java.util.stream.Stream;
 
-public class IdChainSampler implements  IdManager {
+public class IdChainSampler implements  IdManagerQuery {
 
     final Random random = new Random();
     final RelationshipGraph<Object> relationshipGraph;
@@ -36,12 +39,24 @@ public class IdChainSampler implements  IdManager {
             return false;
         }
 
-        if(relationshipGraph.isEmpty()) {
-            String msg = "No Ids returned and at least one Id is required! Maybe you need to disable Id Sampling?";
-            logger.Print("IdSampler", true, msg);
+        if(this.isEmpty()) {
+            String msg = "Error: No Ids Found. If the Ids were imported check your CSV file for proper format ?.";
+            logger.Print("IdChainSampler", true, msg);
 
             throw new ArrayIndexOutOfBoundsException(msg);
         }
+        if(this.getStartingIdsCount() == 0) {
+           String msg = """
+  Error: No Starting Ids (top-level parents) found.
+    If the import/query produces circular references, you must define these starting id(s).
+        For a query, use the 'startid' label.
+        For importing (CSV file), add a Starting Id value(s) to the file. One value per line.""";
+
+            logger.Print("IdChainSampler", true, msg);
+
+            throw new MissingResourceException(msg, "IdChainSampler", "startid");
+        }
+
         return true;
     }
 
@@ -52,20 +67,126 @@ public class IdChainSampler implements  IdManager {
         actualDepth = -1;
     }
 
+    private int addNode(final List<?> items) {
+        final Object[] idArray = items.toArray();
+        this.relationshipGraph.addPath(idArray);
+        return idArray.length;
+    }
+    private int addNode(final ReferencePath rp) {
+        final Object[] idArray = rp.objects().toArray();
+        this.relationshipGraph.addPath(idArray);
+        return idArray.length;
+    }
+    private void addNode(final AbstractMap<?,?> items,
+                        final ProgressBar progressBar) {
+
+        if(items.containsKey("startId")) {
+            this.relationshipGraph.markAsTopLevelParent(items.get("startId"));
+            progressBar.step();
+        }
+        if(items.containsKey("paths")) {
+            Object paths = items.get("paths");
+            if(paths instanceof List<?> path) {
+                for(Object item : path) {
+                    if(item instanceof ReferencePath rp) {
+                        progressBar.stepBy(this.addNode(rp));
+                    } else if(item instanceof List<?> li) {
+                        for (Object i : li) {
+                            if (i instanceof ReferencePath rp) {
+                                progressBar.stepBy(this.addNode(rp));
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private void populateFromGraphDB(final Stream<?> stream,
+                                         final ProgressBar progressBar) {
+        stream.forEach(item -> {
+            if (item instanceof AbstractMap<?,?> map) {
+                addNode(map, progressBar);
+            } else if (item instanceof List<?> a) {
+                progressBar.stepBy(addNode(a));
+            } else if (item instanceof ReferencePath rp) {
+                progressBar.stepBy(addNode(rp));
+            } else {
+                progressBar.setExtraMessage("Item Cast Error... Skipping Id...");
+            }
+        });
+    }
+
     /**
-     * @param g
-     * @param openTelemetry
-     * @param logger
-     * @param sampleSize
-     * @param labels
+     * @param ags -- graph traversal instance
+     * @param openTelemetry -- Open Telemetry instance
+     * @param logger -- Logger instance
+     * @param gremlinString -- Labels
      */
     @Override
-    public void init(GraphTraversalSource g,
-                     OpenTelemetry openTelemetry,
-                     LogSource logger,
-                     int sampleSize,
-                     String[] labels) {
+    public void init(final AGSGraphTraversal ags,
+                     final OpenTelemetry openTelemetry,
+                     final LogSource logger,
+                     String gremlinString) {
 
+        logger.PrintDebug("IdChainSampler", "Getting GremlinLangScriptEngine Engine");
+        gremlinString = gremlinString.replace("'", "\"");
+        final String[] parts = gremlinString.split("\\.");
+        GremlinLangScriptEngine  engine = new GremlinLangScriptEngine();
+
+        logger.PrintDebug("IdChainSampler", "Binding to g");
+        Bindings bindings = engine.createBindings();
+        bindings.put(parts[0], ags.G());
+
+        Helpers.Println(System.out,
+                        String.format("Obtaining Ids using Query '%s'",
+                                        gremlinString),
+                        Helpers.BLACK,
+                        Helpers.GREEN_BACKGROUND);
+        try (ProgressBar progressBar = new ProgressBarBuilder()
+                .setTaskName("Obtaining Ids...")
+                .hideEta()
+                .build()) {
+            progressBar.setExtraMessage("Querying DB...");
+            progressBar.step();
+            Object result = engine.eval(gremlinString, bindings);
+            progressBar.step();
+            progressBar.setExtraMessage("Populating Id Manager...");
+            if(result instanceof ArrayList<?> arrayLst) {
+                populateFromGraphDB(arrayLst.stream(), progressBar);
+            } else if(result instanceof HashSet<?> set) {
+                populateFromGraphDB(set.stream(), progressBar);
+            } else {
+                throw  new InvalidClassException(result.getClass().getName(),
+                                                    "IdChainSampler Query returned an unexpected result. Must terminate with 'toSet' or 'toList'.");
+            }
+            this.relationshipGraph.syncStructuralTopLevelParentsToMarked();
+            final int totalCnt = this.relationshipGraph.getTotalDistinctChildCount();
+            if(this.getDepth() < 0) {
+                this.setDepth(relationshipGraph.getMaxDepthOverall());
+            }
+            this.actualDepth = relationshipGraph.getMaxDepthOverall();
+
+            progressBar.refresh();
+            if(totalCnt == 0) {
+                throw new InvalidClassException("Query returned no Ids...");
+            }
+            System.out.println();
+            Helpers.Println(System.out,
+                            String.format("Loaded %,d distinct Ids from Query.",
+                                            totalCnt),
+                            Helpers.BLACK,
+                            Helpers.GREEN_BACKGROUND);
+        } catch (Exception e) {
+            System.err.printf("ERROR: could not evaluate gremlin Id script \"%s\". Error: %s\n",
+                    gremlinString,
+                    e.getMessage());
+            logger.error(String.format("ERROR: could not evaluate gremlin Id script \"%s\". Error: %s\n",
+                            gremlinString,
+                            e.getMessage()),
+                    e);
+            throw new RuntimeException(e);
+        }
     }
 
     /**
@@ -74,6 +195,26 @@ public class IdChainSampler implements  IdManager {
     @Override
     public boolean isInitialized() {
         return !relationshipGraph.isEmpty();
+    }
+
+    /*
+     *   @return The total number of distinct ids
+     */
+    @Override
+    final public int getIdCount() {
+        return this.relationshipGraph.getTotalDistinctChildCount();
+    };
+    /*
+     *   @return The total number of Starting Ids (root/parents).
+     */
+    @Override
+    public final int getStartingIdsCount() {
+        return this.relationshipGraph.getTopLevelParentCount();
+    }
+
+    @Override
+    public final boolean isEmpty() {
+        return this.relationshipGraph.isEmpty();
     }
 
     @Override
@@ -271,7 +412,8 @@ public class IdChainSampler implements  IdManager {
                     break;
                 }
             }
-            progressBar.setExtraMessage(String.format("Loaded %,d Ids from '%s'",
+            this.relationshipGraph.syncStructuralTopLevelParentsToMarked();
+            progressBar.setExtraMessage(String.format("Loaded %,d distinct Ids from '%s'",
                                         this.relationshipGraph
                                             .getTotalDistinctChildCount()-currentIds,
                                         file.getName()));
@@ -333,6 +475,17 @@ public class IdChainSampler implements  IdManager {
                 progressBar.setExtraMessage(exportFile.getName());
                 progressBar.refresh();
 
+                final Set<Object> toplevelIds = this.relationshipGraph
+                                                    .getTopLevelParents();
+
+                toplevelIds.forEach(parentId -> {
+                    try {
+                        writer.write(parentId.toString());
+                        progressBar.step();
+                    } catch (IOException e) {
+                        logger.Print("IdChainSampler.exportFile Error in exporting file " + filePath, e);
+                    }
+                });
                 final Map<Object,List<List<Object>>> ids = this.relationshipGraph
                                                                 .getAllTopLevelPaths(3);
 

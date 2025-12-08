@@ -2,8 +2,6 @@ package com.aerospike;
 
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
 
-import java.io.File;
-
 public interface IdManager {
 
     /*
@@ -25,6 +23,17 @@ public interface IdManager {
     *   Indicates the Id Manager has been Initialized and Ids may have been obtained/loaded.
      */
     boolean isInitialized();
+
+    /*
+    *   @return The total number of distinct ids
+     */
+    int getIdCount();
+    /*
+    *   @return Thte total number of Starting Ids (root/parents).
+     */
+    int getStartingIdsCount();
+
+    boolean isEmpty();
 
     /*
     *   @return Obtains an random Id or depending on the manager, the Top-Level (parent) id.

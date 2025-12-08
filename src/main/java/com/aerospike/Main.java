@@ -53,11 +53,18 @@ public class Main extends TinkerBenchArgs {
                                                 sampleSIze,
                                                 labels);
                 } else {
-                    args.idManager.init(agsGraphTraversal.G(),
+                    if(args.idManager instanceof IdManagerQuery idQuery) {
+                        idQuery.init(agsGraphTraversal,
                                         openTel,
                                         logger,
-                                        sampleSIze,
-                                        labels);
+                                        args.idGremlinQuery);
+                    } else {
+                        args.idManager.init(agsGraphTraversal.G(),
+                                            openTel,
+                                            logger,
+                                            sampleSIze,
+                                            labels);
+                    }
                 }
                 args.idManager.CheckIdsExists(logger);
 

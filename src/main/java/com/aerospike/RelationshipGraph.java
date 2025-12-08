@@ -21,6 +21,9 @@ public final class RelationshipGraph<T> {
     // child -> parents
     private final Map<T, Set<T>> parents = new HashMap<>();
 
+    // Explicitly marked roots
+    private final Set<T> explicitTopLevelParents = new LinkedHashSet<>();
+
     private int distinctChildCount = 0;
     // cache of max depth from each node (simple path depth)
     private final Map<T, Integer> maxDepthCache = new HashMap<>();
@@ -48,8 +51,18 @@ public final class RelationshipGraph<T> {
         distinctChildCount = 0;
         maxDepthCache.clear();
         pathCache.clear();
+        explicitTopLevelParents.clear();
     }
 
+    public void markAsTopLevelParent(T node) {
+        Objects.requireNonNull(node, "node must not be null");
+        addNode(node); // ensure it exists in the graph
+        explicitTopLevelParents.add(node);
+    }
+
+    public void unmarkAsTopLevelParent(T node) {
+        explicitTopLevelParents.remove(node);
+    }
 
     /**
      * Add a relationship parent -> child.
@@ -108,15 +121,21 @@ public final class RelationshipGraph<T> {
     /**
      * Varargs convenience for addPath.
      * Example: addPath(1, 2, 4, 5)
+     * Note: If provided a single node, it will be treated as a marked parent
      */
     @SafeVarargs
     public final void addPath(T... nodes) {
         Objects.requireNonNull(nodes, "nodes must not be null");
-        if (nodes.length < 2) return;
-        for (int i = 0; i < nodes.length - 1; i++) {
-            addRelationship(nodes[i], nodes[i + 1]);
+
+        if (nodes.length == 0) return;
+        if (nodes.length == 1){
+            this.markAsTopLevelParent(nodes[0]);
+            return;
         }
-        // addRelationship already clears the cache
+        for (int i = 0; i < nodes.length - 1; i++) {
+            addRelationship(nodes[i], nodes[i + 1]); // addRelationship already clears the cache
+        }
+
     }
 
     /**
@@ -191,10 +210,17 @@ public final class RelationshipGraph<T> {
     }
 
     /**
-     * Get all top-level parents:
-     * nodes that have NO parents (i.e., roots in this graph).
+     * Get all top-level marked parents
      */
     public Set<T> getTopLevelParents() {
+        return Collections.unmodifiableSet(explicitTopLevelParents);
+    }
+
+    /**
+     * Find all top-level parents from the graph:
+     * nodes that have NO parents (i.e., roots in this graph).
+     */
+    public Set<T> findTopLevelParents() {
         Set<T> all = getAllNodes();
         Set<T> roots = new LinkedHashSet<>();
         for (T node : all) {
@@ -204,6 +230,29 @@ public final class RelationshipGraph<T> {
             }
         }
         return Collections.unmodifiableSet(roots);
+    }
+
+    /**
+     * Ensures that all structural top-level parents (nodes with no parents)
+     * are also recorded as explicit top-level parents.
+     *
+     * @return the set of nodes that were newly marked as top-level parents
+     */
+    public Set<T> syncStructuralTopLevelParentsToMarked() {
+        Set<T> newlyMarked = new LinkedHashSet<>();
+
+        // Structural roots: nodes with no parents
+        for (T node : getAllNodes()) {
+            if (parents.getOrDefault(node, Set.of()).isEmpty()) {
+                // If this structural root was not yet explicitly marked,
+                // add it and track it as newly marked.
+                if (explicitTopLevelParents.add(node)) {
+                    newlyMarked.add(node);
+                }
+            }
+        }
+
+        return Collections.unmodifiableSet(newlyMarked);
     }
 
     /**
@@ -502,10 +551,10 @@ public final class RelationshipGraph<T> {
 
     private void printIndent(int indent) {
         final int pos = Math.max(0, indent);
-        if(pos > 1) {
-            System.out.print(".".repeat(pos -1));
+        if(pos >= 1) {
+            System.out.print(".".repeat(pos));
+            System.out.print(" ");
         }
-        System.out.print(". ");
     }
 
     @Override

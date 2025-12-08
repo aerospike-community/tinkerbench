@@ -136,6 +136,10 @@ public abstract class TinkerBenchArgs implements Callable<Integer> {
             defaultValue = "500000")
     int idSampleSize;
 
+    @Option(names = {"-IdQry", "--IdGremlinQuery" },
+            description = "The Gremlin Query used to obtain the Ids used by the Id Manger.")
+    String idGremlinQuery;
+
     @Option(names = {"-import", "--ImportIds" },
             description = "Import Vertices Ids from a CSV File(s). Default is ${DEFAULT-VALUE}")
     String importIdsPath;
@@ -527,8 +531,52 @@ public abstract class TinkerBenchArgs implements Callable<Integer> {
                                     .stream()
                                     .collect(Collectors.toMap(OptionSpec::longestName, o -> o));
 
+        if(idManager != null) {
+            if(idManager instanceof  IdManagerQuery) {
+                if (importIdsPath == null && (idGremlinQuery == null || idGremlinQuery.isEmpty())) {
+                    throw new CommandLine.ParameterException(commandlineSpec.commandLine(),
+                            String.format("This Id Manager (%s) requires either '--ImportIds' or '--IdGremlinQuery' arguments. Neither were provided.",
+                                    idManager.getClass().getSimpleName()));
+                }
+                if (importIdsPath != null && idGremlinQuery != null && !idGremlinQuery.isEmpty()) {
+                    throw new CommandLine.ParameterException(commandlineSpec.commandLine(),
+                            String.format("This Id Manager (%s) requires either '--ImportIds' or '--IdGremlinQuery' arguments. Both were provided.",
+                                    idManager.getClass().getSimpleName()));
+                }
+                if (idGremlinQuery != null
+                        && !idGremlinQuery.isEmpty()) {
+                    OptionSpec item = opts.get("IdSampleSize");
+                    boolean usesDefaultValue= !pr.hasMatchedOption(item);
+
+                    if(!usesDefaultValue) {
+                        Helpers.Println(System.err,
+                                "Warning: 'IdGremlinQuery' was provided with 'IdSampleSize'. 'IdSampleSize' will be ignored.",
+                                Helpers.RED,
+                                Helpers.YELLOW_BACKGROUND);
+                    }
+                }
+
+                if (labelsSample != null && labelsSample.length > 0) {
+                    Helpers.Println(System.err,
+                                String.format("Warning: This Id Manager (%s) was provided with 'IdSampleLabel'. 'IdSampleLabel' will be ignored since this argument is not supported with this Id Manager.\n",
+                                                idManager.getClass().getSimpleName()),
+                                Helpers.RED,
+                                Helpers.YELLOW_BACKGROUND);
+                }
+            } else {
+                if (idGremlinQuery != null
+                        && !idGremlinQuery.isEmpty()) {
+                    Helpers.Println(System.err,
+                                    String.format("Warning: 'IdGremlinQuery' was provided but this Id Manager (%s) doesn't support queries. It will be ignored.\n",
+                                                idManager.getClass().getSimpleName()),
+                                    Helpers.RED,
+                                    Helpers.YELLOW_BACKGROUND);
+                }
+            }
+        }
+
         if(!missing(clusterConfigurationFile)) {
-            OptionSpec item = opts.get("ags");
+            OptionSpec item = opts.get("host");
             boolean usesDefaultValue= !pr.hasMatchedOption(item);
 
             if(!usesDefaultValue) {

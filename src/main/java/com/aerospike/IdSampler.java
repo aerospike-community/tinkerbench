@@ -32,7 +32,7 @@ public class IdSampler implements  IdManager {
             return false;
         }
 
-        if(sampledIds.isEmpty()) {
+        if(this.isEmpty()) {
             String msg = labels == null || labels.length == 0
                     ? "No Vertex Ids returned and at least one Id is required! Maybe you need to disable Id Sampling?"
                     : String.format("No Vertex Ids returned for label(s) '%s'. At least one Id is required! Is this label correct or maybe you need to disable Id Sampling?",
@@ -179,6 +179,26 @@ public class IdSampler implements  IdManager {
             System.out.println("\tCompleted");
         }
     }
+
+    /*
+     *   @return The total number of distinct ids
+     */
+    @Override
+    final public int getIdCount() {
+        return sampledIds == null
+                ? 0
+                : sampledIds.size();
+    };
+    /*
+     *   @return The total number of Starting Ids (root/parents).
+     */
+    @Override
+    public final int getStartingIdsCount() {
+        return this.getIdCount();
+    }
+
+    @Override
+    public final boolean isEmpty() { return this.getIdCount() == 0; }
 
     @Override
     final public Object getId() {
