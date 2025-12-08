@@ -161,7 +161,7 @@ public class IdChainSampler implements  IdManagerQuery {
                                                     "IdChainSampler Query returned an unexpected result. Must terminate with 'toSet' or 'toList'.");
             }
             this.relationshipGraph.syncStructuralTopLevelParentsToMarked();
-            final int totalCnt = this.relationshipGraph.getTotalDistinctChildCount();
+            final int totalCnt = this.relationshipGraph.getTotal();
             if(this.getDepth() < 0) {
                 this.setDepth(relationshipGraph.getMaxDepthOverall());
             }
@@ -202,7 +202,7 @@ public class IdChainSampler implements  IdManagerQuery {
      */
     @Override
     final public int getIdCount() {
-        return this.relationshipGraph.getTotalDistinctChildCount();
+        return this.relationshipGraph.getTotal();
     };
     /*
      *   @return The total number of Starting Ids (root/parents).
@@ -285,9 +285,9 @@ public class IdChainSampler implements  IdManagerQuery {
     public void setDepth(int depth) { this.requestedDepth = depth; }
 
     @Override
-    final public int getDepth() { return requestedDepth; }
+    final public int getDepth() { return requestedDepth + 1; }
     @Override
-    final public int getInitialDepth() { return actualDepth; }
+    final public int getInitialDepth() { return actualDepth + 1; }
 
     @Override
     final public Object[] getIds() {
@@ -413,10 +413,9 @@ public class IdChainSampler implements  IdManagerQuery {
                 }
             }
             this.relationshipGraph.syncStructuralTopLevelParentsToMarked();
-            progressBar.setExtraMessage(String.format("Loaded %,d distinct Ids from '%s'",
+            progressBar.setExtraMessage(String.format("Loaded %,d distinct Ids",
                                         this.relationshipGraph
-                                            .getTotalDistinctChildCount()-currentIds,
-                                        file.getName()));
+                                            .getTotalDistinctChildCount()-currentIds));
 
             progressBar.refresh();
         } catch (IOException | CsvValidationException e) {
@@ -481,6 +480,7 @@ public class IdChainSampler implements  IdManagerQuery {
                 toplevelIds.forEach(parentId -> {
                     try {
                         writer.write(parentId.toString());
+                        writer.newLine();
                         progressBar.step();
                     } catch (IOException e) {
                         logger.Print("IdChainSampler.exportFile Error in exporting file " + filePath, e);

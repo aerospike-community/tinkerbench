@@ -185,9 +185,7 @@ public class IdSampler implements  IdManager {
      */
     @Override
     final public int getIdCount() {
-        return sampledIds == null
-                ? 0
-                : sampledIds.size();
+        return sampledIds == null || disabled ? 0 : sampledIds.size();
     };
     /*
      *   @return The total number of Starting Ids (root/parents).
@@ -227,9 +225,9 @@ public class IdSampler implements  IdManager {
     public void setDepth(int ignore) {}
 
     @Override
-    final public int getDepth() { return 0;}
+    final public int getDepth() { return 1;}
     @Override
-    final public int getInitialDepth() { return 0; }
+    final public int getInitialDepth() { return 1; }
     @Override
     public boolean isInitialized() {
         return sampledIds != null && !sampledIds.isEmpty();

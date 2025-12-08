@@ -50,12 +50,11 @@ public interface IdManager {
      */
     void Reset();
     /*
-    *   @return The request depth of a tree structure. If a tree is not used by the Id manager, this should return 0.
+    *   @return The request depth of a tree structure.
      */
     int getDepth();
     /*
      *   @return The loaded/obtained depth of a tree structure. A value of -1 indicates no Ids loaded.
-     *              If a tree is not used by the Id manager, this should return 0.
      */
     int getInitialDepth();
     /*

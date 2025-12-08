@@ -72,6 +72,25 @@ public class Main extends TinkerBenchArgs {
                     args.idManager.exportFile(args.exportIdsPath,
                                                logger);
                 }
+
+                if(!args.idManager.isEmpty()) {
+                   final String msg = String.format("""
+Using Id Manager '%s':
+  Number of Distinct Nodes: %,d
+               Start Nodes: %,d
+            Required Depth: %,d
+            Possible Paths: %,d""",
+                        args.idManager.getClass().getSimpleName(),
+                        args.idManager.getIdCount(),
+                        args.idManager.getStartingIdsCount(),
+                        args.idManager.getDepth(),
+                        args.idManager.getInitialDepth());
+                   Helpers.Println(System.out,
+                                    msg,
+                                    Helpers.BLACK,
+                                    Helpers.GREEN_BACKGROUND);
+                   logger.info(msg);
+                }
             }
 
             workloadRunner.PrepareCompile();

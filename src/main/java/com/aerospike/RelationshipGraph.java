@@ -209,6 +209,12 @@ public final class RelationshipGraph<T> {
         return Collections.unmodifiableSet(result);
     }
 
+    /*
+    * @return The total number of nodes
+     */
+    public int getTotal() {
+        return this.getTotalDistinctChildCount() + this.getTopLevelParentCount();
+    }
     /**
      * Get all top-level marked parents
      */

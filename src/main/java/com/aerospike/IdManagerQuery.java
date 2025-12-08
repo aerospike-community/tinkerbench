@@ -2,8 +2,6 @@ package com.aerospike;
 
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
 
-import javax.management.Query;
-
 public interface IdManagerQuery extends IdManager {
 
     default void init(final GraphTraversalSource g,

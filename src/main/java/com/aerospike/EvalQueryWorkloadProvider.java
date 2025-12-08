@@ -147,14 +147,14 @@ public final class EvalQueryWorkloadProvider extends QueryWorkloadProvider {
             logger.PrintDebug("PrepareCompile", "Gremlin String Ids: %s", sampleIds);
 
             if(sampleIds.length == 0 && this.idFmtArgsPos.getValue0().length > 0) {
-                throw new ScriptException(String.format("Script contains an 'id' placeholder but the Id Manager was not initialized (disabled?). Id Manager is required!\n'%s'",
+                throw new ScriptException(String.format("Script contains 'id' placeholders but the Id Manager was not initialized (disabled?). Id Manager is required!\n'%s'",
                                                         gremlinString));
             }
             if(sampleIds.length > this.idManager.getInitialDepth()) {
-                throw new ScriptException(String.format("Script contains Chaining/Depth 'id' placeholders (max. position of %d) but The Id Manager can only provide a depth of %d. Are you using the Correct Id Manager, Not providing/importing enough ids, or Gremlin string is incorrect?\n'%s'",
-                        this.idFmtArgsPos.getValue1(),
-                        this.idManager.getInitialDepth(),
-                        gremlinString));
+                throw new ScriptException(String.format("Script contains Chaining/Depth 'id' placeholders requiring a maximum dept of %d, but The Id Manager can only provide a depth of %d. Are you using the Correct Id Manager, Not providing/importing enough ids, or Gremlin string is incorrect?\n'%s'",
+                                                        this.idFmtArgsPos.getValue1(),
+                                                        this.idManager.getInitialDepth(),
+                                                        gremlinString));
             }
 
             final String sampleQuery = String.format("Sample Gremlin Query: '%s'",

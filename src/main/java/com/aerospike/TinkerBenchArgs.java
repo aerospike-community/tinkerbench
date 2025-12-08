@@ -705,6 +705,9 @@ public abstract class TinkerBenchArgs implements Callable<Integer> {
             Object value = opt.getValue();
             if(value != null && value.getClass().isArray())
                 value = Arrays.toString((Object[]) value);
+            else if(value instanceof IdManager) {
+                value = value.getClass().getName();
+            }
             args.add(String.format("%s: %s%s",
                         argKeyword,
                         value,
