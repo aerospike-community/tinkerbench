@@ -7,6 +7,7 @@ import me.tongfei.progressbar.ProgressBarBuilder;
 
 import org.apache.tinkerpop.gremlin.jsr223.GremlinLangScriptEngine;
 import org.apache.tinkerpop.gremlin.structure.util.reference.ReferencePath;
+import org.javatuples.Pair;
 
 import javax.script.Bindings;
 import java.io.*;
@@ -127,20 +128,30 @@ public class IdChainSampler implements  IdManagerQuery {
     public void init(final AGSGraphTraversal ags,
                      final OpenTelemetry openTelemetry,
                      final LogSource logger,
-                     String gremlinString) {
+                     final String gremlinString) {
 
         logger.PrintDebug("IdChainSampler", "Getting GremlinLangScriptEngine Engine");
-        gremlinString = gremlinString.replace("'", "\"");
-        final String[] parts = gremlinString.split("\\.");
-        GremlinLangScriptEngine  engine = new GremlinLangScriptEngine();
 
-        logger.PrintDebug("IdChainSampler", "Binding to g");
-        Bindings bindings = engine.createBindings();
+        final Pair<String, EvalQueryWorkloadProvider.Terminator> gremlinStep
+                = EvalQueryWorkloadProvider.DetermineTerminator(gremlinString.replace("'", "\""),
+                                                                logger);
+        final String gremlin;
+
+        if(gremlinStep.getValue1() == EvalQueryWorkloadProvider.Terminator.none) {
+            gremlin = gremlinStep.getValue0() + ".toList()";
+        } else {
+            gremlin = gremlinStep.getValue0();
+        }
+        final String[] parts = gremlin.split("\\.");
+        final GremlinLangScriptEngine  engine = new GremlinLangScriptEngine();
+
+        logger.PrintDebug("IdChainSampler", "Binding to " + parts[0]);
+        final Bindings bindings = engine.createBindings();
         bindings.put(parts[0], ags.G());
 
         Helpers.Println(System.out,
                         String.format("Obtaining Ids using Query '%s'",
-                                        gremlinString),
+                                        gremlin),
                         Helpers.BLACK,
                         Helpers.GREEN_BACKGROUND);
         try (ProgressBar progressBar = new ProgressBarBuilder()
@@ -149,7 +160,7 @@ public class IdChainSampler implements  IdManagerQuery {
                 .build()) {
             progressBar.setExtraMessage("Querying DB...");
             progressBar.step();
-            Object result = engine.eval(gremlinString, bindings);
+            Object result = engine.eval(gremlin, bindings);
             progressBar.step();
             progressBar.setExtraMessage("Populating Id Manager...");
             if(result instanceof ArrayList<?> arrayLst) {
@@ -157,7 +168,7 @@ public class IdChainSampler implements  IdManagerQuery {
             } else if(result instanceof HashSet<?> set) {
                 populateFromGraphDB(set.stream(), progressBar);
             } else {
-                throw  new InvalidClassException(result.getClass().getName(),
+                throw new InvalidClassException(result.getClass().getName(),
                                                     "IdChainSampler Query returned an unexpected result. Must terminate with 'toSet' or 'toList'.");
             }
             this.relationshipGraph.syncStructuralTopLevelParentsToMarked();
@@ -179,10 +190,10 @@ public class IdChainSampler implements  IdManagerQuery {
                             Helpers.GREEN_BACKGROUND);
         } catch (Exception e) {
             System.err.printf("ERROR: could not evaluate gremlin Id script \"%s\". Error: %s\n",
-                    gremlinString,
+                    gremlin,
                     e.getMessage());
             logger.error(String.format("ERROR: could not evaluate gremlin Id script \"%s\". Error: %s\n",
-                            gremlinString,
+                            gremlin,
                             e.getMessage()),
                     e);
             throw new RuntimeException(e);

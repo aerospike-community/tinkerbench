@@ -19,22 +19,22 @@ public final class EvalQueryWorkloadProvider extends QueryWorkloadProvider {
     final LogSource logger;
     final Boolean isPrintResult;
     final IdManager idManager;
+    final Terminator terminator;
 
     ///  Array of Id Format Id Args and the Max Depth
     final Pair<FmtArgInfo[], Integer> idFmtArgsPos;
     final AtomicBoolean compiled = new AtomicBoolean(false);
 
-    final Pattern funcPattern = Pattern.compile("^\\s*(?<stmt>.+)\\.(?<func>[^(]+)\\(\\s*\\)\\s*$", Pattern.CASE_INSENSITIVE);
+    final static Pattern funcPattern = Pattern.compile("^\\s*(?<stmt>.+)\\.(?<func>[^(]+)\\(\\s*\\)\\s*$", Pattern.CASE_INSENSITIVE);
 
     GremlinLangScriptEngine engine;
     String traversalSource;
-    Terminator terminator = Terminator.toList;
 
     Bindings bindings;
     ThreadLocal<Bytecode> bytecodeThreadLocal;
     boolean prepared = false;
 
-    enum Terminator {
+    public enum Terminator {
         none,
         next,
         toList,
@@ -43,48 +43,48 @@ public final class EvalQueryWorkloadProvider extends QueryWorkloadProvider {
         hasNext
     }
 
+    public static Pair<String,Terminator> DetermineTerminator(final String gremlinScript,
+                                                                final LogSource logger) {
+        final Matcher matcher = funcPattern.matcher(gremlinScript);
+
+        if (matcher.find()) {
+            String terminatorString = matcher.group("func").toLowerCase();
+            switch (terminatorString) {
+                case "next":
+                    return Pair.with(matcher.group("stmt"), Terminator.next);
+                case "tolist":
+                    return Pair.with(matcher.group("stmt"),Terminator.toList);
+                case "iterate":
+                    return Pair.with(matcher.group("stmt"),Terminator.iterate);
+                case "toset":
+                    return Pair.with(matcher.group("stmt"),Terminator.toSet);
+                case "hasnext":
+                    return Pair.with(matcher.group("stmt"),Terminator.hasNext);
+                default:
+                    return Pair.with(gremlinScript,Terminator.none);
+            }
+        }
+        return Pair.with(gremlinScript,Terminator.none);
+    }
+
     public EvalQueryWorkloadProvider(final WorkloadProvider provider,
                                      final AGSGraphTraversal ags,
-                                     String gremlinScript,
+                                     final String gremlinScript,
                                      final IdManager idManager) {
         super(provider, ags, idManager, gremlinScript);
         logger = getLogger();
         this.idManager = idManager;
 
-        gremlinScript = gremlinScript.replace("'", "\"");
-
-        final Matcher matcher = funcPattern.matcher(gremlinScript);
-        if (matcher.find()) {
-            String terminatorString = matcher.group("func").toLowerCase();
-            switch (terminatorString) {
-                case "next":
-                    terminator = Terminator.next;
-                    gremlinScript = matcher.group("stmt");
-                    break;
-                case "tolist":
-                    terminator = Terminator.toList;
-                    gremlinScript = matcher.group("stmt");
-                    break;
-                case "iterate":
-                    terminator = Terminator.iterate;
-                    gremlinScript = matcher.group("stmt");
-                    break;
-                case "toset":
-                    terminator = Terminator.toSet;
-                    gremlinScript = matcher.group("stmt");
-                    break;
-                case "hasnext":
-                    terminator = Terminator.hasNext;
-                    gremlinScript = matcher.group("stmt");
-                    break;
-                default:
-                    terminator = Terminator.toList;
-                    System.err.println("Defaulting to Terminator Step 'toList'...");
-                    logger.Print("EvalQueryWorkloadProvider",false, "Defaulting to Terminator Step 'toList'...");
-            }
+        final Pair<String,Terminator> gremlinStep = DetermineTerminator(gremlinScript.replace("'", "\""),
+                                                                            logger);
+        this.gremlinString = gremlinStep.getValue0();
+        if(gremlinStep.getValue1() == Terminator.none) {
+            System.err.println("Defaulting Gremlin Query Terminator Step 'toList'...");
+            logger.warn("Defaulting Gremlin Query Terminator Step 'toList'...");
+            this.terminator = Terminator.toList;
+        } else {
+            this.terminator = gremlinStep.getValue1();
         }
-
-        this.gremlinString = gremlinScript;
         isPrintResult = isPrintResult();
         this.idFmtArgsPos = FmtArgInfo.determineFmtArgs(gremlinScript);
         this.idManager.setDepth(this.idFmtArgsPos.getValue1() - 1);
@@ -135,7 +135,7 @@ public final class EvalQueryWorkloadProvider extends QueryWorkloadProvider {
         logger.PrintDebug("PrepareCompile", "Getting GremlinLangScriptEngine Engine");
         engine = new GremlinLangScriptEngine();
 
-        logger.PrintDebug("PrepareCompile", "Binding to g");
+        logger.PrintDebug("PrepareCompile", "Binding to " + this.traversalSource);
         bindings = engine.createBindings();
         bindings.put(traversalSource, G());
 
