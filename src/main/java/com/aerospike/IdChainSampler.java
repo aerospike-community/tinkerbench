@@ -132,15 +132,12 @@ public class IdChainSampler implements  IdManagerQuery {
 
         logger.PrintDebug("IdChainSampler", "Getting GremlinLangScriptEngine Engine");
 
-        final Pair<String, EvalQueryWorkloadProvider.Terminator> gremlinStep
-                = EvalQueryWorkloadProvider.DetermineTerminator(gremlinString.replace("'", "\""),
-                                                                logger);
-        final String gremlin;
+        String gremlin = gremlinString.replace("'", "\"");
+        final EvalQueryWorkloadProvider.Terminator gremlinStep
+                = EvalQueryWorkloadProvider.DetermineTerminator(gremlin);
 
-        if(gremlinStep.getValue1() == EvalQueryWorkloadProvider.Terminator.none) {
-            gremlin = gremlinStep.getValue0() + ".toList()";
-        } else {
-            gremlin = gremlinStep.getValue0();
+        if(gremlinStep == EvalQueryWorkloadProvider.Terminator.none) {
+            gremlin = gremlin + ".toList()";
         }
         final String[] parts = gremlin.split("\\.");
         final GremlinLangScriptEngine  engine = new GremlinLangScriptEngine();

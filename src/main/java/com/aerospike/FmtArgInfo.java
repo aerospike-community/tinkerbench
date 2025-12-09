@@ -13,6 +13,7 @@ final class FmtArgInfo {
 
     public String fmtArgValue;
     public final int position;
+    public final boolean notPostional;
     public char beginQuote;
     public char endQuote;
 
@@ -21,9 +22,11 @@ final class FmtArgInfo {
         String grpValue = fmtargMatch.group("pos");
         if (grpValue != null) {
             this.position = Integer.parseInt(grpValue);
+            this.notPostional = false;
         }
         else {
             this.position = 1;
+            this.notPostional = true;
         }
         grpValue = fmtargMatch.group("begin");
         if (grpValue != null) {
@@ -50,6 +53,7 @@ final class FmtArgInfo {
         final Matcher fmtargMatch = fmtargPattern.matcher(gremlinString);
         final List<FmtArgInfo> fmtArgs = new ArrayList<>();
         int maxPos = -1;
+        boolean allNonPostional = true;
 
         while (fmtargMatch.find()) {
             final FmtArgInfo fmtArg = new FmtArgInfo(fmtargMatch);
@@ -57,6 +61,12 @@ final class FmtArgInfo {
             if(maxPos < fmtArg.position) {
                 maxPos = fmtArg.position;
             }
+            if(!fmtArg.notPostional) {
+                allNonPostional = false;
+            }
+        }
+        if(allNonPostional && fmtArgs.size() > maxPos) {
+            maxPos = fmtArgs.size();
         }
         return Pair.with(fmtArgs.toArray(new FmtArgInfo[0]), maxPos);
     }

@@ -20,6 +20,7 @@ public class IdSampler implements  IdManager {
     final Random random = new Random();
     boolean disabled = false;
     String[] labels = null;
+    int nbrIds = 1;
 
     public IdSampler() {
         // Constructor can be used for initialization if needed
@@ -209,25 +210,32 @@ public class IdSampler implements  IdManager {
     * This function just returns the Vertex Id, ignoring the int argument.
      */
     @Override
-    final public Object getId(int ignored) { return getId(); }
-    @Override
-    final public Object[] getIds() {
-        final Object id = getId();
-        if(id == null) {
-            return new Object[0];
-        }
-        return new Object[]{id};
+    final public Object getId(int ignore) {
+        return getId();
     }
-    @Override
-    final public void Reset() {}
 
     @Override
-    public void setDepth(int ignore) {}
+    final public Object[] getIds() {
+        if(nbrIds <= 1) return new Object[] { getId() };
+        final Object[] res = new Object[nbrIds];
+        for(int i = 0; i < nbrIds; i++) {
+            res[i] = getId();
+        }
+        return res;
+    }
+    @Override
+    final public void Reset() { }
+
+    /*
+    *   This will determine the number of root ids are generated per query.
+     */
+    @Override
+    public void setDepth(int nbrIds) { this.nbrIds = nbrIds + 1; }
 
     @Override
     final public int getDepth() { return 1;}
     @Override
-    final public int getInitialDepth() { return 1; }
+    final public int getInitialDepth() { return this.sampledIds.size(); }
     @Override
     public boolean isInitialized() {
         return sampledIds != null && !sampledIds.isEmpty();
