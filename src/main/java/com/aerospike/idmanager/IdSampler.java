@@ -1,5 +1,9 @@
-package com.aerospike;
+package com.aerospike.idmanager;
 
+import com.aerospike.Helpers;
+import com.aerospike.IdManager;
+import com.aerospike.LogSource;
+import com.aerospike.OpenTelemetry;
 import com.opencsv.exceptions.CsvValidationException;
 import me.tongfei.progressbar.ProgressBar;
 import me.tongfei.progressbar.ProgressBarBuilder;
@@ -15,7 +19,7 @@ import com.opencsv.CSVReaderHeaderAware;
 import static org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__.id;
 import static org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__.label;
 
-public class IdSampler implements  IdManager {
+public class IdSampler implements IdManager {
     private List<Map<String,Object>> sampledIds = null;
     final Random random = new Random();
     boolean disabled = false;
@@ -196,6 +200,12 @@ public class IdSampler implements  IdManager {
         return this.getIdCount();
     }
 
+    /*
+     *   @return The number of relationships between ids
+     */
+    @Override
+    public int getNbrRelationships() { return 0; }
+
     @Override
     public final boolean isEmpty() { return this.getIdCount() == 0; }
 
@@ -216,6 +226,9 @@ public class IdSampler implements  IdManager {
 
     @Override
     final public Object[] getIds() {
+        if(sampledIds == null) {
+            return new Object[0];
+        }
         if(nbrIds <= 1) return new Object[] { getId() };
         final Object[] res = new Object[nbrIds];
         for(int i = 0; i < nbrIds; i++) {
@@ -235,7 +248,9 @@ public class IdSampler implements  IdManager {
     @Override
     final public int getDepth() { return 1;}
     @Override
-    final public int getInitialDepth() { return this.sampledIds.size(); }
+    final public int getInitialDepth() {
+        return this.sampledIds == null ? 0 : this.sampledIds.size();
+    }
     @Override
     public boolean isInitialized() {
         return sampledIds != null && !sampledIds.isEmpty();

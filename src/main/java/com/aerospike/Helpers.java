@@ -1,5 +1,6 @@
 package com.aerospike;
 
+import com.aerospike.idmanager.IdSampler;
 import org.apache.tinkerpop.gremlin.driver.exception.ResponseException;
 import org.javatuples.Pair;
 
@@ -99,6 +100,29 @@ public class Helpers {
         Println(printStream, msg, textColor, null);
     }
 
+    /**
+     * Checks if the current Java runtime environment version is 21 or higher.
+     * Throws an error if the requirement is not met.
+     */
+    public static void checkJavaVersion(LogSource logger) {
+        String javaVersionString = System.getProperty("java.version");
+
+        // The Runtime.Version API is the modern way to handle version parsing
+        Runtime.Version currentVersion = Runtime.Version.parse(javaVersionString);
+
+        final int REQUIRED_MAJOR_VERSION = 21;
+
+        if (currentVersion.feature() < REQUIRED_MAJOR_VERSION) {
+            String errorMessage = String.format(
+                    "Application requires Java version %d or higher. Current version is %s.",
+                    REQUIRED_MAJOR_VERSION,
+                    javaVersionString
+            );
+            logger.error(errorMessage);
+            throw new UnsupportedOperationException(errorMessage);
+        }
+    }
+
     public static <T, R> List<T> removeDuplicates(List<T> list, Function<T, R> keyExtractor) {
         Set<R> seenKeys = new HashSet<>();
         return list.stream()
@@ -132,6 +156,7 @@ public class Helpers {
     }
 
     private static final List<Class<?>> PreDefinedClasses = new  ArrayList<Class<?>>();
+    private static final List<Class<?>> IdManagerClasses = new  ArrayList<Class<?>>();
 
     public static Class<?> getClass(String jarFilePath, String className) throws ClassNotFoundException {
         try {
@@ -362,8 +387,32 @@ public class Helpers {
         return  Collections.emptyList();
     }
 
+    public static List<Class<?>> findAllIdManagers(String packageName) {
+        final LogSource logger = LogSource.getInstance();
+
+        List<Class<?>> classes = getClassesInPackage(packageName);
+
+        if(!classes.isEmpty()) {
+            if(logger.isDebug()) {
+                logger.PrintDebug("findAllIdManagers",
+                        "Found Classes: %s",
+                        classes.stream()
+                                .map(c -> c.getName() + " -- " + getJarFile(c))
+                                .collect(Collectors.joining(",\n\t")));
+            }
+            classes.sort(Comparator.comparing(Class::getSimpleName));
+            return classes;
+        }
+
+        return  Collections.emptyList();
+    }
+
     public static List<QueryRunnable> findAllPredefinedQueries() {
         return findAllPredefinedQueries("com.aerospike.predefined");
+    }
+
+    public static List<Class<?>> findAllIdManagers() {
+        return findAllIdManagers("com.aerospike.idmanager");
     }
 
     public static String GetShortClassName(final String className) {

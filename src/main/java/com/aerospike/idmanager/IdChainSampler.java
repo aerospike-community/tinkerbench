@@ -1,5 +1,6 @@
-package com.aerospike;
+package com.aerospike.idmanager;
 
+import com.aerospike.*;
 import com.opencsv.CSVReader;
 import com.opencsv.exceptions.CsvValidationException;
 import me.tongfei.progressbar.ProgressBar;
@@ -7,14 +8,13 @@ import me.tongfei.progressbar.ProgressBarBuilder;
 
 import org.apache.tinkerpop.gremlin.jsr223.GremlinLangScriptEngine;
 import org.apache.tinkerpop.gremlin.structure.util.reference.ReferencePath;
-import org.javatuples.Pair;
 
 import javax.script.Bindings;
 import java.io.*;
 import java.util.*;
 import java.util.stream.Stream;
 
-public class IdChainSampler implements  IdManagerQuery {
+public class IdChainSampler implements IdManagerQuery {
 
     final Random random = new Random();
     final RelationshipGraph<Object> relationshipGraph;
@@ -151,6 +151,8 @@ public class IdChainSampler implements  IdManagerQuery {
                                         gremlin),
                         Helpers.BLACK,
                         Helpers.GREEN_BACKGROUND);
+        logger.info(String.format("Using IdChainSampler manager. Obtaining Ids using Query '%s'",
+                                    gremlin));
         try (ProgressBar progressBar = new ProgressBarBuilder()
                 .setTaskName("Obtaining Ids...")
                 .hideEta()
@@ -185,6 +187,8 @@ public class IdChainSampler implements  IdManagerQuery {
                                             totalCnt),
                             Helpers.BLACK,
                             Helpers.GREEN_BACKGROUND);
+            logger.info(String.format("IdChainSampler: Loaded %,d distinct Ids from Query.",
+                                        totalCnt));
         } catch (Exception e) {
             System.err.printf("ERROR: could not evaluate gremlin Id script \"%s\". Error: %s\n",
                     gremlin,
@@ -219,6 +223,12 @@ public class IdChainSampler implements  IdManagerQuery {
     public final int getStartingIdsCount() {
         return this.relationshipGraph.getTopLevelParentCount();
     }
+
+    /*
+     *   @return The number of relationships between ids
+     */
+    @Override
+    public int getNbrRelationships() { return this.relationshipGraph.getRelationshipCount(); }
 
     @Override
     public final boolean isEmpty() {

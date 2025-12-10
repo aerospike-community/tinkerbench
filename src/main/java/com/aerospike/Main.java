@@ -79,11 +79,13 @@ Using Id Manager '%s':
   Number of Distinct Nodes: %,d
                Start Nodes: %,d
             Required Depth: %,d
+             Relationships: %,d
             Possible Paths: %,d""",
                         args.idManager.getClass().getSimpleName(),
                         args.idManager.getIdCount(),
                         args.idManager.getStartingIdsCount(),
                         args.idManager.getDepth(),
+                        args.idManager.getNbrRelationships(),
                         args.idManager.getInitialDepth());
                    Helpers.Println(System.out,
                                     msg,
@@ -127,8 +129,12 @@ Using Id Manager '%s':
 
     public Integer call() throws Exception {
         if(ListPredefinedQueries()) {
-            return 0;
+            return 1;
         }
+        if(ListIdManagers()) {
+            return 1;
+        }
+
         validate();
 
         PrintArguments(false);
@@ -137,6 +143,8 @@ Using Id Manager '%s':
         logger.title(this);
 
         System.out.printf("Application PID: %s%n", Helpers.GetPid());
+
+        Helpers.checkJavaVersion(logger);
 
         if(logger.loggingEnabled()) {
             Helpers.Println(System.out,

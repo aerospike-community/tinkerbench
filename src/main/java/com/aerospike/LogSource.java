@@ -254,6 +254,17 @@ public final class LogSource {
         logger4j.info("==============> Starting <==============");
 
         StringBuilder argStr = new StringBuilder();
+
+        argStr.append('\n');
+        // Get the runtime version string (more build details)
+        final String runtimeVersion = System.getProperty("java.runtime.version");
+        final String specVersion = System.getProperty("java.specification.version");
+        final String javaversion = System.getProperty("java.version");
+
+        argStr.append("   Java Version: ").append(javaversion).append('\n');
+        argStr.append("Runtime Version: ").append(runtimeVersion).append('\n');
+        argStr.append("Specification Version: ").append(specVersion).append('\n');
+
         List<String> jvmArgs = Helpers.getJVMArgs();
 
         if(jvmArgs.isEmpty()) {

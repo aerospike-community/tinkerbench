@@ -57,6 +57,11 @@ public interface IdManager {
      *   @return The loaded/obtained depth of a tree structure. A value of -1 indicates no Ids loaded.
      */
     int getInitialDepth();
+
+    /*
+    *   @return The number of relationships between ids
+     */
+    int getNbrRelationships();
     /*
     *   Set's the requested depth of a tree, if it exists. Otherwise, this is ignored.
     *   This should be set by a query to the actual depth required by the query to improve Id manager's performance.
