@@ -4,6 +4,8 @@ import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSo
 
 public interface IdManager {
 
+    boolean enabled();
+
     /*
     *   Determines if Ids actually exists (loaded/obtained)
     *   @return True to indicated Ids are present

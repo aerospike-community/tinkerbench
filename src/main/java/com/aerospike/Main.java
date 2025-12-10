@@ -35,7 +35,9 @@ public class Main extends TinkerBenchArgs {
             if (mainInstance.abortRun.get())
                 return;
 
-            if(!args.appTestMode && !args.idManager.isInitialized()) {
+            if(!args.appTestMode
+                    && args.idManager.enabled()
+                    && !args.idManager.isInitialized()) {
                 final int sampleSIze = workloadRunner.getSampleSize() < 0
                                         ? args.idSampleSize
                                         : workloadRunner.getSampleSize();

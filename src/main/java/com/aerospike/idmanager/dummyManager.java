@@ -17,6 +17,9 @@ public class dummyManager implements IdManagerQuery {
     }
 
     @Override
+    public boolean enabled() { return false; }
+
+    @Override
     public void init(AGSGraphTraversal ags,
                      OpenTelemetry openTelemetry,
                      LogSource logger,

@@ -226,6 +226,7 @@ public final class OpenTelemetryExporter implements com.aerospike.OpenTelemetry 
     @Override
     public void setIdMgrGauge(final String mgrClass,
                                 final String[] labels,
+                                final String gremlinString,
                                 final int requestedCnt,
                                 final int actualCnt,
                                 final long runtimeMills) {
@@ -252,6 +253,10 @@ public final class OpenTelemetryExporter implements com.aerospike.OpenTelemetry 
                 AttributeKey.longKey("actual_cnt"), (long) actualCnt,
                 AttributeKey.longKey("runtimems"), runtimeMills
         ));
+
+        if(gremlinString != null && !gremlinString.isEmpty()) {
+            attributes.put("gremlinIdString", gremlinString);
+        }
 
         openTelemetryIdMgrGauge.set(System.currentTimeMillis(),
                                     attributes.build());

@@ -128,7 +128,7 @@ public abstract class TinkerBenchArgs implements Callable<Integer> {
 
     @Option(names = {"-id", "--IdManager"},
             converter = IdManagerConverter.class,
-            description = "The IdManager to use for the workload.%n\tTo obtain a list of Managers pass in 'list'.%nDefault is ${DEFAULT-VALUE}",
+            description = "The IdManager to use for the workload.%n\tTo obtain a list of Managers pass in 'list'.%n\tTo disable, pass in 'null' or 'disabled'.%nDefault is ${DEFAULT-VALUE}",
             defaultValue = "com.aerospike.idmanager.IdSampler")
     IdManager idManager;
 
@@ -394,8 +394,11 @@ public abstract class TinkerBenchArgs implements Callable<Integer> {
         @Override
         public IdManager convert(String value) throws IllegalArgumentException {
             try {
-                if(value == null)
+                if(value == null
+                        || value.equals("null")
+                        || value.equals("disabled")) {
                     return new dummyManager();
+                }
                 if(value.toLowerCase().equals("list")) {
                     return new dummyManager(true);
                 }

@@ -31,6 +31,9 @@ public class IdSampler implements IdManager {
     }
 
     @Override
+    public boolean enabled() { return !disabled; }
+
+    @Override
     public boolean CheckIdsExists(final LogSource logger) {
 
         if(disabled) {
@@ -172,6 +175,7 @@ public class IdSampler implements IdManager {
             if(openTelemetry != null) {
                 openTelemetry.setIdMgrGauge(this.getClass().getSimpleName(),
                                             labels,
+                                            null,
                                             sampleSize,
                                             sampledIds.size(),
                                             runningLatency);
@@ -323,6 +327,7 @@ public class IdSampler implements IdManager {
                 if (openTelemetry != null) {
                     openTelemetry.setIdMgrGauge("*",
                                                     labels,
+                                                    null,
                                                     sampleSize,
                                                     sampledIds.size(),
                                                     latency);
@@ -380,6 +385,7 @@ public class IdSampler implements IdManager {
         if(openTelemetry != null) {
             openTelemetry.setIdMgrGauge(file.getName(),
                                         labels,
+                                        null,
                                         sampleSize,
                                         sampledIds.size(),
                                         latency);

@@ -29,6 +29,9 @@ public class IdChainSampler implements IdManagerQuery {
         currentIds = new ArrayList<Object>();
     }
 
+    @Override
+    public boolean enabled() { return !disabled; }
+
     /**
      * Determines if Ids have been populated...
      * @param logger The logger source instance
@@ -132,6 +135,9 @@ public class IdChainSampler implements IdManagerQuery {
 
         logger.PrintDebug("IdChainSampler", "Getting GremlinLangScriptEngine Engine");
 
+        long start = 0;
+        long end;
+
         String gremlin = gremlinString.replace("'", "\"");
         final EvalQueryWorkloadProvider.Terminator gremlinStep
                 = EvalQueryWorkloadProvider.DetermineTerminator(gremlin);
@@ -159,6 +165,7 @@ public class IdChainSampler implements IdManagerQuery {
                 .build()) {
             progressBar.setExtraMessage("Querying DB...");
             progressBar.step();
+            start = System.currentTimeMillis();
             Object result = engine.eval(gremlin, bindings);
             progressBar.step();
             progressBar.setExtraMessage("Populating Id Manager...");
@@ -170,6 +177,7 @@ public class IdChainSampler implements IdManagerQuery {
                 throw new InvalidClassException(result.getClass().getName(),
                                                     "IdChainSampler Query returned an unexpected result. Must terminate with 'toSet' or 'toList'.");
             }
+            end = System.currentTimeMillis();
             this.relationshipGraph.syncStructuralTopLevelParentsToMarked();
             final int totalCnt = this.relationshipGraph.getTotal();
             if(this.getDepth() < 0) {
@@ -198,6 +206,16 @@ public class IdChainSampler implements IdManagerQuery {
                             e.getMessage()),
                     e);
             throw new RuntimeException(e);
+        }
+
+        final long runningLatency = end - start;
+        if(openTelemetry != null) {
+            openTelemetry.setIdMgrGauge(this.getClass().getSimpleName(),
+                                    null,
+                                    gremlin,
+                                    -1,
+                                    this.relationshipGraph.getTotal(),
+                                    runningLatency);
         }
     }
 
@@ -368,8 +386,9 @@ public class IdChainSampler implements IdManagerQuery {
             if (openTelemetry != null) {
                 openTelemetry.setIdMgrGauge("*",
                                             labels,
+                                            null,
                                             sampleSize,
-                                            this.relationshipGraph.getTotalDistinctChildCount(),
+                                            this.relationshipGraph.getTotal(),
                                             latency);
             }
             return latency;
@@ -453,8 +472,9 @@ public class IdChainSampler implements IdManagerQuery {
         if(openTelemetry != null) {
             openTelemetry.setIdMgrGauge(file.getName(),
                                         labels,
+                                        null,
                                         sampleSize,
-                                        this.relationshipGraph.getTotalDistinctChildCount(),
+                                        this.relationshipGraph.getTotal(),
                                         latency);
         }
 
