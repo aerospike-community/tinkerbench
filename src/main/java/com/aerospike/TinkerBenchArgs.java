@@ -680,14 +680,8 @@ public abstract class TinkerBenchArgs implements Callable<Integer> {
      */
     void PrintArguments(boolean onlyProvidedArgs) {
 
-        // Get the runtime version string (more build details)
-        final String runtimeVersion = System.getProperty("java.runtime.version");
-        final String specVersion = System.getProperty("java.specification.version");
-        final String version = System.getProperty("java.version");
-
-        System.out.println("   Java Version: " + version);
-        System.out.println("Runtime Version: " + runtimeVersion);
-        System.out.println("Specification Version: " + specVersion);
+        System.out.println("Java Runtime Version: "
+                            + System.getProperty("java.runtime.version"));
 
         final List<String> jvmArgs = Helpers.getJVMArgs();
 
