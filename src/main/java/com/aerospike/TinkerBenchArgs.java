@@ -1,5 +1,7 @@
 package com.aerospike;
 
+import com.aerospike.idmanager.IdChainSampler;
+import com.aerospike.idmanager.IdSampler;
 import com.aerospike.idmanager.dummyManager;
 import org.apache.commons.lang3.StringUtils;
 import org.javatuples.Pair;
@@ -541,7 +543,7 @@ public abstract class TinkerBenchArgs implements Callable<Integer> {
         }
 
         if(idManager != null && !(idManager instanceof dummyManager)) {
-            if(idManager instanceof  IdManagerQuery) {
+            if(idManager instanceof IdChainSampler) {
                 if (importIdsPath == null && (idGremlinQuery == null || idGremlinQuery.isEmpty())) {
                     throw new CommandLine.ParameterException(commandlineSpec.commandLine(),
                             String.format("This Id Manager (%s) requires either '--ImportIds' or '--IdGremlinQuery' arguments. Neither were provided.",
@@ -567,16 +569,17 @@ public abstract class TinkerBenchArgs implements Callable<Integer> {
 
                 if (labelsSample != null && labelsSample.length > 0) {
                     Helpers.Println(System.err,
-                                String.format("Warning: This Id Manager (%s) was provided with 'IdSampleLabel'. 'IdSampleLabel' will be ignored since this argument is not supported with this Id Manager.\n",
+                                String.format("Warning: This Id Manager (%s) was provided with 'IdSampleLabel'. 'IdSampleLabel' will be ignored since this argument is not supported with this Id Manager.",
                                                 idManager.getClass().getSimpleName()),
                                 Helpers.RED,
                                 Helpers.YELLOW_BACKGROUND);
                 }
             } else {
-                if (idGremlinQuery != null
+                if (idManager instanceof IdSampler
+                        && idGremlinQuery != null
                         && !idGremlinQuery.isEmpty()) {
                     Helpers.Println(System.err,
-                                    String.format("Warning: 'IdGremlinQuery' was provided but this Id Manager (%s) doesn't support queries. It will be ignored.\n",
+                                    String.format("Warning: 'IdGremlinQuery' was provided but this Id Manager (%s) doesn't support queries. It will be ignored.",
                                                 idManager.getClass().getSimpleName()),
                                     Helpers.RED,
                                     Helpers.YELLOW_BACKGROUND);

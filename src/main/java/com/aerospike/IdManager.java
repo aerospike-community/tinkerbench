@@ -94,4 +94,6 @@ public interface IdManager {
 
     void exportFile(final String filePath,
                     final LogSource logger);
+
+    void printStats(final LogSource logger);
 }

@@ -103,4 +103,7 @@ public class dummyManager implements IdManagerQuery {
     @Override
     public void exportFile(String filePath, LogSource logger) {
     }
+
+    @Override
+    public void printStats(final LogSource ignore) {}
 }

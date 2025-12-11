@@ -13,11 +13,13 @@ public class Main extends TinkerBenchArgs {
                                         IdManager idManager,
                                         Duration targetRunDuration,
                                         TinkerBenchArgs args,
-                                        boolean isWarmUp) {
+                                        boolean isWarmUp,
+                                        boolean ranWarmUp) {
 
         try (final WorkloadProvider workload = new WorkloadProviderScheduler(openTel,
                                                                             targetRunDuration,
                                                                             isWarmUp,
+                                                                            ranWarmUp,
                                                                             args)) {
             final boolean isQueryString = args.queryNameOrString
                                             .indexOf(".") > 0;
@@ -36,65 +38,52 @@ public class Main extends TinkerBenchArgs {
                 return;
 
             if(!args.appTestMode
-                    && args.idManager.enabled()
-                    && !args.idManager.isInitialized()) {
-                final int sampleSIze = workloadRunner.getSampleSize() < 0
-                                        ? args.idSampleSize
-                                        : workloadRunner.getSampleSize();
-                final String[] labels = workloadRunner.getSampleLabelId() == null
-                                        ? args.labelsSample
-                                        : (args.labelsSample == null
-                                            ?  workloadRunner.getSampleLabelId()
-                                            : args.labelsSample);
-                if(args.importIdsPath != null) {
-                    System.out.printf("Importing Ids from '%s'...%n",
-                                        args.importIdsPath);
-                    args.idManager.importFile(args.importIdsPath,
-                                                openTel,
-                                                logger,
-                                                sampleSIze,
-                                                labels);
-                } else {
-                    if(args.idManager instanceof IdManagerQuery idQuery) {
-                        idQuery.init(agsGraphTraversal,
-                                        openTel,
-                                        logger,
-                                        args.idGremlinQuery);
+                    && args.idManager.enabled()) {
+                if (!args.idManager.isInitialized()) {
+                    final int sampleSIze = workloadRunner.getSampleSize() < 0
+                            ? args.idSampleSize
+                            : workloadRunner.getSampleSize();
+                    final String[] labels = workloadRunner.getSampleLabelId() == null
+                            ? args.labelsSample
+                            : (args.labelsSample == null
+                            ? workloadRunner.getSampleLabelId()
+                            : args.labelsSample);
+                    if (args.importIdsPath != null) {
+                        System.out.printf("Importing Ids from '%s'...%n",
+                                args.importIdsPath);
+                        args.idManager.importFile(args.importIdsPath,
+                                openTel,
+                                logger,
+                                sampleSIze,
+                                labels);
                     } else {
-                        args.idManager.init(agsGraphTraversal.G(),
-                                            openTel,
-                                            logger,
-                                            sampleSIze,
-                                            labels);
+                        if (args.idManager instanceof IdManagerQuery idQuery) {
+                            idQuery.init(agsGraphTraversal,
+                                    openTel,
+                                    logger,
+                                    args.idGremlinQuery);
+                        } else {
+                            args.idManager.init(agsGraphTraversal.G(),
+                                    openTel,
+                                    logger,
+                                    sampleSIze,
+                                    labels);
+                        }
+                    }
+                    args.idManager.CheckIdsExists(logger);
+
+                    if (args.exportIdsPath != null) {
+                        args.idManager.exportFile(args.exportIdsPath,
+                                logger);
+                    }
+
+                    if (!args.idManager.isEmpty()) {
+                        args.idManager.printStats(logger);
                     }
                 }
-                args.idManager.CheckIdsExists(logger);
-
-                if(args.exportIdsPath != null) {
-                    args.idManager.exportFile(args.exportIdsPath,
-                                               logger);
-                }
-
-                if(!args.idManager.isEmpty()) {
-                   final String msg = String.format("""
-Using Id Manager '%s':
-  Number of Distinct Nodes: %,d
-               Start Nodes: %,d
-            Required Depth: %,d
-             Relationships: %,d
-            Possible Paths: %,d""",
-                        args.idManager.getClass().getSimpleName(),
-                        args.idManager.getIdCount(),
-                        args.idManager.getStartingIdsCount(),
-                        args.idManager.getDepth(),
-                        args.idManager.getNbrRelationships(),
-                        args.idManager.getInitialDepth());
-                   Helpers.Println(System.out,
-                                    msg,
-                                    Helpers.BLACK,
-                                    Helpers.GREEN_BACKGROUND);
-                   logger.info(msg);
-                }
+            } else {
+                logger.PrintDebug("Id Manager", "Id Manager disabled");
+                openTel.setIdMgrGauge(null, null, null, -1, 0, 0);
             }
 
             workloadRunner.PrepareCompile();
@@ -161,6 +150,7 @@ Using Id Manager '%s':
             final AGSGraphTraversalSource agsGraphTraversalSource
                             = new AGSGraphTraversalSource(this, openTel)) {
 
+            boolean ranWarmup = false;
             if (!warmupDuration.isZero()) {
                 ExecuteWorkload(openTel,
                                     logger,
@@ -168,7 +158,9 @@ Using Id Manager '%s':
                                     this.idManager,
                                     warmupDuration,
                                 this,
-                            true);
+                            true,
+                        false);
+                ranWarmup = true;
             }
 
             if (!mainInstance.abortRun.get()) {
@@ -178,7 +170,8 @@ Using Id Manager '%s':
                                 this.idManager,
                                 duration,
                                 this,
-                                false);
+                                false,
+                                ranWarmup);
                 mainInstance.terminateRun.set(true);
             }
         } finally {

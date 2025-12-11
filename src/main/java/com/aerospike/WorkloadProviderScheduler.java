@@ -42,6 +42,7 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
     private final AtomicBoolean summaryPrinted = new AtomicBoolean();
     private final int errorThreshold;
     private final Boolean warmup;
+    private final Boolean ranwarmup;
     private final Histogram histogram;
     //The number Of Significant Digits used to report latency
     private static final int numberOfSignificantValueDigits = 3;
@@ -71,7 +72,8 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
 
     public WorkloadProviderScheduler(OpenTelemetry openTelemetry,
                                      Duration targetRunDuration,
-                                     boolean warmup,
+                                     boolean isWarmup,
+                                     boolean ranWarmUp,
                                      TinkerBenchArgs cliArgs) {
 
         this.hdrHistFmt = cliArgs.hdrHistFmt;
@@ -87,7 +89,9 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
         this.workers = cliArgs.workers;
         this.openTelemetry = openTelemetry == null ? new OpenTelemetryDummy() : openTelemetry;
         this.cliArgs = cliArgs;
-        this.warmup = warmup;
+        this.warmup = isWarmup;
+        this.ranwarmup = ranWarmUp;
+
         {
             // A Histogram covering the range from 1 nano to Trackable duration (max latency per query) with 3 digits resolution:
             // All latency reported must be in ns resolution
@@ -131,7 +135,7 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
                                 null,
                                 targetRunDuration,
                                 0,
-                                warmup,
+                                isWarmup,
                                 null);
         setStatus(WorkloadStatus.Initialized);
 
@@ -142,11 +146,13 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
     public WorkloadProviderScheduler(OpenTelemetry openTelemetry,
                                      Duration targetRunDuration,
                                      boolean warmup,
+                                     boolean ranWarmUp,
                                      TinkerBenchArgs cliArgs,
                                      QueryRunnable query) {
         this(openTelemetry,
                 targetRunDuration,
                 warmup,
+                ranWarmUp,
                 cliArgs);
         this.setQuery(query);
     }

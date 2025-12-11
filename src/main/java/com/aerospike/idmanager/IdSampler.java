@@ -119,6 +119,7 @@ public class IdSampler implements IdManager {
             sampledIds = null;
             disabled = true;
             logger.PrintDebug("IdSampler", "IdSampler disabled");
+            openTelemetry.setIdMgrGauge(null, null, null, -1, 0, 0);
         } else {
             try {
                 if(labels == null || labels.length == 0) {
@@ -294,6 +295,7 @@ public class IdSampler implements IdManager {
             disabled = true;
             System.out.println("IdSampler is disabled but an import file was supplied. Ignoring importing of file...");
             logger.PrintDebug("IdSampler.importFile", "IdSampler disabled");
+            openTelemetry.setIdMgrGauge(null, null, null, -1, 0, 0);
             return 0;
         }
 
@@ -451,6 +453,28 @@ public class IdSampler implements IdManager {
         } else {
             logger.Print("IdSampler.exportFile", true, "Cannot export Vertex Ids because there are no Ids!");
         }
+    }
+
+    @Override
+    public void printStats(final LogSource logger) {
+        final String msg = String.format("""
+                                        Using Id Manager '%s':
+                                          Number of Distinct Nodes: %,d
+                                                       Start Nodes: %,d
+                                                    Required Depth: %,d
+                                                     Relationships: %,d
+                                                    Possible Paths: %,d""",
+                                this.getClass().getSimpleName(),
+                                this.getIdCount(),
+                                this.getStartingIdsCount(),
+                                this.getDepth(),
+                                this.getNbrRelationships(),
+                                this.getInitialDepth());
+        Helpers.Println(System.out,
+                        msg,
+                        Helpers.BLACK,
+                        Helpers.GREEN_BACKGROUND);
+        logger.info(msg);
     }
 
     @Override
