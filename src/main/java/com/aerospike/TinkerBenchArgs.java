@@ -396,12 +396,16 @@ public abstract class TinkerBenchArgs implements Callable<Integer> {
         @Override
         public IdManager convert(String value) throws IllegalArgumentException {
             try {
-                if(value == null
-                        || value.equals("null")
-                        || value.equals("disabled")) {
+                if(value == null || value.isEmpty()) {
                     return new dummyManager();
                 }
-                if(value.toLowerCase().equals("list")) {
+                String className = value.toLowerCase();
+                if(className.equals("null")
+                        || className.equals("none")
+                        || className.equals("disable")) {
+                    return new dummyManager();
+                }
+                if(className.equals("list")) {
                     return new dummyManager(true);
                 }
                 Class<?> idManagerClass = Helpers.getClass(value);
