@@ -352,7 +352,10 @@ public class IdSampler implements IdManager {
         if(!file.exists()) {
             final FileNotFoundException fnfe = new FileNotFoundException(filePath);
             logger.error("IdChainSampler.importFile File does not exist: " + filePath, fnfe);
-            System.err.println("Id File does not exist: " + filePath);
+            Helpers.Println(System.err,
+                        "Id File does not exist: " + filePath,
+                            Helpers.BLACK,
+                            Helpers.RED_BACKGROUND);
             throw new RuntimeException(fnfe);
         }
 
