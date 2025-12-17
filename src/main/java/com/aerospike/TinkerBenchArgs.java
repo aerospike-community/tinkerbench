@@ -1,5 +1,8 @@
 package com.aerospike;
 
+import com.aerospike.idmanager.IdChainSampler;
+import com.aerospike.idmanager.IdSampler;
+import com.aerospike.idmanager.dummyManager;
 import org.apache.commons.lang3.StringUtils;
 import org.javatuples.Pair;
 import picocli.CommandLine;
@@ -127,14 +130,18 @@ public abstract class TinkerBenchArgs implements Callable<Integer> {
 
     @Option(names = {"-id", "--IdManager"},
             converter = IdManagerConverter.class,
-            description = "The IdManager to use for the workload. Default is ${DEFAULT-VALUE}",
-            defaultValue = "com.aerospike.IdSampler")
+            description = "The IdManager to use for the workload.%n\tTo obtain a list of Managers pass in 'list'.%n\tTo disable, pass in 'null' or 'disabled'.%nDefault is ${DEFAULT-VALUE}",
+            defaultValue = "com.aerospike.idmanager.IdSampler")
     IdManager idManager;
 
     @Option(names = {"-sample", "--IdSampleSize" },
-            description = "The Id sample size of vertices used by the IdManager. Zero to disable. Default is ${DEFAULT-VALUE}",
+            description = "The Id sample size of vertices used by the IdManager.%n\tOnly valid for the IdSampler manager.%nZero to disable.%nDefault is ${DEFAULT-VALUE}",
             defaultValue = "500000")
     int idSampleSize;
+
+    @Option(names = {"-IdQry", "--IdGremlinQuery" },
+            description = "The Gremlin Query used to obtain the Ids used by the IdChainSampler Id Manger.")
+    String idGremlinQuery;
 
     @Option(names = {"-import", "--ImportIds" },
             description = "Import Vertices Ids from a CSV File(s). Default is ${DEFAULT-VALUE}")
@@ -146,7 +153,7 @@ public abstract class TinkerBenchArgs implements Callable<Integer> {
 
     @Option(names = {"-label", "--IdSampleLabel"},
             split = ",",
-            description = "The Labels used to obtain Id samples used by the IdManager. Null to obtain the vertices based on the Id sample size.%nMultiple Label arguments can be given by providing this option multiple times.%nExample:%n\t-label myLabel1 -label myLabel2, etc.%n\t-label myLabel1,myLabel2")
+            description = "The Labels used to obtain Id samples used by the IdSampler Manager. Null to obtain the vertices based on the Id sample size.%nMultiple Label arguments can be given by providing this option multiple times.%nExample:%n\t-label myLabel1 -label myLabel2, etc.%n\t-label myLabel1,myLabel2")
     String[] labelsSample;
 
     @Option(names = {"-e","--Errors"},
@@ -389,6 +396,18 @@ public abstract class TinkerBenchArgs implements Callable<Integer> {
         @Override
         public IdManager convert(String value) throws IllegalArgumentException {
             try {
+                if(value == null || value.isEmpty()) {
+                    return new dummyManager();
+                }
+                String className = value.toLowerCase();
+                if(className.equals("null")
+                        || className.equals("none")
+                        || className.equals("disable")) {
+                    return new dummyManager();
+                }
+                if(className.equals("list")) {
+                    return new dummyManager(true);
+                }
                 Class<?> idManagerClass = Helpers.getClass(value);
                 if (IdManager.class.isAssignableFrom(idManagerClass)) {
                     return (IdManager) idManagerClass.getDeclaredConstructor().newInstance();
@@ -507,15 +526,6 @@ public abstract class TinkerBenchArgs implements Callable<Integer> {
                     "Argument number of Errors to Abort cannot be zero or negative.");
         }
 
-        if (labelsSample != null) {
-            if (labelsSample.length == 0
-                || (labelsSample.length == 1
-                        && (labelsSample[0].isEmpty()
-                            || labelsSample[0].equalsIgnoreCase("null")))) {
-                labelsSample = null;
-            }
-        }
-
         if(!missing(clusterConfigurationFile) && !clusterConfigurationFile.exists()) {
             throw new CommandLine.ParameterException(commandlineSpec.commandLine(),
                     "File " + clusterConfigurationFile + " doesn't exist for option 'clusterBuildConfigFile'");
@@ -527,8 +537,62 @@ public abstract class TinkerBenchArgs implements Callable<Integer> {
                                     .stream()
                                     .collect(Collectors.toMap(OptionSpec::longestName, o -> o));
 
+        if (labelsSample != null) {
+            if (labelsSample.length == 0
+                    || (labelsSample.length == 1
+                    && (labelsSample[0].isEmpty()
+                    || labelsSample[0].equalsIgnoreCase("null")))) {
+                labelsSample = null;
+            }
+        }
+
+        if(idManager != null && !(idManager instanceof dummyManager)) {
+            if(idManager instanceof IdChainSampler) {
+                if (importIdsPath == null && (idGremlinQuery == null || idGremlinQuery.isEmpty())) {
+                    throw new CommandLine.ParameterException(commandlineSpec.commandLine(),
+                            String.format("This Id Manager (%s) requires either '--ImportIds' or '--IdGremlinQuery' arguments. Neither were provided.",
+                                    idManager.getClass().getSimpleName()));
+                }
+                if (importIdsPath != null && idGremlinQuery != null && !idGremlinQuery.isEmpty()) {
+                    throw new CommandLine.ParameterException(commandlineSpec.commandLine(),
+                            String.format("This Id Manager (%s) requires either '--ImportIds' or '--IdGremlinQuery' arguments. Both were provided.",
+                                    idManager.getClass().getSimpleName()));
+                }
+                if (idGremlinQuery != null
+                        && !idGremlinQuery.isEmpty()) {
+                    OptionSpec item = opts.get("IdSampleSize");
+                    boolean usesDefaultValue= !pr.hasMatchedOption(item);
+
+                    if(!usesDefaultValue) {
+                        Helpers.Println(System.err,
+                                "Warning: 'IdGremlinQuery' was provided with 'IdSampleSize'. 'IdSampleSize' will be ignored.",
+                                Helpers.RED,
+                                Helpers.YELLOW_BACKGROUND);
+                    }
+                }
+
+                if (labelsSample != null && labelsSample.length > 0) {
+                    Helpers.Println(System.err,
+                                String.format("Warning: This Id Manager (%s) was provided with 'IdSampleLabel'. 'IdSampleLabel' will be ignored since this argument is not supported with this Id Manager.",
+                                                idManager.getClass().getSimpleName()),
+                                Helpers.RED,
+                                Helpers.YELLOW_BACKGROUND);
+                }
+            } else {
+                if (idManager instanceof IdSampler
+                        && idGremlinQuery != null
+                        && !idGremlinQuery.isEmpty()) {
+                    Helpers.Println(System.err,
+                                    String.format("Warning: 'IdGremlinQuery' was provided but this Id Manager (%s) doesn't support queries. It will be ignored.",
+                                                idManager.getClass().getSimpleName()),
+                                    Helpers.RED,
+                                    Helpers.YELLOW_BACKGROUND);
+                }
+            }
+        }
+
         if(!missing(clusterConfigurationFile)) {
-            OptionSpec item = opts.get("ags");
+            OptionSpec item = opts.get("host");
             boolean usesDefaultValue= !pr.hasMatchedOption(item);
 
             if(!usesDefaultValue) {
@@ -587,6 +651,32 @@ public abstract class TinkerBenchArgs implements Callable<Integer> {
         return false;
     }
 
+    public boolean ListIdManagers() {
+        if(idManager instanceof dummyManager mgr && mgr.listManagers) {
+            List<Class<?>> managers = Helpers.findAllIdManagers();
+            managers.removeIf(class1 -> class1 == dummyManager.class);
+            if(managers.isEmpty()) {
+                System.err.println("There were no pId Managers found.");
+            } else {
+                Helpers.Println(System.out,
+                                "Following is a list of Id Managers:",
+                                Helpers.BLACK,
+                                Helpers.YELLOW_BACKGROUND);
+
+                for(Class<?> mgrClass : managers) {
+                    String mgrName = mgrClass.getName();
+
+                    Helpers.Print(System.out,
+                            String.format("\t%s%n", mgrName),
+                            Helpers.BLACK,
+                            Helpers.GREEN_BACKGROUND);
+                }
+            }
+            return true;
+        }
+        return false;
+    }
+
     /*
     Prints to System out the arguments provided or default values based on {@code onlyProvidedArgs}.
     @param onlyProvidedArgs -- If true, the arguments given in the command line are printed.
@@ -594,7 +684,10 @@ public abstract class TinkerBenchArgs implements Callable<Integer> {
      */
     void PrintArguments(boolean onlyProvidedArgs) {
 
-        List<String> jvmArgs = Helpers.getJVMArgs();
+        System.out.println("Java Runtime Version: "
+                            + System.getProperty("java.runtime.version"));
+
+        final List<String> jvmArgs = Helpers.getJVMArgs();
 
         if(!jvmArgs.isEmpty()) {
             System.out.println("JVM Arguments:");
@@ -657,6 +750,9 @@ public abstract class TinkerBenchArgs implements Callable<Integer> {
             Object value = opt.getValue();
             if(value != null && value.getClass().isArray())
                 value = Arrays.toString((Object[]) value);
+            else if(value instanceof IdManager) {
+                value = value.getClass().getName();
+            }
             args.add(String.format("%s: %s%s",
                         argKeyword,
                         value,

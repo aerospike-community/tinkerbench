@@ -30,7 +30,17 @@
       "fieldConfig": {
         "defaults": {
           "color": {
-            "mode": "thresholds"
+            "fixedColor": "green",
+            "mode": "fixed"
+          },
+          "custom": {
+            "align": "center",
+            "cellOptions": {
+              "type": "color-text",
+              "wrapText": true
+            },
+            "filterable": false,
+            "inspect": true
           },
           "decimals": 0,
           "mappings": [],
@@ -56,21 +66,16 @@
       },
       "id": 1,
       "options": {
-        "colorMode": "value",
-        "graphMode": "area",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "percentChangeColorMode": "standard",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
+        "cellHeight": "lg",
+        "footer": {
+          "countRows": false,
+          "fields": "",
+          "reducer": [
+            "sum"
           ],
-          "fields": "/^workload$/",
-          "values": false
+          "show": false
         },
-        "showPercentChange": false,
-        "textMode": "auto",
-        "wideLayout": true
+        "showHeader": false
       },
       "pluginVersion": "12.1.0",
       "targets": [
@@ -94,18 +99,30 @@
       "title": "Workload",
       "transformations": [
         {
-          "id": "sortBy",
+          "id": "reduce",
           "options": {
-            "fields": {},
-            "sort": [
-              {
-                "field": "Value"
-              }
+            "includeTimeField": false,
+            "labelsToFields": true,
+            "mode": "reduceFields",
+            "reducers": [
+              "lastNotNull"
             ]
+          }
+        },
+        {
+          "id": "filterFieldsByName",
+          "options": {
+            "byVariable": false,
+            "include": {
+              "names": [
+                "Time",
+                "workload"
+              ]
+            }
           }
         }
       ],
-      "type": "stat"
+      "type": "table"
     },
     {
       "datasource": {
@@ -448,7 +465,16 @@
       "fieldConfig": {
         "defaults": {
           "color": {
-            "mode": "thresholds"
+            "fixedColor": "green",
+            "mode": "fixed"
+          },
+          "custom": {
+            "align": "center",
+            "cellOptions": {
+              "type": "color-text",
+              "wrapText": true
+            },
+            "inspect": true
           },
           "mappings": [],
           "noValue": "Nothing Running",
@@ -458,13 +484,10 @@
               {
                 "color": "green",
                 "value": 0
-              },
-              {
-                "color": "red",
-                "value": 80
               }
             ]
-          }
+          },
+          "unit": "string"
         },
         "overrides": []
       },
@@ -476,21 +499,17 @@
       },
       "id": 7,
       "options": {
-        "colorMode": "value",
-        "graphMode": "area",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "percentChangeColorMode": "standard",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
+        "cellHeight": "lg",
+        "footer": {
+          "countRows": false,
+          "enablePagination": false,
+          "fields": "",
+          "reducer": [
+            "sum"
           ],
-          "fields": "/^commandlineargs$/",
-          "values": false
+          "show": false
         },
-        "showPercentChange": false,
-        "textMode": "auto",
-        "wideLayout": true
+        "showHeader": false
       },
       "pluginVersion": "12.1.0",
       "targets": [
@@ -510,19 +529,27 @@
       "title": "CLI Arguments",
       "transformations": [
         {
-          "id": "sortBy",
+          "id": "reduce",
           "options": {
-            "fields": {},
-            "sort": [
-              {
-                "desc": true,
-                "field": "Time"
-              }
+            "includeTimeField": false,
+            "mode": "reduceFields",
+            "reducers": [
+              "lastNotNull"
             ]
+          }
+        },
+        {
+          "id": "filterFieldsByName",
+          "options": {
+            "include": {
+              "names": [
+                "commandlineargs"
+              ]
+            }
           }
         }
       ],
-      "type": "stat"
+      "type": "table"
     },
     {
       "datasource": {
@@ -1211,6 +1238,125 @@
         "type": "prometheus",
         "uid": "${DATASOURCE}"
       },
+      "description": "Used this query to obtain Ids",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "fixedColor": "green",
+            "mode": "fixed"
+          },
+          "custom": {
+            "align": "center",
+            "cellOptions": {
+              "type": "color-text",
+              "wrapText": true
+            },
+            "filterable": false,
+            "inspect": true
+          },
+          "fieldMinMax": false,
+          "mappings": [],
+          "noValue": "--",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              }
+            ]
+          },
+          "unit": "string"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "gremlinIdString"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 856
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 8,
+        "x": 6,
+        "y": 14
+      },
+      "id": 41,
+      "options": {
+        "cellHeight": "lg",
+        "footer": {
+          "countRows": false,
+          "enablePagination": false,
+          "fields": "",
+          "reducer": [
+            "sum"
+          ],
+          "show": false
+        },
+        "showHeader": false,
+        "sortBy": []
+      },
+      "pluginVersion": "12.1.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DATASOURCE}"
+          },
+          "disableTextWrap": false,
+          "editorMode": "builder",
+          "exemplar": false,
+          "expr": "aerospike_workload_ags_idmgrinfo{instance=~\"$client\"}",
+          "format": "table",
+          "fullMetaSearch": false,
+          "includeNullMetadata": true,
+          "instant": false,
+          "legendFormat": "__auto",
+          "range": true,
+          "refId": "A",
+          "useBackend": false
+        }
+      ],
+      "title": "Gremlin Id Query",
+      "transformations": [
+        {
+          "id": "reduce",
+          "options": {
+            "includeTimeField": false,
+            "labelsToFields": false,
+            "mode": "reduceFields",
+            "reducers": [
+              "lastNotNull"
+            ]
+          }
+        },
+        {
+          "id": "filterFieldsByName",
+          "options": {
+            "include": {
+              "names": [
+                "gremlinIdString",
+                "Time"
+              ]
+            }
+          }
+        }
+      ],
+      "type": "table"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DATASOURCE}"
+      },
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -1222,8 +1368,13 @@
               "options": {
                 "0": {
                   "color": "yellow",
-                  "index": 0,
+                  "index": 1,
                   "text": "Disabled"
+                },
+                "-1": {
+                  "color": "blue",
+                  "index": 0,
+                  "text": "NA"
                 }
               },
               "type": "value"
@@ -1246,7 +1397,7 @@
       "gridPos": {
         "h": 5,
         "w": 3,
-        "x": 6,
+        "x": 14,
         "y": 14
       },
       "id": 37,
@@ -1360,7 +1511,7 @@
       "gridPos": {
         "h": 5,
         "w": 4,
-        "x": 9,
+        "x": 17,
         "y": 14
       },
       "id": 38,
@@ -1476,7 +1627,7 @@
       "gridPos": {
         "h": 5,
         "w": 3,
-        "x": 13,
+        "x": 21,
         "y": 14
       },
       "id": 40,
@@ -3363,7 +3514,7 @@
       "type": "timeseries"
     },
     {
-      "collapsed": true,
+      "collapsed": false,
       "gridPos": {
         "h": 1,
         "w": 24,
@@ -3371,271 +3522,274 @@
         "y": 46
       },
       "id": 23,
-      "panels": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${DATASOURCE}"
-          },
-          "description": "All Errors",
-          "fieldConfig": {
-            "defaults": {
-              "color": {
-                "mode": "thresholds"
-              },
-              "custom": {
-                "align": "auto",
-                "cellOptions": {
-                  "type": "auto"
-                },
-                "inspect": false
-              },
-              "decimals": 0,
-              "fieldMinMax": false,
-              "mappings": [],
-              "noValue": "No Errors Detected",
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "color": "green",
-                    "value": 0
-                  }
-                ]
-              },
-              "unit": "locale"
-            },
-            "overrides": []
-          },
-          "gridPos": {
-            "h": 11,
-            "w": 24,
-            "x": 0,
-            "y": 52
-          },
-          "id": 16,
-          "options": {
-            "cellHeight": "sm",
-            "footer": {
-              "countRows": false,
-              "fields": "",
-              "reducer": [
-                "sum"
-              ],
-              "show": false
-            },
-            "showHeader": true
-          },
-          "pluginVersion": "12.1.0",
-          "targets": [
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "${DATASOURCE}"
-              },
-              "disableTextWrap": false,
-              "editorMode": "builder",
-              "exemplar": false,
-              "expr": "aerospike_workload_ags_exception_total{instance=~\"$client\", workload=~\"$workload\", wltype=~\"$workloadtype\", wlstage=~\"$workloadstage\"}",
-              "format": "time_series",
-              "fullMetaSearch": false,
-              "includeNullMetadata": true,
-              "instant": false,
-              "legendFormat": "__auto",
-              "range": true,
-              "refId": "A",
-              "useBackend": false
-            }
-          ],
-          "title": "All Error",
-          "transformations": [
-            {
-              "id": "reduce",
-              "options": {
-                "includeTimeField": false,
-                "labelsToFields": true,
-                "mode": "seriesToRows",
-                "reducers": [
-                  "max"
-                ]
-              }
-            },
-            {
-              "id": "organize",
-              "options": {
-                "excludeByName": {
-                  "Field": true,
-                  "__name__": true,
-                  "instance": true,
-                  "job": true,
-                  "otel_scope_name": true,
-                  "pid": true,
-                  "startTimeMillis": true,
-                  "startTimeSecs": true,
-                  "wlstage": true
-                },
-                "includeByName": {},
-                "indexByName": {
-                  "Field": 5,
-                  "Max": 4,
-                  "__name__": 6,
-                  "exception": 3,
-                  "exception_type": 2,
-                  "instance": 7,
-                  "job": 8,
-                  "otel_scope_name": 9,
-                  "pid": 10,
-                  "startTimeMillis": 11,
-                  "wltype": 0,
-                  "workload": 1
-                },
-                "renameByName": {
-                  "Max": "Errors",
-                  "exception": "Caused",
-                  "exception_type": "Exception",
-                  "wltype": "Type",
-                  "workload": "Name"
-                }
-              }
-            },
-            {
-              "id": "groupToNestedTable",
-              "options": {
-                "fields": {
-                  "Errors": {
-                    "aggregations": []
-                  },
-                  "Exception": {
-                    "aggregations": [],
-                    "operation": "groupby"
-                  },
-                  "Name": {
-                    "aggregations": [],
-                    "operation": "groupby"
-                  },
-                  "Type": {
-                    "aggregations": [],
-                    "operation": "groupby"
-                  }
-                },
-                "showSubframeHeaders": true
-              }
-            }
-          ],
-          "type": "table"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${DATASOURCE}"
-          },
-          "description": "All Errors",
-          "fieldConfig": {
-            "defaults": {
-              "color": {
-                "mode": "palette-classic"
-              },
-              "custom": {
-                "axisBorderShow": false,
-                "axisCenteredZero": false,
-                "axisColorMode": "text",
-                "axisLabel": "",
-                "axisPlacement": "auto",
-                "barAlignment": 0,
-                "barWidthFactor": 0.6,
-                "drawStyle": "line",
-                "fillOpacity": 0,
-                "gradientMode": "none",
-                "hideFrom": {
-                  "legend": false,
-                  "tooltip": false,
-                  "viz": false
-                },
-                "insertNulls": false,
-                "lineInterpolation": "linear",
-                "lineWidth": 1,
-                "pointSize": 5,
-                "scaleDistribution": {
-                  "type": "linear"
-                },
-                "showPoints": "auto",
-                "spanNulls": false,
-                "stacking": {
-                  "group": "A",
-                  "mode": "none"
-                },
-                "thresholdsStyle": {
-                  "mode": "off"
-                }
-              },
-              "decimals": 0,
-              "fieldMinMax": false,
-              "mappings": [],
-              "noValue": "No Errors Detected",
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "color": "green",
-                    "value": 0
-                  }
-                ]
-              },
-              "unit": "locale"
-            },
-            "overrides": []
-          },
-          "gridPos": {
-            "h": 11,
-            "w": 24,
-            "x": 0,
-            "y": 63
-          },
-          "id": 18,
-          "options": {
-            "legend": {
-              "calcs": [],
-              "displayMode": "list",
-              "placement": "bottom",
-              "showLegend": true
-            },
-            "tooltip": {
-              "hideZeros": false,
-              "mode": "single",
-              "sort": "none"
-            }
-          },
-          "pluginVersion": "12.1.0",
-          "targets": [
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "${DATASOURCE}"
-              },
-              "disableTextWrap": false,
-              "editorMode": "builder",
-              "exemplar": false,
-              "expr": "aerospike_workload_ags_exception_total{instance=~\"$client\", workload=~\"$workload\", wltype=~\"$workloadtype\", wlstage=~\"$workloadstage\"}",
-              "format": "time_series",
-              "fullMetaSearch": false,
-              "includeNullMetadata": true,
-              "instant": false,
-              "legendFormat": "{{wlstage}}-{{wltype}} - {{exception_type}}: {{exception}}",
-              "range": true,
-              "refId": "A",
-              "useBackend": false
-            }
-          ],
-          "title": "All Error",
-          "type": "timeseries"
-        }
-      ],
+      "panels": [],
       "title": "Error Information",
       "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DATASOURCE}"
+      },
+      "description": "All Errors",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "fixedColor": "light-red",
+            "mode": "fixed"
+          },
+          "custom": {
+            "align": "center",
+            "cellOptions": {
+              "type": "color-text",
+              "wrapText": true
+            },
+            "filterable": true,
+            "inspect": true
+          },
+          "decimals": 0,
+          "fieldMinMax": false,
+          "mappings": [],
+          "noValue": "No Errors Detected",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              }
+            ]
+          },
+          "unit": "locale"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 11,
+        "w": 24,
+        "x": 0,
+        "y": 47
+      },
+      "id": 16,
+      "options": {
+        "cellHeight": "lg",
+        "footer": {
+          "countRows": false,
+          "enablePagination": true,
+          "fields": "",
+          "reducer": [
+            "sum"
+          ],
+          "show": false
+        },
+        "showHeader": true
+      },
+      "pluginVersion": "12.1.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DATASOURCE}"
+          },
+          "disableTextWrap": false,
+          "editorMode": "builder",
+          "exemplar": false,
+          "expr": "aerospike_workload_ags_exception_total{instance=~\"$client\", workload=~\"$workload\", wltype=~\"$workloadtype\", wlstage=~\"$workloadstage\"}",
+          "format": "time_series",
+          "fullMetaSearch": false,
+          "includeNullMetadata": true,
+          "instant": false,
+          "legendFormat": "__auto",
+          "range": true,
+          "refId": "A",
+          "useBackend": false
+        }
+      ],
+      "title": "All Error",
+      "transformations": [
+        {
+          "id": "reduce",
+          "options": {
+            "includeTimeField": false,
+            "labelsToFields": true,
+            "mode": "seriesToRows",
+            "reducers": [
+              "lastNotNull"
+            ]
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Field": true,
+              "__name__": true,
+              "instance": true,
+              "job": true,
+              "otel_scope_name": true,
+              "pid": true,
+              "startTimeMillis": true,
+              "startTimeSecs": true,
+              "wlstage": true
+            },
+            "includeByName": {},
+            "indexByName": {
+              "Field": 5,
+              "Max": 4,
+              "__name__": 6,
+              "exception": 3,
+              "exception_type": 2,
+              "instance": 7,
+              "job": 8,
+              "otel_scope_name": 9,
+              "pid": 10,
+              "startTimeMillis": 11,
+              "wltype": 0,
+              "workload": 1
+            },
+            "renameByName": {
+              "Max": "Errors",
+              "exception": "Caused",
+              "exception_type": "Exception",
+              "wltype": "Type",
+              "workload": "Name"
+            }
+          }
+        },
+        {
+          "id": "groupToNestedTable",
+          "options": {
+            "fields": {
+              "Errors": {
+                "aggregations": []
+              },
+              "Exception": {
+                "aggregations": [],
+                "operation": "groupby"
+              },
+              "Name": {
+                "aggregations": [],
+                "operation": "groupby"
+              },
+              "Type": {
+                "aggregations": [],
+                "operation": "groupby"
+              }
+            },
+            "showSubframeHeaders": true
+          }
+        }
+      ],
+      "type": "table"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DATASOURCE}"
+      },
+      "description": "All Errors",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "decimals": 0,
+          "fieldMinMax": false,
+          "mappings": [],
+          "noValue": "No Errors Detected",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              }
+            ]
+          },
+          "unit": "locale"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 11,
+        "w": 24,
+        "x": 0,
+        "y": 58
+      },
+      "id": 18,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "12.1.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DATASOURCE}"
+          },
+          "disableTextWrap": false,
+          "editorMode": "builder",
+          "exemplar": false,
+          "expr": "aerospike_workload_ags_exception_total{instance=~\"$client\", workload=~\"$workload\", wltype=~\"$workloadtype\", wlstage=~\"$workloadstage\"}",
+          "format": "time_series",
+          "fullMetaSearch": false,
+          "includeNullMetadata": true,
+          "instant": false,
+          "legendFormat": "{{wlstage}}-{{wltype}} - {{exception_type}}: {{exception}}",
+          "range": true,
+          "refId": "A",
+          "useBackend": false
+        }
+      ],
+      "title": "All Error",
+      "type": "timeseries"
     }
   ],
   "preload": false,
-  "refresh": "auto",
+  "refresh": "5s",
   "schemaVersion": 41,
   "tags": [
     "TinkerBench",
@@ -3763,6 +3917,16 @@
         "refresh": 2,
         "regex": "",
         "type": "query"
+      },
+      {
+        "baseFilters": [],
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${DATASOURCE}"
+        },
+        "filters": [],
+        "name": "Filters",
+        "type": "adhoc"
       }
     ]
   },
@@ -3774,5 +3938,5 @@
   "timezone": "browser",
   "title": "Aerospike Tinker Bench",
   "uid": "besk2xu6dpp1ca",
-  "version": 55
+  "version": 62
 }

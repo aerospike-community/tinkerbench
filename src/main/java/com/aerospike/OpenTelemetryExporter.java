@@ -134,6 +134,85 @@ public final class OpenTelemetryExporter implements com.aerospike.OpenTelemetry 
         } catch (InterruptedException ignored) {}
     }
 
+    /*
+    private void Initialize(String wlStage,
+                                long currentTimeMS) {
+
+        this.printDebug(String.format("Initialize '%s' at %d",
+                                        wlStage, currentTimeMS));
+
+        AttributesBuilder attrBuilder = Attributes.builder();
+
+        attrBuilder.putAll( Attributes.of(
+                                AttributeKey.stringKey("workload"), "NA",
+                                AttributeKey.stringKey("wlstage"), wlStage,
+                                AttributeKey.stringKey("wltype"), "NA",
+                                AttributeKey.longKey("pid"), this.pid,
+                                AttributeKey.longKey("startTimeSecs"), Math.round(this.startTimeMillis / 1000.0)
+            ));
+
+        final Attributes keyAttrs = attrBuilder.build();
+
+        this.openTelemetryPendingCounter.add(0, keyAttrs);
+        this.openTelemetryExceptionCounter.add(0, keyAttrs);
+        this.openTelemetryLatencyMSHistogram.record((double) 0, keyAttrs);
+
+        attrBuilder.put("type", "static");
+        attrBuilder.putAll(
+                Attributes.of(
+                        AttributeKey.stringKey("otherInfo"), null,
+                        AttributeKey.stringKey("startDateTime"), null,
+                        AttributeKey.stringKey("AGSHost"), null
+                ));
+
+        if(this.connectionState != null) {
+            attrBuilder.put("DBConnState", this.connectionState);
+        }
+
+        attrBuilder.put("currTimeSecs", currentTimeMS / 1000L);
+
+        this.openTelemetryInfoGauge.set(currentTimeMS * 100L,
+                                        attrBuilder.build());
+
+        attrBuilder = Attributes.builder();
+        attrBuilder.putAll(keyAttrs);
+
+        attrBuilder.putAll(Attributes.of(
+                            AttributeKey.stringKey("type"), "static",
+                            AttributeKey.stringKey("manger_class"), "NA",
+                            AttributeKey.stringKey("label"), "NA",
+                            AttributeKey.longKey("requested_cnt"), (long) -1,
+                            AttributeKey.longKey("actual_cnt"), (long) 0,
+                            AttributeKey.longKey("runtimems"), (long) 0
+        ));
+
+        attrBuilder.putAll(Attributes.of(
+                AttributeKey.stringKey("gremlinIdString"),  "NA"
+        ));
+
+        openTelemetryIdMgrGauge.set(currentTimeMS,
+                                    attrBuilder.build());
+
+        this.printDebug(String.format("Initialized '%s' at %d",
+                                        wlStage, currentTimeMS));
+    }
+
+    @Override
+    public void Initialize() {
+
+        if(this.closed.get()) { return; }
+        final long now = System.currentTimeMillis();
+
+        hbCnt.set(0);
+
+        for(int i  = 0; i < this.hbCnt.get(); i++) {
+            this.hbAttributes[i] = null;
+        }
+        Initialize("Warmup", now);
+        Initialize("Workload", now);
+    }
+    */
+
     private OpenTelemetrySdk initOpenTelemetry() {
         // Include required service.name resource attribute on all spans and metrics
         this.printDebug("Creating SDK");
@@ -226,10 +305,15 @@ public final class OpenTelemetryExporter implements com.aerospike.OpenTelemetry 
     @Override
     public void setIdMgrGauge(final String mgrClass,
                                 final String[] labels,
+                                final String gremlinString,
                                 final int requestedCnt,
                                 final int actualCnt,
                                 final long runtimeMills) {
         if(this.closed.get()) { return; }
+
+        final AttributesBuilder attributes = Attributes.builder();
+        attributes.putAll(this.hbAttributes[0]);
+        attributes.put("wlstage", "idMgr");
 
         String label = "NA";
 
@@ -241,16 +325,17 @@ public final class OpenTelemetryExporter implements com.aerospike.OpenTelemetry 
             }
         }
 
-        final AttributesBuilder attributes = Attributes.builder();
-        attributes.putAll(this.hbAttributes[0]);
-        attributes.put("wlstage", "idMgr");
         attributes.putAll(Attributes.of(
                 AttributeKey.stringKey("type"), "static",
-                AttributeKey.stringKey("manger_class"), mgrClass,
+                AttributeKey.stringKey("manger_class"), mgrClass == null ? "NA" : mgrClass,
                 AttributeKey.stringKey("label"), label == null ? "NA" : label,
                 AttributeKey.longKey("requested_cnt"), (long) requestedCnt,
                 AttributeKey.longKey("actual_cnt"), (long) actualCnt,
                 AttributeKey.longKey("runtimems"), runtimeMills
+        ));
+
+        attributes.putAll(Attributes.of(
+                AttributeKey.stringKey("gremlinIdString"), gremlinString == null ? "NA" : gremlinString
         ));
 
         openTelemetryIdMgrGauge.set(System.currentTimeMillis(),
