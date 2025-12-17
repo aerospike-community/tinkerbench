@@ -125,6 +125,18 @@ public abstract class QueryWorkloadProvider implements QueryRunnable {
     @Override
     public Object getVId() { return this.idManager == null ? null : this.idManager.getId(); }
 
+    /*
+     * Obtains a Random Id based on Depth.
+     *
+     * @param depth The depth to obtain a random child of a predefined parent.
+     *              A value of 0, returns the root id
+     *              If the parent hasn't been defined, it will be selected.
+     *              If the depth has been defined, the same Id is retuned.
+     * @return the random child Id at depth based on its parent
+     */
+    @Override
+    public Object getVId(int depth) { return this.idManager == null ? null : this.idManager.getId(depth); }
+
     /**
      * @return the AGS cluster instance
      */

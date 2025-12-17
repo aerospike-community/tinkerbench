@@ -68,6 +68,17 @@ public interface QueryRunnable extends AGSGraphTraversal,
     Object getVId();
 
     /*
+     * Obtains a Random Id based on Depth.
+     *
+     * @param depth The depth to obtain a random child of a predefined parent.
+     *              A value of 0, returns the root id
+     *              If the parent hasn't been defined, it will be selected.
+     *              If the depth has been defined, the same Id is retuned.
+     * @return the random child Id at depth based on its parent
+     */
+    Object getVId(int depth);
+
+    /*
     Returns the description of the query.
      */
     String getDescription();
