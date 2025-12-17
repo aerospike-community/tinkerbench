@@ -402,11 +402,15 @@ public abstract class TinkerBenchArgs implements Callable<Integer> {
                 String className = value.toLowerCase();
                 if(className.equals("null")
                         || className.equals("none")
-                        || className.equals("disable")) {
+                        || className.startsWith("dummy")
+                        || className.startsWith("disable")) {
                     return new dummyManager();
                 }
                 if(className.equals("list")) {
                     return new dummyManager(true);
+                }
+                if(!value.startsWith("com.aerospike.idmanager.")) {
+                    value = "com.aerospike.idmanager." + value;
                 }
                 Class<?> idManagerClass = Helpers.getClass(value);
                 if (IdManager.class.isAssignableFrom(idManagerClass)) {
@@ -547,6 +551,13 @@ public abstract class TinkerBenchArgs implements Callable<Integer> {
         }
 
         if(idManager != null && !(idManager instanceof dummyManager)) {
+
+            if(idGremlinQuery != null
+                    && !idGremlinQuery.isEmpty()
+                    && idManager.getClass().equals(IdSampler.class)) {
+                idManager = new IdChainSampler();
+            }
+
             if(idManager instanceof IdChainSampler) {
                 if (importIdsPath == null && (idGremlinQuery == null || idGremlinQuery.isEmpty())) {
                     throw new CommandLine.ParameterException(commandlineSpec.commandLine(),
@@ -656,15 +667,20 @@ public abstract class TinkerBenchArgs implements Callable<Integer> {
             List<Class<?>> managers = Helpers.findAllIdManagers();
             managers.removeIf(class1 -> class1 == dummyManager.class);
             if(managers.isEmpty()) {
-                System.err.println("There were no pId Managers found.");
+                System.err.println("There were no Id Managers found.");
             } else {
                 Helpers.Println(System.out,
                                 "Following is a list of Id Managers:",
                                 Helpers.BLACK,
                                 Helpers.YELLOW_BACKGROUND);
 
+                Helpers.Print(System.out,
+                                String.format("\tDisable -- Disables the Id Manager%n"),
+                                Helpers.BLACK,
+                                Helpers.YELLOW_BACKGROUND);
+
                 for(Class<?> mgrClass : managers) {
-                    String mgrName = mgrClass.getName();
+                    String mgrName = mgrClass.getSimpleName();
 
                     Helpers.Print(System.out,
                             String.format("\t%s%n", mgrName),
