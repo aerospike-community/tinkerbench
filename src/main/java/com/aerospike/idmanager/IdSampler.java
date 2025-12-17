@@ -350,11 +350,12 @@ public class IdSampler implements IdManager {
         }
 
         if(!file.exists()) {
-            logger.Print("IdSampler.importFile",
-                            true,
-                        "File does not exist: " + filePath);
-            return 0;
+            final FileNotFoundException fnfe = new FileNotFoundException(filePath);
+            logger.error("IdChainSampler.importFile File does not exist: " + filePath, fnfe);
+            System.err.println("Id File does not exist: " + filePath);
+            throw new RuntimeException(fnfe);
         }
+
         DetermineLabels(useLabels);
 
         long startTime = System.currentTimeMillis();
