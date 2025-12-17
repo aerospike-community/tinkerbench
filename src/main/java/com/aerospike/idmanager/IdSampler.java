@@ -459,17 +459,9 @@ public class IdSampler implements IdManager {
     public void printStats(final LogSource logger) {
         final String msg = String.format("""
                                         Using Id Manager '%s':
-                                          Number of Distinct Nodes: %,d
-                                                       Start Nodes: %,d
-                                                    Required Depth: %,d
-                                                     Relationships: %,d
-                                                    Possible Paths: %,d""",
+                                          Number of Starting Nodes: %,d""",
                                 this.getClass().getSimpleName(),
-                                this.getIdCount(),
-                                this.getStartingIdsCount(),
-                                this.getDepth(),
-                                this.getNbrRelationships(),
-                                this.getInitialDepth());
+                                this.getStartingIdsCount());
         Helpers.Println(System.out,
                         msg,
                         Helpers.BLACK,

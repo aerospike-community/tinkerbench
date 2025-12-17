@@ -566,7 +566,7 @@ public class IdChainSampler implements IdManagerQuery {
         final String msg = String.format("""
                                         Using Id Manager '%s':
                                           Number of Distinct Nodes: %,d
-                                                       Start Nodes: %,d
+                                                    Starting Nodes: %,d
                                                     Required Depth: %,d
                                                      Relationships: %,d
                                                     Possible Paths: %,d""",

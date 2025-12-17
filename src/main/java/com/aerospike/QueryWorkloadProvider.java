@@ -14,6 +14,7 @@ public abstract class QueryWorkloadProvider implements QueryRunnable {
     private final boolean isPrintResult;
     private final String workloadName;
     private final IdManager idManager;
+    private Object[] idArray = new Object[0];
 
     public QueryWorkloadProvider(final WorkloadProvider provider,
                                  final AGSGraphTraversal ags,
@@ -29,6 +30,10 @@ public abstract class QueryWorkloadProvider implements QueryRunnable {
         } else {
             this.isPrintResult = this.provider.getCliArgs().printResult;
             this.provider.setQuery(this);
+        }
+
+        if(this.idManager != null) {
+            this.idManager.setDepth(this.getVDepth());
         }
     }
 
@@ -46,6 +51,9 @@ public abstract class QueryWorkloadProvider implements QueryRunnable {
         } else {
             this.isPrintResult = this.provider.getCliArgs().printResult;
             this.provider.setQuery(this);
+        }
+        if(this.idManager != null) {
+            this.idManager.setDepth(this.getVDepth());
         }
     }
 
@@ -126,6 +134,12 @@ public abstract class QueryWorkloadProvider implements QueryRunnable {
     public Object getVId() { return this.idManager == null ? null : this.idManager.getId(); }
 
     /*
+        @return This should return the maximum required depth to stratify the gremlin query.
+            Return zero for starting id (top-level).
+     */
+    public int getVDepth() { return this.idManager == null ? 0 : this.idManager.getInitialDepth(); }
+
+    /*
      * Obtains a Random Id based on Depth.
      *
      * @param depth The depth to obtain a random child of a predefined parent.
@@ -135,7 +149,13 @@ public abstract class QueryWorkloadProvider implements QueryRunnable {
      * @return the random child Id at depth based on its parent
      */
     @Override
-    public Object getVId(int depth) { return this.idManager == null ? null : this.idManager.getId(depth); }
+    public Object getVId(int depth) {
+
+        if(depth < this.idArray.length) {
+            return this.idArray[depth];
+        }
+        return this.idManager == null ? null : this.idManager.getId(depth);
+    }
 
     /**
      * @return the AGS cluster instance
@@ -179,7 +199,15 @@ public abstract class QueryWorkloadProvider implements QueryRunnable {
      * @return true to execute workload or false to abort execution
      */
     @Override
-    public boolean preProcess() { return true; }
+    public boolean preProcess() {
+        final int depth = getVDepth();
+        if(this.idManager != null && depth > 0) {
+            this.idManager.Reset();
+            this.idManager.setDepth(depth);
+            this.idArray = this.idManager.getIds();
+        }
+        return true;
+    }
 
     /**
      * Performs any post-processing for the query

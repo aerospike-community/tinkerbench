@@ -35,6 +35,12 @@ public class AirRoutesQuery1 extends QueryWorkloadProvider {
         return "Air Routes Graph Traversal Query:\n\tG().V( getVId() ).out().limit(5).path().by(values(\"code\",\"city\").fold()).toList();";
     }
 
+    /*
+        @return Return zero for starting id (top-level) only.
+     */
+    @Override
+    public int getVDepth() { return 0; }
+
     /**
      * @return true to indicate that the workload was successful and should be recorded.
      *  False to indicate that the workload should not be recorded.
