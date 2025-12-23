@@ -147,6 +147,11 @@ public final class RelationshipGraph<T> {
         return Collections.unmodifiableSet(all);
     }
 
+    public Set<T> getParents(T child) {
+        return Collections.unmodifiableSet(
+                parents.getOrDefault(child, Set.of()));
+    }
+
     /**
      * Get the direct children of a parent.
      *
@@ -310,6 +315,7 @@ public final class RelationshipGraph<T> {
      */
     public int getTotalDistinctChildCount() {
         return distinctChildCount;
+        //  return (int) parents.entrySet().stream().filter(e -> !e.getValue().isEmpty()).count();
     }
 
     /**
@@ -361,6 +367,65 @@ public final class RelationshipGraph<T> {
             max = Math.max(max, getMaxDepthFrom(root));
         }
         return max;
+    }
+
+    /**
+     * Returns the set of nodes that are exactly {@code depthFromBottom} edges above the
+     * bottom of each root->descendant path (bottom = leaf OR maxDepth cutoff).
+     *
+     * depthFromBottom = 0 => bottom nodes (leaves / cutoff nodes)
+     * depthFromBottom = 1 => parents of those bottom nodes, etc.
+     *
+     * Cycle-safe: nodes are not revisited within the same path.
+     *
+     * @param root            starting node
+     * @param maxDepth        maximum depth downward to explore (edges)
+     * @param depthFromBottom how far up from the bottom of each path (edges)
+     */
+    public Set<T> getNodesAtDepthFromBottom(T root, int maxDepth, int depthFromBottom) {
+        Objects.requireNonNull(root, "root must not be null");
+        if (maxDepth < 0) throw new IllegalArgumentException("maxDepth must be >= 0");
+        if (depthFromBottom < 0) throw new IllegalArgumentException("depthFromBottom must be >= 0");
+        if (!children.containsKey(root)) return Set.of();
+
+        List<List<T>> paths = new ArrayList<>();
+        collectPathsFrom(root, 0, maxDepth, new HashSet<>(), new ArrayDeque<>(), paths);
+
+        Set<T> result = new LinkedHashSet<>();
+        for (List<T> path : paths) {
+            int idx = path.size() - 1 - depthFromBottom; // count from bottom
+            if (idx >= 0) {
+                result.add(path.get(idx));
+            }
+        }
+        return Collections.unmodifiableSet(result);
+    }
+
+    /**
+     * Returns all nodes that are within {@code maxDepthFromBottom} edges from the bottom
+     * of any root->descendant path.
+     *
+     * maxDepthFromBottom = 0 => just bottom nodes
+     * maxDepthFromBottom = 1 => bottom + one above, etc.
+     */
+    public Set<T> getNodesUpToDepthFromBottom(T root, int maxDepth, int maxDepthFromBottom) {
+        Objects.requireNonNull(root, "root must not be null");
+        if (maxDepth < 0) throw new IllegalArgumentException("maxDepth must be >= 0");
+        if (maxDepthFromBottom < 0) throw new IllegalArgumentException("maxDepthFromBottom must be >= 0");
+        if (!children.containsKey(root)) return Set.of();
+
+        List<List<T>> paths = new ArrayList<>();
+        collectPathsFrom(root, 0, maxDepth, new HashSet<>(), new ArrayDeque<>(), paths);
+
+        Set<T> result = new LinkedHashSet<>();
+        for (List<T> path : paths) {
+            int bottom = path.size() - 1;
+            int topIdx = Math.max(0, bottom - maxDepthFromBottom);
+            for (int i = bottom; i >= topIdx; i--) {
+                result.add(path.get(i));
+            }
+        }
+        return Collections.unmodifiableSet(result);
     }
 
     /**

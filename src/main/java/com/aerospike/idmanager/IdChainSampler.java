@@ -29,6 +29,25 @@ public class IdChainSampler implements IdManagerQuery {
         currentIds = new ArrayList<Object>();
     }
 
+    /*
+     *   @param relationships an array of pairs where the first item is the parent and reminding items are the children.
+     */
+    public <T> IdChainSampler(T[][] relationships) {
+        this();
+
+        for (T[] relationship : relationships) {
+            if(relationship == null || relationship.length == 0) {
+                continue;
+            }
+            if(relationship.length == 1) {
+                this.relationshipGraph.markAsTopLevelParent(relationship[0]);
+            } else {
+                this.relationshipGraph.addPath(relationship);
+            }
+        }
+        this.relationshipGraph.syncStructuralTopLevelParentsToMarked();
+    }
+
     @Override
     public boolean enabled() { return !disabled; }
 
@@ -119,6 +138,30 @@ public class IdChainSampler implements IdManagerQuery {
                 progressBar.setExtraMessage("Item Cast Error... Skipping Id...");
             }
         });
+    }
+
+    public final <T> void addPath(T[][] relationships) {
+
+        if(relationships == null || relationships.length == 0) {
+            return;
+        }
+
+        for (T[] relationship : relationships) {
+            if(relationship == null || relationship.length == 0) {
+                continue;
+            }
+            if(relationship.length == 1) {
+                this.relationshipGraph.markAsTopLevelParent(relationship[0]);
+            } else {
+                this.relationshipGraph.addPath(relationship);
+            }
+        }
+        this.relationshipGraph.syncStructuralTopLevelParentsToMarked();
+
+        this.currentIds.clear();
+        this.requestedDepth = this.relationshipGraph.getMaxDepthOverall();
+        this.actualDepth = requestedDepth;
+        this.disabled = false;
     }
 
     /**
@@ -348,7 +391,7 @@ public class IdChainSampler implements IdManagerQuery {
      * @param filePath -- A CSV file to be used to import Ids. This Path can contain wildcard chars or be a folder where al CSV files will be imported.
      * @param openTelemetry --The Open Telemetry Instance
      * @param logger -- Logging instance
-     * @param sampleSize -- the total number of Distinct Ids imported
+     * @param sampleSize -- the total number of Distinct Ids imported. If negative id manager is disabled.
      * @param labels -- currently ignored
      * @return the amount of time to import the Ids
      */

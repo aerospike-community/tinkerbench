@@ -13,6 +13,7 @@ import java.lang.reflect.InvocationTargetException;
 
 import java.lang.reflect.Method;
 import java.net.MalformedURLException;
+import java.net.URI;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.nio.file.*;
@@ -163,7 +164,9 @@ public class Helpers {
             return Class.forName(className);
         } catch (ClassNotFoundException ignore) {
             try {
-                URL[] urls = {new URL("jar:file:" + jarFilePath + "!/")};
+                final String urlstr = "jar:file:" + jarFilePath + "!/";
+                final URL url = URI.create(urlstr).toURL();
+                final URL[] urls = { url };
                 try (URLClassLoader cl = URLClassLoader.newInstance(urls)) {
                     return cl.loadClass(className);
                 } catch (IOException e) {
