@@ -149,62 +149,86 @@ class IdChainSamplerTest {
     @Test
     void exportimportFile() {
 
-        final Integer[][] relationships = {{23, 214, 215, 216},
-                {23, 314, 315, 316},
-                {315, 326},
-                {24, 4214, 4215, 4216},
-                {24, 4314, 4315, 4316},
-                {4315, 4326}};
-        idManager.addPath(relationships);
+        {
+            final Integer[][] relationships = {{23, 214, 215, 216},
+                    {23, 314, 315, 316},
+                    {315, 326},
+                    {24, 4214, 4215, 4216},
+                    {24, 4314, 4315, 4316},
+                    {4315, 4326}};
+            idManager.addPath(relationships);
 
-        try {
-            Files.deleteIfExists(Paths.get(csvFile));
-        }  catch (IOException ignored) {}
+            try {
+                Files.deleteIfExists(Paths.get(csvFile));
+            } catch (IOException ignored) {
+            }
 
-        idManager.exportFile(csvFile, LogSource.getInstance() );
+            idManager.exportFile(csvFile, LogSource.getInstance());
 
-        Path path = Paths.get(csvFile);
+            Path path = Paths.get(csvFile);
 
-        // Assert that the file exists, providing a clear message if it fails
-        assertTrue(Files.exists(path), "File should exist: " + path.toAbsolutePath());
+            // Assert that the file exists, providing a clear message if it fails
+            assertTrue(Files.exists(path), "File should exist: " + path.toAbsolutePath());
 
-        final String[][] expectedExportedData = new String[][] {
-                                                    {"23"},
-                                                    {"24"},
-                                                    {"23","214","215","216"},
-                                                    {"23","314","315","316"},
-                                                    {"23","314","315","326"},
-                                                    {"24","4214","4215","4216"},
-                                                    {"24","4314","4315","4316"},
-                                                    {"24","4314","4315","4326"}};
+            final String[][] expectedExportedData = new String[][]{
+                    {"23"},
+                    {"24"},
+                    {"23", "214", "215", "216"},
+                    {"23", "314", "315", "316"},
+                    {"23", "314", "315", "326"},
+                    {"24", "4214", "4215", "4216"},
+                    {"24", "4314", "4315", "4316"},
+                    {"24", "4314", "4315", "4326"}};
 
-        List<String[]> actualData = readCsvFile(csvFile);
+            List<String[]> actualData = readCsvFile(csvFile);
 
-        // Compare with expected results
-        assertEquals(expectedExportedData.length, actualData.size(),
-                "Number of rows should match expected data");
+            // Compare with expected results
+            assertEquals(expectedExportedData.length, actualData.size(),
+                    "Number of rows should match expected data");
 
-        for (int i = 0; i < expectedExportedData.length; i++) {
-            assertArrayEquals(expectedExportedData[i], actualData.get(i),
-                    "Row " + i + " should match expected data");
+            for (int i = 0; i < expectedExportedData.length; i++) {
+                assertArrayEquals(expectedExportedData[i], actualData.get(i),
+                        "Row " + i + " should match expected data");
+            }
         }
 
-        idManager.relationshipGraph.clear();
-        assertTrue(idManager.isEmpty(), "Should be empty after clear");
+        {
+            idManager.relationshipGraph.clear();
+            assertTrue(idManager.isEmpty(), "Should be empty after clear");
 
-        idManager.importFile(csvFile,
-                                new OpenTelemetryDummy(),
-                                LogSource.getInstance(),
-                        200,
-                            null);
+            idManager.importFile(csvFile,
+                    new OpenTelemetryDummy(),
+                    LogSource.getInstance(),
+                    200,
+                    null);
 
-        assertFalse(idManager.isEmpty(), "Should not be empty after import");
-        assertEquals(2, idManager.getStartingIdsCount(), "Top-Level Parents (starting) is incorrect");
-        assertEquals(4, idManager.getInitialDepth(), "Depth is incorrect");
-        assertEquals(16, idManager.getIdCount(), "Number of undoes is incorrect");
-        assertEquals(14, idManager.getNbrRelationships(), "Number of relationships is incorrect");
+            assertFalse(idManager.isEmpty(), "Should not be empty after import");
+            assertEquals(2, idManager.getStartingIdsCount(), "Top-Level Parents (starting) is incorrect");
+            assertEquals(4, idManager.getInitialDepth(), "Depth is incorrect");
+            assertEquals(16, idManager.getIdCount(), "Number of undoes is incorrect");
+            assertEquals(14, idManager.getNbrRelationships(), "Number of relationships is incorrect");
 
-        idManager.printStats(LogSource.getInstance());
+            idManager.printStats(LogSource.getInstance());
+        }
+
+        {
+            idManager.relationshipGraph.clear();
+            assertTrue(idManager.isEmpty(), "Should be empty after clear");
+
+            idManager.importFile(csvFile,
+                    new OpenTelemetryDummy(),
+                    LogSource.getInstance(),
+                    7,
+                    null);
+
+            assertFalse(idManager.isEmpty(), "Should not be empty after import");
+            assertEquals(2, idManager.getStartingIdsCount(), "Top-Level Parents (starting) is incorrect");
+            assertEquals(4, idManager.getInitialDepth(), "Depth is incorrect");
+            assertEquals(9, idManager.getIdCount(), "Number of undoes is incorrect");
+            assertEquals(7, idManager.getNbrRelationships(), "Number of relationships is incorrect");
+
+            idManager.printStats(LogSource.getInstance());
+        }
 
         try {
             Files.deleteIfExists(Paths.get(csvFile));

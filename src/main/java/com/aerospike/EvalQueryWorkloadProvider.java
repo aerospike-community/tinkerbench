@@ -21,7 +21,7 @@ public final class EvalQueryWorkloadProvider extends QueryWorkloadProvider {
     final IdManager idManager;
     final Terminator terminator;
 
-    ///  Array of Id Format Id Args and the Max Depth
+    ///  Used to manage the gremlin string placeholders
     final FmtArgInfo idFmtArgsPos;
     final AtomicBoolean compiled = new AtomicBoolean(false);
 
@@ -95,7 +95,7 @@ public final class EvalQueryWorkloadProvider extends QueryWorkloadProvider {
             this.terminator = gremlinStep.getValue1();
         }
         isPrintResult = isPrintResult();
-        this.idFmtArgsPos = new FmtArgInfo(gremlinScript, this.idManager);
+        this.idFmtArgsPos = new FmtArgInfo(this.gremlinString, this.idManager);
     }
 
     /*private static void GetEngines(ScriptEngineManager manager) {
@@ -190,7 +190,7 @@ public final class EvalQueryWorkloadProvider extends QueryWorkloadProvider {
                     getOpenTelemetry().addException(e);
                     getProvider().SignalAbortWorkLoad();*/
                 } catch (Exception e) {
-                    System.err.printf("ERROR: could not evaluate gremlin script \"%s\". Error: %s\n",
+                    System.err.printf("ERROR: could not evaluate gremlin script \"%s\" (check gremlin syntax?). Error: %s\n",
                                         gremlinString,
                                         e.getMessage());
                     logger.error(String.format("ERROR: could not evaluate gremlin script \"%s\". Error: %s\n",
@@ -316,7 +316,7 @@ public final class EvalQueryWorkloadProvider extends QueryWorkloadProvider {
                     logger.PrintDebug("EvalQueryWorkloadProvider.preCall", BytecodeTranslator());
                 }
             } else if (bytecode == null) {
-                logger.PrintDebug("EvalQueryWorkloadProvider.preCall", "Bytecode is null");
+                logger.PrintDebug("EvalQueryWorkloadProvider.preCall", "Bytecode was not produced (null). Gremlin syntax error?");
             }
         }
     }
