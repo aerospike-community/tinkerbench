@@ -19,7 +19,7 @@
         <picocli.version>4.7.7</picocli.version>
         <otel.version>1.52.0</otel.version>
         <slf4j.version>2.0.17</slf4j.version>
-        <logback.version>1.5.18</logback.version>
+        <logback.version>1.5.23</logback.version>
         <hdrhistogram.version>2.2.2</hdrhistogram.version>
         <progressbar.version>0.10.1</progressbar.version>
         <opencsv.version>5.12.0</opencsv.version>
