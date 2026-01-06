@@ -148,7 +148,7 @@ public final class EvalQueryWorkloadProvider extends QueryWorkloadProvider {
         try {
             logger.PrintDebug("PrepareCompile", "Generating Bytecode for \"%s\"", gremlinString);
 
-            final Object[] sampleIds = this.idFmtArgsPos.getIds(this.idFmtArgsPos.positions);
+            final Object[] sampleIds = this.idFmtArgsPos.getIds(this.idFmtArgsPos.maxArgs);
 
             logger.PrintDebug("PrepareCompile", "Gremlin String Ids: %s", sampleIds);
 
@@ -158,7 +158,7 @@ public final class EvalQueryWorkloadProvider extends QueryWorkloadProvider {
             }
             if(sampleIds.length > this.idManager.getInitialDepth()) {
                 throw new ScriptException(String.format("Script contains Chaining/Depth 'id' placeholders requiring a maximum dept of %d, but The Id Manager can only provide a depth of %d. Are you using the Correct Id Manager, Not providing/importing enough ids, or Gremlin string is incorrect?\n'%s'",
-                                                        this.idFmtArgsPos.maxPositions(),
+                                                        this.idFmtArgsPos.maxArgs(),
                                                         this.idManager.getInitialDepth(),
                                                         gremlinString));
             }
@@ -346,6 +346,6 @@ public final class EvalQueryWorkloadProvider extends QueryWorkloadProvider {
                                 this.prepared,
                                 this.compiled.get(),
                                 this.idFmtArgsPos.length(),
-                                this.idFmtArgsPos.maxPositions());
+                                this.idFmtArgsPos.maxArgs());
     }
 }

@@ -184,7 +184,7 @@ class IdChainSamplerTest {
 
             // Compare with expected results
             assertEquals(expectedExportedData.length, actualData.size(),
-                    "Number of rows should match expected data");
+                    "Number of rows read should match expected data");
 
             for (int i = 0; i < expectedExportedData.length; i++) {
                 assertArrayEquals(expectedExportedData[i], actualData.get(i),

@@ -1,7 +1,5 @@
 package com.aerospike;
 
-import org.javatuples.Pair;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -13,16 +11,17 @@ final class FmtArgInfo {
     ///This is a much more complete regex to parse the Gremlin string. This will allow an advance Id Manager based on String format params...
     final static Pattern fmtargPattern = Pattern.compile("(?<arg>(?<begin>['\"][^%]*)?%(?<opts>(?:(?<pos>\\d+)\\$)?(?:[-#+ 0,(<]*)?(?:\\d*)?(?:\\.\\d*)?(?:[tT])?)(?:[a-zA-Z])(?<end>[^)'\"]*['\"])?)");
 
-    final int positions;
+    final int maxArgs;
     final FmtArg[] args;
-    String gremlinString;
     final IdManager idManager;
+    String gremlinString;
 
     public static final class FmtArg {
 
         public String fmtArgValue;
         public final int position;
-        public final boolean notPostional;
+        /// If true, this argument was explicitly reference as a depth (position) within a graph
+        public final boolean Positional;
         public char beginQuote;
         public char endQuote;
 
@@ -31,10 +30,10 @@ final class FmtArgInfo {
             String grpValue = fmtargMatch.group("pos");
             if (grpValue != null) {
                 this.position = Integer.parseInt(grpValue);
-                this.notPostional = false;
+                this.Positional = true;
             } else {
                 this.position = 1;
-                this.notPostional = true;
+                this.Positional = false;
             }
             grpValue = fmtargMatch.group("begin");
             if (grpValue != null) {
@@ -61,13 +60,20 @@ final class FmtArgInfo {
     public FmtArgInfo(final String gremlinString,
                       IdManager idManager) {
 
-        this.gremlinString = gremlinString;
+        {
+            //Convert any non-positional fmt placeholders (e.g., '%s') to a positional argument.
+            final String regex = "%([a-zA-Z])";
+            // The replacement string uses '$1' to refer to the captured letter (group 1)
+            final String replacement = "%1\\$$1"; // The '$' needs to be escaped in the replacement string
+
+            this.gremlinString = gremlinString.replaceAll(regex, replacement);
+        }
+
         this.idManager = idManager;
 
         final Matcher fmtargMatch = fmtargPattern.matcher(this.gremlinString);
         final List<FmtArg> fmtArgs = new ArrayList<>();
         int maxPos = -1;
-        boolean allNonPostional = true;
 
         while (fmtargMatch.find()) {
             final FmtArg fmtArg = new FmtArg(fmtargMatch);
@@ -75,23 +81,21 @@ final class FmtArgInfo {
             if(maxPos < fmtArg.position) {
                 maxPos = fmtArg.position;
             }
-            if(!fmtArg.notPostional) {
-                allNonPostional = false;
-            }
-        }
-        if(allNonPostional && fmtArgs.size() > maxPos) {
-            maxPos = fmtArgs.size();
         }
 
-        this.positions = maxPos;
+        this.maxArgs = maxPos <=0 ? 1 : maxPos;
         this.args = fmtArgs.toArray(new FmtArg[0]);
 
-        this.idManager.setDepth(this.positions - 1);
+        this.idManager.setDepth(this.maxArgs - 1);
     }
 
     /*
      *   This will ensure proper quoting in the Gremlin String based on the Id data type...
-     *   @return a new properly formated gremlin string.
+     *
+     *   @return a newly properly formated gremlin string with proper quoting...
+     *
+     * Typical Example:
+     *   String.format(fmtObj.determineGremlinString, fmtObj.getIds());
      */
     public String determineGremlinString() {
 
@@ -125,12 +129,21 @@ final class FmtArgInfo {
         return this.gremlinString;
     }
 
+    /*
+    *   @return Array of Ids from the Id Manager such that they can be used with the Gremlin Format String
+    *
+    * Typical Example:
+    *   String.format(fmtObj.determineGremlinString(), fmtObj.getIds());
+    */
     public Object[] getIds() {
-
         idManager.Reset();
         return idManager.getIds();
     }
 
+    /*
+    *   @parms noNullsTries -- The number of tries to obtain no null values
+    *   @return Array of Ids from the Id Manager that contains no null values
+    */
     public Object[] getIds(int noNullsTries) {
 
         Object[] ids = getIds();
@@ -143,6 +156,14 @@ final class FmtArgInfo {
         return ids;
     }
 
+    /*
+        @return The number of format placeholders used within the Gremlin string
+     */
     public int length() { return this.args.length; }
-    public int maxPositions() { return this.positions; }
+
+    /*
+        @return The maximum detected placeholder position found in the Gremlin string.
+                This represents the required depth (under root node) to stratify the Gremlin Query.
+     */
+    public int maxArgs() { return this.maxArgs; }
 }
