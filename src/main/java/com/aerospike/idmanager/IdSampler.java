@@ -248,10 +248,17 @@ public class IdSampler implements IdManager {
     *   This will determine the number of root ids are generated per query.
      */
     @Override
-    public void setDepth(int nbrIds) { this.nbrIds = nbrIds + 1; }
+    public void setDepth(int nbrIds) { this.nbrIds = nbrIds; }
 
+    /*
+        @return The number of requested sample ids
+     */
     @Override
-    final public int getDepth() { return 1;}
+    final public int getDepth() { return nbrIds; }
+
+    /*
+        @return The number of ids actually loaded.
+     */
     @Override
     final public int getInitialDepth() {
         return this.sampledIds == null ? 0 : this.sampledIds.size();

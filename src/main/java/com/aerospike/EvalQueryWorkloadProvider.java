@@ -128,7 +128,7 @@ public final class EvalQueryWorkloadProvider extends QueryWorkloadProvider {
         prepared = true;
         final String[] parts = gremlinString.split("\\.");
 
-        final String gremlinString = this.idFmtArgsPos.determineGremlinString();
+        final String gremlinString = this.idFmtArgsPos.init();
 
         this.traversalSource = parts[0];
 
@@ -148,7 +148,7 @@ public final class EvalQueryWorkloadProvider extends QueryWorkloadProvider {
         try {
             logger.PrintDebug("PrepareCompile", "Generating Bytecode for \"%s\"", gremlinString);
 
-            final Object[] sampleIds = this.idFmtArgsPos.getIds(this.idFmtArgsPos.maxArgs);
+            final Object[] sampleIds = this.idFmtArgsPos.getIds(this.idFmtArgsPos.maxArgsPosition);
 
             logger.PrintDebug("PrepareCompile", "Gremlin String Ids: %s", sampleIds);
 

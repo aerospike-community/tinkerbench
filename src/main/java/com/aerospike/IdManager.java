@@ -31,7 +31,7 @@ public interface IdManager {
      */
     int getIdCount();
     /*
-    *   @return Thte total number of Starting Ids (root/parents).
+    *   @return The total number of Starting Ids (root/parents).
      */
     int getStartingIdsCount();
 
@@ -52,11 +52,16 @@ public interface IdManager {
      */
     void Reset();
     /*
-    *   @return The request depth of a tree structure.
-     */
+    *   @return The request depth of a tree structure as defined by setDepth.
+    *           If not set, the initial depth is returned.
+    *
+    * Note: The behavior of this method may vary based on implementation
+    */
     int getDepth();
     /*
      *   @return The loaded/obtained depth of a tree structure. A value of -1 indicates no Ids loaded.
+     *
+     * Note: The behavior of this method may vary based on implementation
      */
     int getInitialDepth();
 
@@ -68,7 +73,9 @@ public interface IdManager {
     *   Set's the requested depth of a tree, if it exists. Otherwise, this is ignored.
     *   This should be set by a query to the actual depth required by the query to improve Id manager's performance.
     *   To obtain the depth when the Ids were actually loaded, see getInitialDepth.
-     */
+    *
+    * Note: The behavior of this method may vary based on implementation
+    */
     void setDepth(int depth);
 
     /*

@@ -96,22 +96,22 @@ class IdChainSamplerTest {
                 {23}};
 
         idManager.addPath(relationships);
-        assertEquals(1, idManager.getInitialDepth());
+        assertEquals(0, idManager.getInitialDepth());
 
         relationships = new Integer[][] {{23, 214, 215, 216},
                 {23, 314, 315, 316}};
         idManager.addPath(relationships);
-        assertEquals(4, idManager.getInitialDepth());
+        assertEquals(3, idManager.getInitialDepth());
 
         relationships = new Integer[][]{{23, 214, 215, 216, 217},
                 {23, 314, 315, 316}};
         idManager.addPath(relationships);
-        assertEquals(5, idManager.getInitialDepth());
+        assertEquals(4, idManager.getInitialDepth());
 
         relationships = new Integer[][]{{24, 4214, 4215, 4216, 4217},
                 {24, 4314, 4315, 4316}};
         idManager.addPath(relationships);
-        assertEquals(5, idManager.getInitialDepth());
+        assertEquals(4, idManager.getInitialDepth());
     }
 
     @Test
@@ -204,7 +204,7 @@ class IdChainSamplerTest {
 
             assertFalse(idManager.isEmpty(), "Should not be empty after import");
             assertEquals(2, idManager.getStartingIdsCount(), "Top-Level Parents (starting) is incorrect");
-            assertEquals(4, idManager.getInitialDepth(), "Depth is incorrect");
+            assertEquals(3, idManager.getInitialDepth(), "Initial Depth is incorrect");
             assertEquals(16, idManager.getIdCount(), "Number of undoes is incorrect");
             assertEquals(14, idManager.getNbrRelationships(), "Number of relationships is incorrect");
 
@@ -223,7 +223,7 @@ class IdChainSamplerTest {
 
             assertFalse(idManager.isEmpty(), "Should not be empty after import");
             assertEquals(2, idManager.getStartingIdsCount(), "Top-Level Parents (starting) is incorrect");
-            assertEquals(4, idManager.getInitialDepth(), "Depth is incorrect");
+            assertEquals(3, idManager.getInitialDepth(), "Depth is incorrect");
             assertEquals(9, idManager.getIdCount(), "Number of undoes is incorrect");
             assertEquals(7, idManager.getNbrRelationships(), "Number of relationships is incorrect");
 

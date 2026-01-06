@@ -159,8 +159,7 @@ public class IdChainSampler implements IdManagerQuery {
         this.relationshipGraph.syncStructuralTopLevelParentsToMarked();
 
         this.currentIds.clear();
-        this.requestedDepth = this.relationshipGraph.getMaxDepthOverall();
-        this.actualDepth = requestedDepth;
+        this.actualDepth = this.relationshipGraph.getMaxDepthOverall();
         this.disabled = false;
     }
 
@@ -223,9 +222,6 @@ public class IdChainSampler implements IdManagerQuery {
             end = System.currentTimeMillis();
             this.relationshipGraph.syncStructuralTopLevelParentsToMarked();
             final int totalCnt = this.relationshipGraph.getTotal();
-            if(this.getDepth() < 0) {
-                this.setDepth(relationshipGraph.getMaxDepthOverall());
-            }
             this.actualDepth = relationshipGraph.getMaxDepthOverall();
 
             progressBar.refresh();
@@ -360,17 +356,30 @@ public class IdChainSampler implements IdManagerQuery {
         return childId;
     }
 
+    /*
+        @param depth -- The depth from the root node.
+                        Zero is the root node, 1 is the child, etc...
+                        -1 indicates to use the initial loaded depth.
+     */
     @Override
     public void setDepth(int depth) { this.requestedDepth = depth; }
 
+    /*
+        @return Zero based depth (zero is the root node)
+            as requested by the setDepth function or the actual depth loaded (initial depth).
+     */
     @Override
-    final public int getDepth() { return requestedDepth + 1; }
+    final public int getDepth() { return requestedDepth < 0 ? this.getInitialDepth() : requestedDepth; }
+
+    /*
+        @return Zero based depth (zero is the root node) as load from the DB or File
+     */
     @Override
-    final public int getInitialDepth() { return actualDepth + 1; }
+    final public int getInitialDepth() { return actualDepth; }
 
     @Override
     final public Object[] getIds() {
-        getId(requestedDepth);
+        getId(getDepth());
         return currentIds.toArray();
     }
 
@@ -510,9 +519,6 @@ public class IdChainSampler implements IdManagerQuery {
         /*
             Only if it hasn't been previously set
          */
-        if(this.getDepth() < 0) {
-            this.setDepth(relationshipGraph.getMaxDepthOverall());
-        }
         this.actualDepth = relationshipGraph.getMaxDepthOverall();
 
         long latency = System.currentTimeMillis() - startTime;

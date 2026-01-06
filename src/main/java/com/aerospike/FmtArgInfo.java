@@ -9,19 +9,31 @@ import java.util.regex.Pattern;
 
 final class FmtArgInfo {
     ///This is a much more complete regex to parse the Gremlin string. This will allow an advance Id Manager based on String format params...
-    final static Pattern fmtargPattern = Pattern.compile("(?<arg>(?<begin>['\"][^%]*)?%(?<opts>(?:(?<pos>\\d+)\\$)?(?:[-#+ 0,(<]*)?(?:\\d*)?(?:\\.\\d*)?(?:[tT])?)(?:[a-zA-Z])(?<end>[^)'\"]*['\"])?)");
+    final static Pattern fmtargPattern = Pattern.compile("(?<arg>(?<begin>['\"][^%]*)?%(?<opts>(?:(?<pos>\\-?\\d+)\\$)?(?:[-#+ 0,(<]*)?(?:\\d*)?(?:\\.\\d*)?(?:[tT])?)(?:[a-zA-Z])(?<end>[^)'\"]*['\"])?)");
 
-    final int maxArgs;
     final FmtArg[] args;
     final IdManager idManager;
+    /// If true, one of the format argument instances uses a negative position (reference Id from bottom child up this number of levels)
+    final boolean hasDepthUpArgs;
+
     String gremlinString;
+    int maxArgsPosition;
 
     public static final class FmtArg {
 
         public String fmtArgValue;
-        public final int position;
+        /// The argument original position defined in the gremlin string
+        /// '%-4$s' -> -4
+        /// '%4$s' -> 4
+        public final int argPosition;
         /// If true, this argument was explicitly reference as a depth (position) within a graph
         public final boolean Positional;
+        /// The actual position within the id array.
+        /// If < 0, indicates that this is a negative arg position.
+        ///     Note: This will be changed when the init method is run. In this case it represents the position in the id array.
+        /// '%-4$s' -> -1 (changed when 'init' method is executed)
+        /// '%4$s' -> 4
+        public int position;
         public char beginQuote;
         public char endQuote;
 
@@ -29,12 +41,18 @@ final class FmtArgInfo {
             this.fmtArgValue = fmtargMatch.group("arg");
             String grpValue = fmtargMatch.group("pos");
             if (grpValue != null) {
-                this.position = Integer.parseInt(grpValue);
+                this.argPosition = Integer.parseInt(grpValue);
                 this.Positional = true;
             } else {
-                this.position = 1;
+                this.argPosition = 1;
                 this.Positional = false;
             }
+            if(this.argPosition >= 0) {
+                this.position = this.argPosition;
+            } else {
+                this.position = -1;
+            }
+
             grpValue = fmtargMatch.group("begin");
             if (grpValue != null) {
                 this.beginQuote = grpValue.charAt(0);
@@ -52,10 +70,22 @@ final class FmtArgInfo {
         public boolean hasQuotes() {
             return this.beginQuote != '\0' && this.beginQuote == this.endQuote;
         }
+
+        @Override
+        public String toString() {
+            return String.format("FmtArg{'arg':'%s', 'argpos':%d, 'vlupos':%d, 'ispos':%s, 'quotes':%s}",
+                                    this.fmtArgValue,
+                                    this.argPosition,
+                                    this.position,
+                                    this.Positional,
+                                    this.hasQuotes());
+        }
     }
 
     /*
      *   @params gremlinString -- The Gremlin String that will be searched looking for Format Arguments.
+     *
+     * Note: The ids within the Id Manager may NOT be populated when this class is instantiated.
      */
     public FmtArgInfo(final String gremlinString,
                       IdManager idManager) {
@@ -74,19 +104,64 @@ final class FmtArgInfo {
         final Matcher fmtargMatch = fmtargPattern.matcher(this.gremlinString);
         final List<FmtArg> fmtArgs = new ArrayList<>();
         int maxPos = -1;
+        boolean depthUp = false;
 
         while (fmtargMatch.find()) {
             final FmtArg fmtArg = new FmtArg(fmtargMatch);
             fmtArgs.add(fmtArg);
-            if(maxPos < fmtArg.position) {
+
+            if(fmtArg.position < 0) {
+                depthUp = true;
+            } else if(maxPos < fmtArg.position) {
                 maxPos = fmtArg.position;
             }
         }
 
-        this.maxArgs = maxPos <=0 ? 1 : maxPos;
+        this.hasDepthUpArgs = depthUp;
+        this.maxArgsPosition = maxPos <=0 ? 1 : maxPos;
         this.args = fmtArgs.toArray(new FmtArg[0]);
 
-        this.idManager.setDepth(this.maxArgs - 1);
+        if(this.hasDepthUpArgs) {
+            this.idManager.setDepth(-1);
+        } else {
+            this.idManager.setDepth(this.maxArgsPosition - 1);
+        }
+    }
+
+    /*
+     *   This will ensure proper initialization of this instance...
+     *   This must be called before any Ids are requested or use of the Gremlin Query String.
+     *
+     *   @return a newly properly formated gremlin string to be used by String.format...
+     *
+     * Typical Example:
+     *   String.format(fmtObj.determineGremlinString(), fmtObj.getIds());
+     */
+    public String init() {
+
+        if(this.hasDepthUpArgs) {
+            // Fix up the gremlin format string to the proper position within the id array
+            final int maxDepth = this.idManager.getDepth() + 1;
+            for(FmtArg fmtArg : this.args) {
+                if(fmtArg.position < 0) {
+                    final int argPos = fmtArg.argPosition * -1;
+                    int newPos = 1;
+                    if(argPos < maxDepth) {
+                        newPos = maxDepth - argPos + 1;
+                    }
+                    this.gremlinString = this.gremlinString.replaceAll(String.format("\\%%%d\\$", fmtArg.argPosition),
+                                                                        String.format("\\%%%d\\$", newPos));
+                    fmtArg.position = newPos;
+                    if(newPos > this.maxArgsPosition) {
+                        this.maxArgsPosition =  newPos;
+                    }
+                }
+            }
+        }
+
+        this.determineGremlinString();
+
+        return this.gremlinString;
     }
 
     /*
@@ -97,12 +172,12 @@ final class FmtArgInfo {
      * Typical Example:
      *   String.format(fmtObj.determineGremlinString, fmtObj.getIds());
      */
-    public String determineGremlinString() {
+    private void determineGremlinString() {
 
         final Object sampleId = idManager.getId();
         final boolean isString = sampleId instanceof String;
 
-        if(!isString) { return gremlinString; }
+        if(!isString) { return; }
 
         int pos = 0;
         String newGremlinString = gremlinString;
@@ -126,7 +201,6 @@ final class FmtArgInfo {
         }
 
         this.gremlinString = newGremlinString;
-        return this.gremlinString;
     }
 
     /*
@@ -165,5 +239,7 @@ final class FmtArgInfo {
         @return The maximum detected placeholder position found in the Gremlin string.
                 This represents the required depth (under root node) to stratify the Gremlin Query.
      */
-    public int maxArgs() { return this.maxArgs; }
+    public int maxArgs() { return this.maxArgsPosition; }
+
+    public boolean hasDepthUpArgs() { return this.hasDepthUpArgs; }
 }
