@@ -188,7 +188,7 @@ java tinkerbench-1.0.0-jar-with-dependencies.jar AirRoutesQuery1 --ExportIds ./s
 
 ## Id Chain Sampler
 
-This manager can be used to randomly obtain ids (vertex, edges, etc.) or property values that can be used within a gremlin string. The ids/values returned can be associated with each other to form a chain or tree structure. Below is an example based on Ids at a maximum depth of four:
+This manager can be used to obtain ids (vertex, edges, etc.) or property values that can be used within a gremlin string. The ids/values returned can be associated with each other to form a chain or tree structure. Below is an example based on Ids at a maximum depth of four:
 
 ```text
 Id 1
@@ -411,7 +411,7 @@ java tinkerbench-2.1.0-jar-with-dependencies.jar 'g.V(%1$s).
   path()' --IdManager com.aerospike.idmanager.IdChainSampler --ImportIds ../myfolder/
 ```
 
-### Embedding the Placeholder within a Gremlin String
+### Embedding the Placeholders within a Gremlin String
 
 To embed a id/value within a Gremlin string, use the [Java advance string format syntax](https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/Formatter.html).
 
