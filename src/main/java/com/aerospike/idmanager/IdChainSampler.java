@@ -621,13 +621,13 @@ public class IdChainSampler implements IdManagerQuery {
                                                     Starting Nodes: %,d
                                                     Required Depth: %,d
                                                      Relationships: %,d
-                                                    Possible Paths: %,d""",
+                                                    Possible Depth: %,d""",
                                 this.getClass().getSimpleName(),
                                 this.getIdCount(),
                                 this.getStartingIdsCount(),
-                                this.getDepth(),
+                                this.getDepth() + 1,
                                 this.getNbrRelationships(),
-                                this.getInitialDepth());
+                                this.getInitialDepth() + 1);
         Helpers.Println(System.out,
                         msg,
                         Helpers.BLACK,

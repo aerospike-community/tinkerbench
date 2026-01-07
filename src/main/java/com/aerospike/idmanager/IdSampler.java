@@ -257,11 +257,11 @@ public class IdSampler implements IdManager {
     final public int getDepth() { return nbrIds; }
 
     /*
-        @return The number of ids actually loaded.
+        @return Zero since only root nodes are obtained.
      */
     @Override
     final public int getInitialDepth() {
-        return this.sampledIds == null ? 0 : this.sampledIds.size();
+        return this.isInitialized() ? 0 : -1;
     }
     @Override
     public boolean isInitialized() {
