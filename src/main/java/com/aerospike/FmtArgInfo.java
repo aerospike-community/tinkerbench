@@ -1,15 +1,12 @@
 package com.aerospike;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 final class FmtArgInfo {
     ///This is a much more complete regex to parse the Gremlin string. This will allow an advance Id Manager based on String format params...
-    final static Pattern fmtargPattern = Pattern.compile("(?<arg>(?<begin>['\"][^%]*)?%(?<opts>(?:(?<pos>\\-?\\d+)\\$)?(?:[-#+ 0,(<]*)?(?:\\d*)?(?:\\.\\d*)?(?:[tT])?)(?:[a-zA-Z])(?<end>[^)'\"]*['\"])?)");
+    final static Pattern fmtargPattern = Pattern.compile("(?<arg>(?<begin>['\"][^%]*)?%(?<opts>(?:(?<pos>\\-?\\d+)\\$)?(?:[-#+ 0,(<]*)?(?:\\d*)?(?:\\.\\d*)?(?:[tT])?)(?<type>[a-zA-Z])[^),'\"]*(?<end>['\"])?)");
 
     final FmtArg[] args;
     final IdManager idManager;
@@ -21,7 +18,8 @@ final class FmtArgInfo {
 
     public static final class FmtArg {
 
-        public String fmtArgValue;
+        public final String fmtType;
+        public final String fmtArgValue;
         /// The argument original position defined in the gremlin string
         /// '%-4$s' -> -4
         /// '%4$s' -> 4
@@ -39,6 +37,7 @@ final class FmtArgInfo {
 
         public FmtArg(Matcher fmtargMatch) {
             this.fmtArgValue = fmtargMatch.group("arg");
+            this.fmtType = fmtargMatch.group("type");
             String grpValue = fmtargMatch.group("pos");
             if (grpValue != null) {
                 this.argPosition = Integer.parseInt(grpValue);
@@ -179,25 +178,32 @@ final class FmtArgInfo {
 
         if(!isString) { return; }
 
-        int pos = 0;
+        int pos = 1;
         String newGremlinString = gremlinString;
 
+        final Map<String,Integer> argPos = new HashMap<>();
+
         for (FmtArg fmtArg : this.args) {
+            final String fmtArgValue = fmtArg.argPosition < 0 ? String.format("%%%d$%s", fmtArg.position, fmtArg.fmtType) : fmtArg.fmtArgValue;
+
+            pos = argPos.merge(String.format("%d.%s", fmtArg.position, fmtArg.fmtType),
+                                1,
+                                Integer::sum);
+
             if(!fmtArg.hasQuotes()) {
                 String replaceArg = "";
                 if(fmtArg.beginQuote == '\0') {
                     replaceArg = "\"";
                 }
-                replaceArg += fmtArg.fmtArgValue;
+                replaceArg += fmtArgValue;
                 if(fmtArg.endQuote == '\0') {
                     replaceArg += "\"";
                 }
                 newGremlinString = Helpers.ReplaceNthOccurrence(newGremlinString,
-                                                                fmtArg.fmtArgValue,
+                                                                fmtArgValue,
                                                                 replaceArg,
                                                                 pos);
             }
-            pos += 1;
         }
 
         this.gremlinString = newGremlinString;
