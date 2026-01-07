@@ -11,6 +11,8 @@ Below are the arguments and description:
     -   A Gremlin query string. This string will be compiled and executed for analysis. **Examples**:
         -   `g.V(3).out().limit(5).path().by(values('code','city').fold()).tolist()`
         -   `g.V(%s).out().limit(5).path().by(values('code','city').fold()).tolist()` Where ‘%s’ will be substituted with a random vertex id from the vertex manager. For more information see [vertex manager](./vertex_id_manager.md).
+        -   `g.V(%1$s,%3$s).out().limit(5).path().by(values('code','city').fold()).tolist()`
+        Where ‘%1$s’ will be substituted with a random parent (root) id and %3$s will be substituted with a random great-grandchild (depth 4) of the selected parent id. Note that this id can be a vertix, edge, or property.For more information see [Id Chain Manager](./vertex_id_manager.md#Id-Chain-Sampler).
     -   A Predefined Query. A query defined using the TinkerBench framework. For more information see [Writing Predefined/Advance Queries](./writing_predefined_queries.md).
     -   The keyword ‘List’. If provided all other arguments are ignored. This will list all the predefined queries found in the [Java class path](https://en.wikipedia.org/wiki/Classpath). For more information see [Writing Predefined/Advance Queries](./writing_predefined_queries.md).
 -   `--host`, `-n`, `-a` (String, Default localhost) – One or more graph nodes’ IP address or host name. To provide multiple nodes, each node must be paired with this argument. **Examples**:

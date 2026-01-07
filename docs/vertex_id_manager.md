@@ -411,9 +411,20 @@ java tinkerbench-2.1.0-jar-with-dependencies.jar 'g.V(%1$s).
   path()' --IdManager com.aerospike.idmanager.IdChainSampler --ImportIds ../myfolder/
 ```
 
-### Embedding within a Gremlin String
+### Embedding the Placeholder within a Gremlin String
 
 To embed a id/value within a Gremlin string, use the [Java advance string format syntax](https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/Formatter.html).
+
+The id/value placeholder has the following syntax:
+```
+%[-]<depth>$s
+```
+
+Where "depth" is the numeric depth level to obtain the id/value. An depth value of 1 is a parent node (root) and greater depth values are children under the selected parent ( 2 - child, 3 - grandchild, etc.).
+
+If the "depth" is negitive the depth starts from the leaf child (bottom node) and move up the tree. A value of -1 is the most bottom child of the parent (-2 second from the bottom, etc.). If the negitive depth is greater than the tree depth (e.g., -100 but the dept is only 10), the parent is always selected.
+
+If your depth is ducplicated in a query (e.g., `g.V(%1$s, %1$s)`), it will alway reference the same node. In this case, the `%1$s` will be the same parent.
 
 Below are some examples:
 
@@ -446,6 +457,21 @@ What this query does:
 - until(hasId(%3$s)) — stop when grandchild (depth 3) vertex reached
 - times(8) — allow up to 8 hops
 - path() — return the full route
+
+Using the Air routes dataset and a Gremlin Query that loads "aireport codes" into the Id Manager (see below):
+
+```
+g.V().has('airport', 'code', %1$s).as('p1').
+  out('route').inV().has('airport', 'code', %2s).as('p2').
+  out('route').inV().has('airport', 'code', %4$s).as('p4').
+  path().by('code')
+```
+
+Where:
+
+- '%1$s' will select an airport (parent)
+- '%2$s' will select a valid child airport assocated to the parent.
+- '%4$s' will select a great-grandchild airport releated to the child airport.
 
 ### Exporting Ids/Values to a File (Id Chaining)
 
