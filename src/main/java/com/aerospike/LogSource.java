@@ -254,18 +254,45 @@ public final class LogSource {
         logger4j.info("==============> Starting <==============");
 
         StringBuilder argStr = new StringBuilder();
-        List<String> jvmArgs = Helpers.getJVMArgs();
 
-        if(jvmArgs.isEmpty()) {
-            argStr.append("JVM Arguments: None Provided\n");
-        } else {
-            argStr.append("JVM Arguments:\n");
-            for(String arg : jvmArgs) {
-                argStr.append("\t")
-                        .append(arg)
-                        .append("\n");
+        argStr.append('\n');
+        {
+            // Get the runtime version string (more build details)
+            final String javaName = System.getProperty("java.runtime.name");
+            final String runtimeVersion = System.getProperty("java.runtime.version");
+            final String specVersion = System.getProperty("java.specification.version");
+            final String javaVersion = System.getProperty("java.version");
+            final String javaVendor = System.getProperty("java.vm.vendor");
+            final String javaSpecVendor = System.getProperty("java.vm.specification.vendor");
+            final Runtime javaRuntime = Runtime.getRuntime();
+
+            argStr.append("Java Vendor: ").append(javaVendor).append('\n');
+            argStr.append("Java Name: ").append(javaName).append('\n');
+            argStr.append("Java Version: ").append(javaVersion).append('\n');
+            argStr.append("Runtime Version: ").append(runtimeVersion).append('\n');
+            argStr.append("Specification Vendor: ").append(javaSpecVendor).append('\n');
+            argStr.append("Specification Version: ").append(specVersion).append('\n');
+
+            argStr.append("Available processors: ").append(javaRuntime.availableProcessors()).append('\n');
+            argStr.append("MB max memory: ").append(javaRuntime.maxMemory() / (1024 * 1024)).append('\n');
+            argStr.append("MB total memory: ").append(javaRuntime.totalMemory() / (1024 * 1024)).append('\n');
+            argStr.append("MB free memory: ").append(javaRuntime.freeMemory() / (1024 * 1024)).append('\n');
+        }
+
+        {
+            final List<String> jvmArgs = Helpers.getJVMArgs();
+
+            if (jvmArgs.isEmpty()) {
+                argStr.append("JVM Arguments: None Provided\n");
+            } else {
+                argStr.append("JVM Arguments:\n");
+                for (String arg : jvmArgs) {
+                    argStr.append("\t")
+                            .append(arg)
+                            .append("\n");
+                }
+                argStr.append("\n");
             }
-            argStr.append("\n");
         }
 
         argStr.append("Arguments:\n");

@@ -6,25 +6,25 @@
 
     <groupId>com.aerospike</groupId>
     <artifactId>tinkerbench</artifactId>
-    <version>2.0.1</version>
+    <version>2.1.0</version>
 
     <name>TinkerBench</name>
     <description>Aerospike TinkerBench</description>
     <url>https://github.com/aerospike-community/tinkerbench</url>
 
     <properties>
-        <maven.compiler.source>21</maven.compiler.source>
-        <maven.compiler.target>21</maven.compiler.target>
+        <maven.compiler.release>21</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <tinkerpop.version>3.7.4</tinkerpop.version>
         <picocli.version>4.7.7</picocli.version>
         <otel.version>1.52.0</otel.version>
         <slf4j.version>2.0.17</slf4j.version>
-        <logback.version>1.5.18</logback.version>
+        <logback.version>1.5.23</logback.version>
         <hdrhistogram.version>2.2.2</hdrhistogram.version>
         <progressbar.version>0.10.1</progressbar.version>
         <opencsv.version>5.12.0</opencsv.version>
         <lang3.version>3.19.0</lang3.version>
+        <junit.version>6.0.1</junit.version>
     </properties>
 
     <dependencies>
@@ -131,6 +131,15 @@
             <version>${opencsv.version}</version>
             <!-- http://opencsv.sf.net -->
         </dependency>
+
+        <!-- junit -->
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-params</artifactId>
+            <version>${junit.version}</version>
+            <scope>test</scope>
+        </dependency>
+
     </dependencies>
 
     <dependencyManagement>
@@ -160,7 +169,7 @@
                         </path>
                     </annotationProcessorPaths>
                     <compilerArgs>
-                        <arg>-Aproject=${project.groupId}/${project.artifactId}</arg>
+                        <!-- <arg>-Aproject=${project.groupId}/${project.artifactId}</arg>  -->
                     </compilerArgs>
                 </configuration>
             </plugin>

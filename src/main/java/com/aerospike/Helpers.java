@@ -1,5 +1,6 @@
 package com.aerospike;
 
+import com.aerospike.idmanager.IdSampler;
 import org.apache.tinkerpop.gremlin.driver.exception.ResponseException;
 import org.javatuples.Pair;
 
@@ -12,6 +13,7 @@ import java.lang.reflect.InvocationTargetException;
 
 import java.lang.reflect.Method;
 import java.net.MalformedURLException;
+import java.net.URI;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.nio.file.*;
@@ -99,6 +101,29 @@ public class Helpers {
         Println(printStream, msg, textColor, null);
     }
 
+    /**
+     * Checks if the current Java runtime environment version is 21 or higher.
+     * Throws an error if the requirement is not met.
+     */
+    public static void checkJavaVersion(LogSource logger) {
+        String javaVersionString = System.getProperty("java.version");
+
+        // The Runtime.Version API is the modern way to handle version parsing
+        Runtime.Version currentVersion = Runtime.Version.parse(javaVersionString);
+
+        final int REQUIRED_MAJOR_VERSION = 21;
+
+        if (currentVersion.feature() < REQUIRED_MAJOR_VERSION) {
+            String errorMessage = String.format(
+                    "Application requires Java version %d or higher. Current version is %s.",
+                    REQUIRED_MAJOR_VERSION,
+                    javaVersionString
+            );
+            logger.error(errorMessage);
+            throw new UnsupportedOperationException(errorMessage);
+        }
+    }
+
     public static <T, R> List<T> removeDuplicates(List<T> list, Function<T, R> keyExtractor) {
         Set<R> seenKeys = new HashSet<>();
         return list.stream()
@@ -132,13 +157,16 @@ public class Helpers {
     }
 
     private static final List<Class<?>> PreDefinedClasses = new  ArrayList<Class<?>>();
+    private static final List<Class<?>> IdManagerClasses = new  ArrayList<Class<?>>();
 
     public static Class<?> getClass(String jarFilePath, String className) throws ClassNotFoundException {
         try {
             return Class.forName(className);
         } catch (ClassNotFoundException ignore) {
             try {
-                URL[] urls = {new URL("jar:file:" + jarFilePath + "!/")};
+                final String urlstr = "jar:file:" + jarFilePath + "!/";
+                final URL url = URI.create(urlstr).toURL();
+                final URL[] urls = { url };
                 try (URLClassLoader cl = URLClassLoader.newInstance(urls)) {
                     return cl.loadClass(className);
                 } catch (IOException e) {
@@ -362,8 +390,32 @@ public class Helpers {
         return  Collections.emptyList();
     }
 
+    public static List<Class<?>> findAllIdManagers(String packageName) {
+        final LogSource logger = LogSource.getInstance();
+
+        List<Class<?>> classes = getClassesInPackage(packageName);
+
+        if(!classes.isEmpty()) {
+            if(logger.isDebug()) {
+                logger.PrintDebug("findAllIdManagers",
+                        "Found Classes: %s",
+                        classes.stream()
+                                .map(c -> c.getName() + " -- " + getJarFile(c))
+                                .collect(Collectors.joining(",\n\t")));
+            }
+            classes.sort(Comparator.comparing(Class::getSimpleName));
+            return classes;
+        }
+
+        return  Collections.emptyList();
+    }
+
     public static List<QueryRunnable> findAllPredefinedQueries() {
         return findAllPredefinedQueries("com.aerospike.predefined");
+    }
+
+    public static List<Class<?>> findAllIdManagers() {
+        return findAllIdManagers("com.aerospike.idmanager");
     }
 
     public static String GetShortClassName(final String className) {
@@ -579,6 +631,76 @@ public class Helpers {
 
         } catch (Exception ignored) {}
         return null;
+    }
+
+    /**
+     * Replaces the nth occurrence of a substring in a string.
+     *
+     * @param source The original string.
+     * @param target The substring to find.
+     * @param replacement The replacement substring.
+     * @param occurrence The occurrence number to replace (1 for the first, 2 for the second, etc.).
+     * @return A new string with the specified occurrence replaced, or the original string if the occurrence isn't found.
+     */
+    public static String ReplaceNthOccurrence(String source, String target, String replacement, int occurrence) {
+        if (occurrence <= 0) {
+            return source;
+        }
+
+        int index = -1;
+        int count = 0;
+        int fromIndex = 0;
+
+        // Loop to find the index of the nth occurrence
+        while (count < occurrence && (index = source.indexOf(target, fromIndex)) != -1) {
+            count++;
+            if (count == occurrence) {
+                // Once the nth occurrence is found, break the loop
+                break;
+            }
+            // Update the starting index for the next search
+            fromIndex = index + target.length();
+        }
+
+        if (index == -1) {
+            // If the nth occurrence is not found, return the original string
+            return source;
+        }
+
+        // Reconstruct the string using substring and the replacement
+        // Java Strings are immutable, so a new String is created
+        return source.substring(0, index) + replacement + source.substring(index + target.length());
+    }
+
+    public static String[] TrimTrailingEmptyOrNull(String[] array) {
+        if (array == null) {
+            return null;
+        }
+
+        int newLength = array.length;
+        // Iterate backward to find the first non-null, non-empty element
+        for (int i = array.length - 1; i >= 0; i--) {
+            if (array[i] == null || array[i].isEmpty()) {
+                newLength--;
+            } else {
+                break; // Stop when a valid element is found
+            }
+        }
+
+        // Copy the valid part of the array into a new, smaller array
+        return Arrays.copyOf(array, newLength);
+    }
+
+    /*
+    *   If object is an Optional instance, it will unwrap it and return the actual value or null.
+    *   @param obj -- Possible Optional instance
+    *   @return the actual value or null, if not present...
+     */
+    public static Object Unwrap(Object obj) {
+        if (obj instanceof Optional<?> opt) {
+            return opt.orElse(null);
+        }
+        return obj;
     }
 
     public static ZonedDateTime GetLocalTimeZone(final LocalDateTime localDateTime) {
@@ -804,4 +926,5 @@ public class Helpers {
 
         return file;
     }
+
 }

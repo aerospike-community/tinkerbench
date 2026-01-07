@@ -13,11 +13,13 @@ public class Main extends TinkerBenchArgs {
                                         IdManager idManager,
                                         Duration targetRunDuration,
                                         TinkerBenchArgs args,
-                                        boolean isWarmUp) {
+                                        boolean isWarmUp,
+                                        boolean ranWarmUp) {
 
         try (final WorkloadProvider workload = new WorkloadProviderScheduler(openTel,
                                                                             targetRunDuration,
                                                                             isWarmUp,
+                                                                            ranWarmUp,
                                                                             args)) {
             final boolean isQueryString = args.queryNameOrString
                                             .indexOf(".") > 0;
@@ -35,36 +37,53 @@ public class Main extends TinkerBenchArgs {
             if (mainInstance.abortRun.get())
                 return;
 
-            if(!args.appTestMode && !args.idManager.isInitialized()) {
-                final int sampleSIze = workloadRunner.getSampleSize() < 0
-                                        ? args.idSampleSize
-                                        : workloadRunner.getSampleSize();
-                final String[] labels = workloadRunner.getSampleLabelId() == null
-                                        ? args.labelsSample
-                                        : (args.labelsSample == null
-                                            ?  workloadRunner.getSampleLabelId()
-                                            : args.labelsSample);
-                if(args.importIdsPath != null) {
-                    System.out.printf("Importing Ids from '%s'...%n",
-                                        args.importIdsPath);
-                    args.idManager.importFile(args.importIdsPath,
-                                                openTel,
-                                                logger,
-                                                sampleSIze,
-                                                labels);
-                } else {
-                    args.idManager.init(agsGraphTraversal.G(),
-                                        openTel,
-                                        logger,
-                                        sampleSIze,
-                                        labels);
-                }
-                args.idManager.CheckIdsExists(logger);
+            if(!args.appTestMode
+                    && args.idManager.enabled()) {
+                if (!args.idManager.isInitialized()) {
+                    final int sampleSIze = workloadRunner.getSampleSize() < 0
+                            ? args.idSampleSize
+                            : workloadRunner.getSampleSize();
+                    final String[] labels = workloadRunner.getSampleLabelId() == null
+                            ? args.labelsSample
+                            : (args.labelsSample == null
+                            ? workloadRunner.getSampleLabelId()
+                            : args.labelsSample);
+                    if (args.importIdsPath != null) {
+                        System.out.printf("Importing Ids from '%s'...%n",
+                                args.importIdsPath);
+                        args.idManager.importFile(args.importIdsPath,
+                                openTel,
+                                logger,
+                                sampleSIze,
+                                labels);
+                    } else {
+                        if (args.idManager instanceof IdManagerQuery idQuery) {
+                            idQuery.init(agsGraphTraversal,
+                                    openTel,
+                                    logger,
+                                    args.idGremlinQuery);
+                        } else {
+                            args.idManager.init(agsGraphTraversal.G(),
+                                    openTel,
+                                    logger,
+                                    sampleSIze,
+                                    labels);
+                        }
+                    }
+                    args.idManager.CheckIdsExists(logger);
 
-                if(args.exportIdsPath != null) {
-                    args.idManager.exportFile(args.exportIdsPath,
-                                               logger);
+                    if (args.exportIdsPath != null) {
+                        args.idManager.exportFile(args.exportIdsPath,
+                                logger);
+                    }
+
+                    if (!args.idManager.isEmpty()) {
+                        args.idManager.printStats(logger);
+                    }
                 }
+            } else {
+                logger.PrintDebug("Id Manager", "Id Manager disabled");
+                openTel.setIdMgrGauge(null, null, null, -1, 0, 0);
             }
 
             workloadRunner.PrepareCompile();
@@ -101,8 +120,12 @@ public class Main extends TinkerBenchArgs {
 
     public Integer call() throws Exception {
         if(ListPredefinedQueries()) {
-            return 0;
+            return 1;
         }
+        if(ListIdManagers()) {
+            return 1;
+        }
+
         validate();
 
         PrintArguments(false);
@@ -111,6 +134,8 @@ public class Main extends TinkerBenchArgs {
         logger.title(this);
 
         System.out.printf("Application PID: %s%n", Helpers.GetPid());
+
+        Helpers.checkJavaVersion(logger);
 
         if(logger.loggingEnabled()) {
             Helpers.Println(System.out,
@@ -125,6 +150,7 @@ public class Main extends TinkerBenchArgs {
             final AGSGraphTraversalSource agsGraphTraversalSource
                             = new AGSGraphTraversalSource(this, openTel)) {
 
+            boolean ranWarmup = false;
             if (!warmupDuration.isZero()) {
                 ExecuteWorkload(openTel,
                                     logger,
@@ -132,7 +158,9 @@ public class Main extends TinkerBenchArgs {
                                     this.idManager,
                                     warmupDuration,
                                 this,
-                            true);
+                            true,
+                        false);
+                ranWarmup = true;
             }
 
             if (!mainInstance.abortRun.get()) {
@@ -142,7 +170,8 @@ public class Main extends TinkerBenchArgs {
                                 this.idManager,
                                 duration,
                                 this,
-                                false);
+                                false,
+                                ranWarmup);
                 mainInstance.terminateRun.set(true);
             }
         } finally {

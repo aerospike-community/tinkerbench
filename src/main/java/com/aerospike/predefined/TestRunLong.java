@@ -98,6 +98,15 @@ public class TestRunLong implements QueryRunnable {
     }
 
     /**
+     * @param depth ignored
+     * @return null since this does not use sampling ids...
+     */
+    @Override
+    public Object getVId(int depth) {
+        return null;
+    }
+
+    /**
      * @return true to indicate to execute the workload and false to abort.
      */
     @Override
