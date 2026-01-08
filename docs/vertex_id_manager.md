@@ -462,7 +462,7 @@ Using the Air routes dataset and a Gremlin Query that loads "aireport codes" int
 
 ```
 g.V().has('airport', 'code', %1$s).as('p1').
-  out('route').inV().has('airport', 'code', %2s).as('p2').
+  out('route').inV().has('airport', 'code', %2$s).as('p2').
   out('route').inV().has('airport', 'code', %4$s).as('p4').
   path().by('code')
 ```
