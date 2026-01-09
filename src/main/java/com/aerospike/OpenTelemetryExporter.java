@@ -569,7 +569,7 @@ public final class OpenTelemetryExporter implements com.aerospike.OpenTelemetry 
 
         this.internalClose();
 
-        this.printMsg("Closed OpenTelemetry Exporter", true);
+        this.printDebug("Closed OpenTelemetry Exporter");
     }
 
     public String printConfiguration() {

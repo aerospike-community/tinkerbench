@@ -1,11 +1,17 @@
 package com.aerospike;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import picocli.CommandLine;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class Main extends TinkerBenchArgs {
+
+    private static final Logger log = LoggerFactory.getLogger(Main.class);
+    private static final AtomicInteger exitStatus = new AtomicInteger(0);
 
     private static void ExecuteWorkload(OpenTelemetry openTel,
                                         LogSource logger,
@@ -13,11 +19,13 @@ public class Main extends TinkerBenchArgs {
                                         IdManager idManager,
                                         Duration targetRunDuration,
                                         TinkerBenchArgs args,
+                                        int qps,
                                         boolean isWarmUp,
                                         boolean ranWarmUp) {
 
         try (final WorkloadProvider workload = new WorkloadProviderScheduler(openTel,
                                                                             targetRunDuration,
+                                                                            qps,
                                                                             isWarmUp,
                                                                             ranWarmUp,
                                                                             args)) {
@@ -94,25 +102,29 @@ public class Main extends TinkerBenchArgs {
             if (isWarmUp) {
                 System.out.println("Preparing WarmUp...");
                 logger.info("Preparing WarmUp...");
-            } else {
-                System.out.printf("Preparing workload %s...\n", args.queryNameOrString);
-                logger.info("Preparing workload {}...", args.queryNameOrString);
-            }
 
-            workloadRunner
-                .Start()
-                .awaitTermination()
-                .PrintSummary();
+                workloadRunner
+                        .Start()
+                        .awaitTermination()
+                        .PrintSummary();
 
-            if (isWarmUp) {
                 System.out.println("WarmUp Completed...");
                 logger.info("WarmUp Completed...");
             } else {
+                System.out.printf("Preparing workload %s...\n", args.queryNameOrString);
+                logger.info("Preparing workload {}...", args.queryNameOrString);
+
+                workloadRunner
+                        .Start()
+                        .awaitTermination()
+                        .PrintSummary();
+
                 System.out.println("Workload Completed...");
                 logger.info("Workload Completed...");
             }
 
         } catch (Exception e) {
+            args.errorRun.set(true);
             logger.error(isWarmUp ? "Warmup" : "Workload", e);
             throw new RuntimeException(e);
         }
@@ -120,17 +132,28 @@ public class Main extends TinkerBenchArgs {
 
     public Integer call() throws Exception {
         if(ListPredefinedQueries()) {
+            exitStatus.set(1);
             return 1;
         }
         if(ListIdManagers()) {
+            exitStatus.set(1);
             return 1;
         }
 
-        validate();
+        final LogSource logger = new LogSource(debug);
+
+        try {
+            validate();
+        } catch (Exception e) {
+            logger.error("CLI Exception", e);
+            PrintArguments(true);
+            System.err.println("Command Line Error:%n\t" + e.getMessage());
+            exitStatus.set(1);
+            return 1;
+        }
 
         PrintArguments(false);
 
-        LogSource logger = new LogSource(debug);
         logger.title(this);
 
         System.out.printf("Application PID: %s%n", Helpers.GetPid());
@@ -158,29 +181,67 @@ public class Main extends TinkerBenchArgs {
                                     this.idManager,
                                     warmupDuration,
                                 this,
-                            true,
-                        false);
+                                    this.queriesPerSecond,
+                                true,
+                            false);
                 ranWarmup = true;
             }
 
-            if (!mainInstance.abortRun.get()) {
-                ExecuteWorkload(openTel,
-                                logger,
-                                agsGraphTraversalSource,
-                                this.idManager,
-                                duration,
-                                this,
-                                false,
-                                ranWarmup);
-                mainInstance.terminateRun.set(true);
+            if (!(abortRun.get()
+                    || errorRun.get())) {
+                int currentQPS = this.queriesPerSecond;
+                do {
+                    ExecuteWorkload(openTel,
+                                    logger,
+                                    agsGraphTraversalSource,
+                                    this.idManager,
+                                    duration,
+                                    this,
+                                    currentQPS,
+                                    false,
+                                    ranWarmup);
+
+                    if(incrQPS <= 0
+                        || errorRun.get()
+                        || abortRun.get()
+                        || abortSIGRun.get()
+                        || qpsErrorRun.get()) {
+                        break;
+                    }
+                    currentQPS += incrQPS;
+                    Helpers.Println(System.out,
+                            String.format("Changing QPS to %s",
+                                            Helpers.FmtInt(currentQPS)),
+                            Helpers.BLACK,
+                            Helpers.GREEN_BACKGROUND);
+                    logger.info(String.format("Changing QPS: %d", currentQPS));
+                } while (currentQPS <= endQPS);
+
+                terminateRun.set(true);
             }
+        } catch (Exception e) {
+            errorRun.set(true);
+            e.printStackTrace(System.err);
         } finally {
 
-            if(abortRun.get() || abortSIGRun.get()) {
+            if(errorRun.get()) {
+                Helpers.Println(System.out,
+                        "TinkerBench ended because of an error!",
+                        Helpers.BLACK,
+                        Helpers.RED_BACKGROUND);
+                exitStatus.set(4);
+            } else if(qpsErrorRun.get()) {
+                Helpers.Println(System.out,
+                        "TinkerBench ended because QPS wasn't obtained!",
+                        Helpers.BLACK,
+                        Helpers.RED_BACKGROUND);
+                exitStatus.set(3);
+            } else if(abortRun.get() || abortSIGRun.get()) {
                 Helpers.Println(System.out,
                         "TinkerBench ended in Aborted Status!",
                         Helpers.BLACK,
                         Helpers.RED_BACKGROUND);
+                exitStatus.set(5);
             } else {
                 Helpers.Println(System.out,
                         "TinkerBench Workload Completed!",
@@ -205,7 +266,7 @@ public class Main extends TinkerBenchArgs {
             logger.info(msg);
         }
 
-        return  0;
+        return exitStatus.get();
     }
 
     private static final Main mainInstance = new Main();
@@ -219,10 +280,11 @@ public class Main extends TinkerBenchArgs {
                 mainInstance.abortRun.set(true);
                 mainInstance.abortSIGRun.set(true);
                 System.out.println("Abort initiated. Performing cleanup...");
+                exitStatus.set(5);
             }
         }));
 
-        int statusCode = new CommandLine(mainInstance).execute(args);
-        System.exit(statusCode);
+        new CommandLine(mainInstance).execute(args);
+        System.exit(exitStatus.get());
     }
 }

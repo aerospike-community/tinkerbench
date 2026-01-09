@@ -72,6 +72,23 @@ public abstract class TinkerBenchArgs implements Callable<Integer> {
             defaultValue = "100")
     int queriesPerSecond;
 
+    @Option(names = {"-incr", "-iqps", "--IncrementQueriesPerSec"},
+            description = "The increment to the queries per seconds until End QPS. Disabled if zero. Default is ${DEFAULT-VALUE}",
+            defaultValue = "0")
+    int incrQPS;
+
+    @Option(names = {"-end", "-eqps", "--EndQueriesPerSec"},
+            description = "If Incremental QPS enabled, this will be the ending QPS (inclusive). If zero, the QPS will be Incremented until the QPS cannot be maintained. Default is ${DEFAULT-VALUE}",
+            defaultValue = "1000")
+    int endQPS;
+
+    @Option(names = {"-qpspct", "--QPSPctThreshold"},
+            description = "The QPS rate threshold percentage between actual and target QPS.%n"
+                            + "If this percentage is exceed, the test is considered ailed.%n"
+                            + "Disabled if zero. Default is ${DEFAULT-VALUE}",
+            defaultValue = "95")
+    int qpsThreshold;
+
     @Option(names = {"-n", "-a", "--host"},
             description = "Specify the Aerospike Graph Server's host name or IP address.%nMultiple AGS hosts can be given by providing this option multiple times.%nExample:%n\t-n agsHost1 -n agsHost2, etc.%nDefault is '${DEFAULT-VALUE}'",
             split = ",",
@@ -188,6 +205,9 @@ public abstract class TinkerBenchArgs implements Callable<Integer> {
     public final AtomicBoolean abortRun = new AtomicBoolean(false);
     public final AtomicBoolean abortSIGRun = new AtomicBoolean(false);
     public final AtomicBoolean terminateRun = new AtomicBoolean(false);
+    public final AtomicBoolean errorRun = new AtomicBoolean(false);
+    public final AtomicBoolean qpsErrorRun = new AtomicBoolean(false);
+
 
     /**
      * {@link IVersionProvider} implementation that returns version information from {@code /MANIFEST.MF} and {@code /META-INF/MANIFEST.MF} file.
