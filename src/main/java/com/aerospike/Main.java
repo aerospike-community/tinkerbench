@@ -12,6 +12,7 @@ public class Main extends TinkerBenchArgs {
 
     private static final Logger log = LoggerFactory.getLogger(Main.class);
     private static final AtomicInteger exitStatus = new AtomicInteger(0);
+    private static QueryRunnable workloadRunnerCache;
 
     private static void ExecuteWorkload(OpenTelemetry openTel,
                                         LogSource logger,
@@ -32,16 +33,19 @@ public class Main extends TinkerBenchArgs {
             final boolean isQueryString = args.queryNameOrString
                                             .indexOf(".") > 0;
 
-            final QueryRunnable workloadRunner = isQueryString
-                                                    ? new EvalQueryWorkloadProvider(workload,
-                                                                                    agsGraphTraversal,
-                                                                                    args.queryNameOrString,
-                                                                                    idManager)
-                                                    : Helpers.GetQuery(args.queryNameOrString,
-                                                                        workload,
-                                                                        agsGraphTraversal,
-                                                                        idManager,
-                                                                        args.debug);
+            final QueryRunnable workloadRunner = workloadRunnerCache == null
+                                                    ? (isQueryString
+                                                        ? new EvalQueryWorkloadProvider(workload,
+                                                                                        agsGraphTraversal,
+                                                                                        args.queryNameOrString,
+                                                                                        idManager)
+                                                        : Helpers.GetQuery(args.queryNameOrString,
+                                                                            workload,
+                                                                            agsGraphTraversal,
+                                                                            idManager,
+                                                                            args.debug))
+                                                    : workloadRunnerCache.SetWorkloadProvider(workload);
+
             if (mainInstance.abortRun.get())
                 return;
 
@@ -91,13 +95,15 @@ public class Main extends TinkerBenchArgs {
                 }
             } else {
                 logger.PrintDebug("Id Manager", "Id Manager disabled");
-                openTel.setIdMgrGauge(null, null, null, -1, 0, 0);
+                openTel.setIdMgrGauge(null, null, null, -1, -1, 0, 0, 0, 0);
             }
 
             workloadRunner.PrepareCompile();
 
             if (mainInstance.abortRun.get())
                 return;
+
+            workloadRunnerCache = workloadRunner;
 
             if (isWarmUp) {
                 System.out.println("Preparing WarmUp...");
@@ -189,7 +195,34 @@ public class Main extends TinkerBenchArgs {
 
             if (!(abortRun.get()
                     || errorRun.get())) {
+
+                if(incrQPS > 0) {
+                    Helpers.Println(System.out,
+                            String.format("Incrementing QPS by %s",
+                                    Helpers.FmtInt(incrQPS)),
+                            Helpers.BLACK,
+                            Helpers.GREEN_BACKGROUND);
+                    logger.info(String.format("Incrementing QPS: %d", endQPS));
+
+                    if (endQPS <= 0) {
+                        Helpers.Println(System.out,
+                                "Warning: Incrementing QPS until Target QPS is not met.",
+                                Helpers.RED,
+                                Helpers.YELLOW_BACKGROUND);
+                        logger.warn("Incrementing QPS until Target QPS is not met.");
+                    }
+                }
+
                 int currentQPS = this.queriesPerSecond;
+                final int endQPS = this.endQPS <= 0 ? Integer.MAX_VALUE : this.endQPS;
+
+                Helpers.Println(System.out,
+                        String.format("Target QPS of %s",
+                                Helpers.FmtInt(currentQPS)),
+                        Helpers.BLACK,
+                        Helpers.GREEN_BACKGROUND);
+                logger.info(String.format("Target QPS: %d", currentQPS));
+
                 do {
                     ExecuteWorkload(openTel,
                                     logger,
@@ -205,16 +238,20 @@ public class Main extends TinkerBenchArgs {
                         || errorRun.get()
                         || abortRun.get()
                         || abortSIGRun.get()
-                        || qpsErrorRun.get()) {
+                        || qpsErrorRun.get()
+                        || terminateRun.get()) {
                         break;
                     }
                     currentQPS += incrQPS;
-                    Helpers.Println(System.out,
-                            String.format("Changing QPS to %s",
-                                            Helpers.FmtInt(currentQPS)),
-                            Helpers.BLACK,
-                            Helpers.GREEN_BACKGROUND);
-                    logger.info(String.format("Changing QPS: %d", currentQPS));
+                    if(currentQPS <= endQPS) {
+                        ranWarmup = true;
+                        Helpers.Println(System.out,
+                                String.format("Changing Target QPS to %s",
+                                        Helpers.FmtInt(currentQPS)),
+                                Helpers.BLACK,
+                                Helpers.GREEN_BACKGROUND);
+                        logger.info(String.format("Changing Target QPS: %d", currentQPS));
+                    }
                 } while (currentQPS <= endQPS);
 
                 terminateRun.set(true);

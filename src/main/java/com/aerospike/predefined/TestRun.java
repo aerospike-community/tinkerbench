@@ -7,8 +7,8 @@ import org.javatuples.Pair;
 
 public class TestRun implements QueryRunnable {
 
-    private final WorkloadProvider provider;
-    private final boolean isPrintResults;
+    private WorkloadProvider provider;
+    private boolean isPrintResults;
 
     public TestRun(final WorkloadProvider provider,
                    final AGSGraphTraversal ignored0,
@@ -48,6 +48,22 @@ public class TestRun implements QueryRunnable {
     @Override
     public String getDescription() {
         return "Test Run that doesn't query the AGS but performs 1 ms sleep.";
+    }
+
+    @Override
+    public QueryRunnable SetWorkloadProvider(WorkloadProvider newProvider) {
+
+        if(newProvider == null) {
+            throw new IllegalArgumentException("newProvider cannot be null");
+        }
+
+        if(provider != null && provider.getStatus() != WorkloadStatus.Shutdown) {
+            throw new IllegalStateException("Current WorkloadProvider must be in shutdown state");
+        }
+        provider = newProvider;
+        this.isPrintResults = this.provider.getCliArgs().printResult;
+        this.provider.setQuery(this);
+        return this;
     }
 
     @Override

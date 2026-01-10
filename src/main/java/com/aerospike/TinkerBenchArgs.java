@@ -84,7 +84,7 @@ public abstract class TinkerBenchArgs implements Callable<Integer> {
 
     @Option(names = {"-qpspct", "--QPSPctThreshold"},
             description = "The QPS rate threshold percentage between actual and target QPS.%n"
-                            + "If this percentage is exceed, the test is considered ailed.%n"
+                            + "If this percentage is not met, the test is considered failed.%n"
                             + "Disabled if zero. Default is ${DEFAULT-VALUE}",
             defaultValue = "95")
     int qpsThreshold;
@@ -542,12 +542,34 @@ public abstract class TinkerBenchArgs implements Callable<Integer> {
 
         if(port <= 0) {
             throw new CommandLine.ParameterException(commandlineSpec.commandLine(),
-                    "Argument AGS port cannot be zero or negative.");
+                    "Argument AGS 'port' cannot be zero or negative.");
         }
 
         if(errorsAbort <= 0) {
             throw new CommandLine.ParameterException(commandlineSpec.commandLine(),
-                    "Argument number of Errors to Abort cannot be zero or negative.");
+                    "Argument 'number of Errors' to Abort cannot be zero or negative.");
+        }
+
+        if(incrQPS < 0) {
+            throw new CommandLine.ParameterException(commandlineSpec.commandLine(),
+                    "Argument 'QPS Incremental' cannot be negative.");
+        }
+
+        if(qpsThreshold < 0) {
+            throw new CommandLine.ParameterException(commandlineSpec.commandLine(),
+                    "Argument 'QPS Threshold' cannot be negative.");
+        }
+
+        if(incrQPS > 0) {
+            if (endQPS > 0 && endQPS < queriesPerSecond) {
+                throw new CommandLine.ParameterException(commandlineSpec.commandLine(),
+                        String.format("Arguments 'End QPS' (%d) cannot be less than 'QPS' (%d).", endQPS, queriesPerSecond));
+            }
+        }
+
+        if(qpsThreshold == 0 && endQPS == 0) {
+            throw new CommandLine.ParameterException(commandlineSpec.commandLine(),
+                    "Arguments 'QPS Threshold' and 'End QPS' cannot both be zero.");
         }
 
         if(!missing(clusterConfigurationFile) && !clusterConfigurationFile.exists()) {

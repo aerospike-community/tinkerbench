@@ -266,6 +266,9 @@
               "AGSHost": true,
               "AGSHost 1": true,
               "AGSHost 2": true,
+              "CPSEnd": true,
+              "CPSIncr": true,
+              "CPSRatePct": true,
               "CallsPerSecond": true,
               "CallsPerSecond 1": true,
               "CallsPerSecond 2": true,
@@ -299,6 +302,7 @@
               "commandlineargs": true,
               "commandlineargs 1": true,
               "commandlineargs 2": true,
+              "currCPS": true,
               "currTimeSecs": true,
               "duration": true,
               "duration 1": true,
@@ -729,6 +733,299 @@
         "type": "prometheus",
         "uid": "${DATASOURCE}"
       },
+      "description": "The rate incremented from last QPS",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [
+            {
+              "options": {
+                "0": {
+                  "index": 0,
+                  "text": "N/A"
+                }
+              },
+              "type": "value"
+            }
+          ],
+          "noValue": "--",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              }
+            ]
+          },
+          "unit": "locale"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 3,
+        "x": 6,
+        "y": 9
+      },
+      "id": 42,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "/^CPSIncr$/",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "pluginVersion": "12.1.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DATASOURCE}"
+          },
+          "disableTextWrap": false,
+          "editorMode": "builder",
+          "expr": "aerospike_workload_ags_stateinfo{instance=~\"$client\", workload=~\"$workload\", type=\"static\", wltype=~\"$workloadtype\"}",
+          "format": "table",
+          "fullMetaSearch": false,
+          "includeNullMetadata": true,
+          "legendFormat": "__auto",
+          "range": true,
+          "refId": "A",
+          "useBackend": false
+        }
+      ],
+      "title": "QPS Increment",
+      "transformations": [
+        {
+          "id": "sortBy",
+          "options": {
+            "fields": {},
+            "sort": [
+              {
+                "desc": false,
+                "field": "Value"
+              }
+            ]
+          }
+        }
+      ],
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DATASOURCE}"
+      },
+      "description": "Stop running when this QPS is reached.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [
+            {
+              "options": {
+                "0": {
+                  "color": "red",
+                  "index": 0,
+                  "text": "Until Failed"
+                },
+                "-1": {
+                  "index": 1,
+                  "text": "NA"
+                }
+              },
+              "type": "value"
+            }
+          ],
+          "noValue": "--",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              }
+            ]
+          },
+          "unit": "locale"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 3,
+        "x": 9,
+        "y": 9
+      },
+      "id": 43,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "/^CPSEnd$/",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "pluginVersion": "12.1.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DATASOURCE}"
+          },
+          "disableTextWrap": false,
+          "editorMode": "builder",
+          "expr": "aerospike_workload_ags_stateinfo{instance=~\"$client\", workload=~\"$workload\", type=\"static\", wltype=~\"$workloadtype\"}",
+          "format": "table",
+          "fullMetaSearch": false,
+          "includeNullMetadata": true,
+          "legendFormat": "__auto",
+          "range": true,
+          "refId": "A",
+          "useBackend": false
+        }
+      ],
+      "title": "Ending QPS",
+      "transformations": [
+        {
+          "id": "sortBy",
+          "options": {
+            "fields": {},
+            "sort": [
+              {
+                "desc": false,
+                "field": "Value"
+              }
+            ]
+          }
+        }
+      ],
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DATASOURCE}"
+      },
+      "description": "The percent of the QPS rate that will be considered Good",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [
+            {
+              "options": {
+                "0": {
+                  "index": 0,
+                  "text": "NA"
+                }
+              },
+              "type": "value"
+            }
+          ],
+          "noValue": "--",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              }
+            ]
+          },
+          "unit": "percent"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 3,
+        "x": 12,
+        "y": 9
+      },
+      "id": 44,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "/^CPSRatePct$/",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "pluginVersion": "12.1.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DATASOURCE}"
+          },
+          "disableTextWrap": false,
+          "editorMode": "builder",
+          "expr": "aerospike_workload_ags_stateinfo{instance=~\"$client\", workload=~\"$workload\", type=\"static\", wltype=~\"$workloadtype\"}",
+          "format": "table",
+          "fullMetaSearch": false,
+          "includeNullMetadata": true,
+          "legendFormat": "__auto",
+          "range": true,
+          "refId": "A",
+          "useBackend": false
+        }
+      ],
+      "title": "QPS Percent",
+      "transformations": [
+        {
+          "id": "sortBy",
+          "options": {
+            "fields": {},
+            "sort": [
+              {
+                "desc": false,
+                "field": "Value"
+              }
+            ]
+          }
+        }
+      ],
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DATASOURCE}"
+      },
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -754,8 +1051,8 @@
       },
       "gridPos": {
         "h": 4,
-        "w": 3,
-        "x": 6,
+        "w": 2,
+        "x": 15,
         "y": 9
       },
       "id": 13,
@@ -843,8 +1140,8 @@
       },
       "gridPos": {
         "h": 4,
-        "w": 3,
-        "x": 9,
+        "w": 2,
+        "x": 17,
         "y": 9
       },
       "id": 14,
@@ -928,8 +1225,8 @@
       },
       "gridPos": {
         "h": 4,
-        "w": 3,
-        "x": 12,
+        "w": 2,
+        "x": 19,
         "y": 9
       },
       "id": 22,
@@ -1014,7 +1311,7 @@
       "gridPos": {
         "h": 4,
         "w": 3,
-        "x": 15,
+        "x": 21,
         "y": 9
       },
       "id": 6,
@@ -1072,7 +1369,7 @@
       "type": "stat"
     },
     {
-      "collapsed": false,
+      "collapsed": true,
       "gridPos": {
         "h": 1,
         "w": 24,
@@ -1080,597 +1377,728 @@
         "y": 13
       },
       "id": 26,
-      "panels": [],
-      "title": "Vertex Ids",
-      "type": "row"
-    },
-    {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${DATASOURCE}"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
-          "decimals": 0,
-          "mappings": [],
-          "noValue": "--",
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": 0
-              }
-            ]
-          },
-          "unit": "string"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 5,
-        "w": 3,
-        "x": 0,
-        "y": 14
-      },
-      "id": 36,
-      "options": {
-        "colorMode": "value",
-        "graphMode": "area",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "percentChangeColorMode": "standard",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "/^manger_class$/",
-          "values": false
-        },
-        "showPercentChange": false,
-        "textMode": "auto",
-        "wideLayout": true
-      },
-      "pluginVersion": "12.1.0",
-      "targets": [
+      "panels": [
         {
           "datasource": {
             "type": "prometheus",
             "uid": "${DATASOURCE}"
           },
-          "disableTextWrap": false,
-          "editorMode": "builder",
-          "exemplar": false,
-          "expr": "aerospike_workload_ags_idmgrinfo{instance=~\"$client\"}",
-          "format": "table",
-          "fullMetaSearch": false,
-          "includeNullMetadata": true,
-          "instant": false,
-          "legendFormat": "__auto",
-          "range": true,
-          "refId": "A",
-          "useBackend": false
-        }
-      ],
-      "title": "Manager Type",
-      "type": "stat"
-    },
-    {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${DATASOURCE}"
-      },
-      "description": "Use this Labe to obtain Ids",
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
-          "decimals": 0,
-          "mappings": [],
-          "noValue": "--",
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": 0
-              }
-            ]
-          },
-          "unit": "string"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 5,
-        "w": 3,
-        "x": 3,
-        "y": 14
-      },
-      "id": 39,
-      "options": {
-        "colorMode": "value",
-        "graphMode": "area",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "percentChangeColorMode": "standard",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "/^label$/",
-          "values": false
-        },
-        "showPercentChange": false,
-        "textMode": "auto",
-        "wideLayout": true
-      },
-      "pluginVersion": "12.1.0",
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${DATASOURCE}"
-          },
-          "disableTextWrap": false,
-          "editorMode": "builder",
-          "exemplar": false,
-          "expr": "aerospike_workload_ags_idmgrinfo{instance=~\"$client\"}",
-          "format": "table",
-          "fullMetaSearch": false,
-          "includeNullMetadata": true,
-          "instant": false,
-          "legendFormat": "__auto",
-          "range": true,
-          "refId": "A",
-          "useBackend": false
-        }
-      ],
-      "title": "Label",
-      "type": "stat"
-    },
-    {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${DATASOURCE}"
-      },
-      "description": "Used this query to obtain Ids",
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "fixedColor": "green",
-            "mode": "fixed"
-          },
-          "custom": {
-            "align": "center",
-            "cellOptions": {
-              "type": "color-text",
-              "wrapText": true
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "thresholds"
+              },
+              "decimals": 0,
+              "mappings": [],
+              "noValue": "--",
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": 0
+                  }
+                ]
+              },
+              "unit": "string"
             },
-            "filterable": false,
-            "inspect": true
+            "overrides": []
           },
-          "fieldMinMax": false,
-          "mappings": [],
-          "noValue": "--",
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": 0
-              }
-            ]
+          "gridPos": {
+            "h": 5,
+            "w": 5,
+            "x": 0,
+            "y": 14
           },
-          "unit": "string"
-        },
-        "overrides": [
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "gremlinIdString"
+          "id": 36,
+          "options": {
+            "colorMode": "value",
+            "graphMode": "area",
+            "justifyMode": "auto",
+            "orientation": "auto",
+            "percentChangeColorMode": "standard",
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ],
+              "fields": "/^manger_class$/",
+              "values": false
             },
-            "properties": [
-              {
-                "id": "custom.width",
-                "value": 856
-              }
-            ]
-          }
-        ]
-      },
-      "gridPos": {
-        "h": 5,
-        "w": 8,
-        "x": 6,
-        "y": 14
-      },
-      "id": 41,
-      "options": {
-        "cellHeight": "lg",
-        "footer": {
-          "countRows": false,
-          "enablePagination": false,
-          "fields": "",
-          "reducer": [
-            "sum"
-          ],
-          "show": false
-        },
-        "showHeader": false,
-        "sortBy": []
-      },
-      "pluginVersion": "12.1.0",
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${DATASOURCE}"
+            "showPercentChange": false,
+            "textMode": "auto",
+            "wideLayout": true
           },
-          "disableTextWrap": false,
-          "editorMode": "builder",
-          "exemplar": false,
-          "expr": "aerospike_workload_ags_idmgrinfo{instance=~\"$client\"}",
-          "format": "table",
-          "fullMetaSearch": false,
-          "includeNullMetadata": true,
-          "instant": false,
-          "legendFormat": "__auto",
-          "range": true,
-          "refId": "A",
-          "useBackend": false
-        }
-      ],
-      "title": "Gremlin Id Query",
-      "transformations": [
-        {
-          "id": "reduce",
-          "options": {
-            "includeTimeField": false,
-            "labelsToFields": false,
-            "mode": "reduceFields",
-            "reducers": [
-              "lastNotNull"
-            ]
-          }
-        },
-        {
-          "id": "filterFieldsByName",
-          "options": {
-            "include": {
-              "names": [
-                "gremlinIdString",
-                "Time"
-              ]
-            }
-          }
-        }
-      ],
-      "type": "table"
-    },
-    {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${DATASOURCE}"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
-          "decimals": 0,
-          "mappings": [
+          "pluginVersion": "12.1.0",
+          "targets": [
             {
-              "options": {
-                "0": {
-                  "color": "yellow",
-                  "index": 1,
-                  "text": "Disabled"
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${DATASOURCE}"
+              },
+              "disableTextWrap": false,
+              "editorMode": "builder",
+              "exemplar": false,
+              "expr": "aerospike_workload_ags_idmgrinfo{instance=~\"$client\"}",
+              "format": "table",
+              "fullMetaSearch": false,
+              "includeNullMetadata": true,
+              "instant": false,
+              "legendFormat": "__auto",
+              "range": true,
+              "refId": "A",
+              "useBackend": false
+            }
+          ],
+          "title": "Manager Type",
+          "type": "stat"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DATASOURCE}"
+          },
+          "description": "Used this query to obtain Ids",
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "fixedColor": "green",
+                "mode": "fixed"
+              },
+              "custom": {
+                "align": "center",
+                "cellOptions": {
+                  "type": "color-text",
+                  "wrapText": true
                 },
-                "-1": {
-                  "color": "blue",
-                  "index": 0,
-                  "text": "NA"
-                }
+                "filterable": false,
+                "inspect": true
               },
-              "type": "value"
-            }
-          ],
-          "noValue": "--",
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
+              "fieldMinMax": false,
+              "mappings": [],
+              "noValue": "--",
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": 0
+                  }
+                ]
+              },
+              "unit": "string"
+            },
+            "overrides": [
               {
-                "color": "green",
-                "value": 0
+                "matcher": {
+                  "id": "byName",
+                  "options": "gremlinIdString"
+                },
+                "properties": [
+                  {
+                    "id": "custom.width",
+                    "value": 856
+                  }
+                ]
               }
             ]
           },
-          "unit": "locale"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 5,
-        "w": 3,
-        "x": 14,
-        "y": 14
-      },
-      "id": 37,
-      "options": {
-        "colorMode": "value",
-        "graphMode": "area",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "percentChangeColorMode": "standard",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "/^requested_cnt$/",
-          "values": false
-        },
-        "showPercentChange": false,
-        "textMode": "auto",
-        "wideLayout": true
-      },
-      "pluginVersion": "12.1.0",
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${DATASOURCE}"
+          "gridPos": {
+            "h": 8,
+            "w": 10,
+            "x": 5,
+            "y": 14
           },
-          "disableTextWrap": false,
-          "editorMode": "builder",
-          "exemplar": false,
-          "expr": "aerospike_workload_ags_idmgrinfo{instance=~\"$client\"}",
-          "format": "table",
-          "fullMetaSearch": false,
-          "includeNullMetadata": true,
-          "instant": false,
-          "legendFormat": "__auto",
-          "range": true,
-          "refId": "A",
-          "useBackend": false
-        }
-      ],
-      "title": "Requested Sample Size",
-      "type": "stat"
-    },
-    {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${DATASOURCE}"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
-          "decimals": 0,
-          "mappings": [],
-          "noValue": "--",
-          "thresholds": {
-            "mode": "percentage",
-            "steps": [
-              {
-                "color": "green",
-                "value": 0
-              },
-              {
-                "color": "dark-red",
-                "value": 0
-              },
-              {
-                "color": "semi-dark-red",
-                "value": 10
-              },
-              {
-                "color": "red",
-                "value": 20
-              },
-              {
-                "color": "super-light-red",
-                "value": 30
-              },
-              {
-                "color": "dark-orange",
-                "value": 40
-              },
-              {
-                "color": "orange",
-                "value": 50
-              },
-              {
-                "color": "yellow",
-                "value": 60
-              },
-              {
-                "color": "light-green",
-                "value": 70
-              },
-              {
-                "color": "green",
-                "value": 80
-              },
-              {
-                "color": "dark-green",
-                "value": 90
-              }
-            ]
-          },
-          "unit": "locale"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 5,
-        "w": 4,
-        "x": 17,
-        "y": 14
-      },
-      "id": 38,
-      "options": {
-        "minVizHeight": 75,
-        "minVizWidth": 75,
-        "orientation": "auto",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "/^actual_cnt$/",
-          "values": false
-        },
-        "showThresholdLabels": false,
-        "showThresholdMarkers": true,
-        "sizing": "auto"
-      },
-      "pluginVersion": "12.1.0",
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${DATASOURCE}"
-          },
-          "disableTextWrap": false,
-          "editorMode": "builder",
-          "exemplar": false,
-          "expr": "aerospike_workload_ags_idmgrinfo{instance=~\"$client\"}",
-          "format": "table",
-          "fullMetaSearch": false,
-          "includeNullMetadata": true,
-          "instant": false,
-          "legendFormat": "__auto",
-          "range": true,
-          "refId": "A",
-          "useBackend": false
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${DATASOURCE}"
-          },
-          "disableTextWrap": false,
-          "editorMode": "builder",
-          "exemplar": false,
-          "expr": "aerospike_workload_ags_idmgrinfo{instance=~\"$client\"}",
-          "format": "table",
-          "fullMetaSearch": false,
-          "hide": false,
-          "includeNullMetadata": true,
-          "instant": false,
-          "legendFormat": "__auto",
-          "range": true,
-          "refId": "B",
-          "useBackend": false
-        }
-      ],
-      "title": "Actual Sample Size",
-      "transformations": [
-        {
-          "id": "configFromData",
+          "id": 41,
           "options": {
-            "configRefId": "B",
-            "mappings": [
-              {
-                "fieldName": "requested_cnt",
-                "handlerKey": "max"
-              }
-            ]
-          }
-        }
-      ],
-      "type": "gauge"
-    },
-    {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${DATASOURCE}"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "thresholds"
+            "cellHeight": "lg",
+            "footer": {
+              "countRows": false,
+              "enablePagination": false,
+              "fields": "",
+              "reducer": [
+                "sum"
+              ],
+              "show": false
+            },
+            "showHeader": false,
+            "sortBy": []
           },
-          "decimals": 0,
-          "mappings": [
+          "pluginVersion": "12.1.0",
+          "targets": [
             {
-              "options": {
-                "0": {
-                  "color": "yellow",
-                  "index": 0,
-                  "text": "Disabled"
-                }
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${DATASOURCE}"
               },
-              "type": "value"
+              "disableTextWrap": false,
+              "editorMode": "builder",
+              "exemplar": false,
+              "expr": "aerospike_workload_ags_idmgrinfo{instance=~\"$client\"}",
+              "format": "table",
+              "fullMetaSearch": false,
+              "includeNullMetadata": true,
+              "instant": false,
+              "legendFormat": "__auto",
+              "range": true,
+              "refId": "A",
+              "useBackend": false
             }
           ],
-          "noValue": "--",
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": 0
+          "title": "Gremlin Id Query",
+          "transformations": [
+            {
+              "id": "reduce",
+              "options": {
+                "includeTimeField": false,
+                "labelsToFields": false,
+                "mode": "reduceFields",
+                "reducers": [
+                  "lastNotNull"
+                ]
               }
-            ]
-          },
-          "unit": "dtdurationms"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 5,
-        "w": 3,
-        "x": 21,
-        "y": 14
-      },
-      "id": 40,
-      "options": {
-        "colorMode": "value",
-        "graphMode": "area",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "percentChangeColorMode": "standard",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
+            },
+            {
+              "id": "filterFieldsByName",
+              "options": {
+                "include": {
+                  "names": [
+                    "gremlinIdString",
+                    "Time"
+                  ]
+                }
+              }
+            }
           ],
-          "fields": "/^runtimems$/",
-          "values": false
+          "type": "table"
         },
-        "showPercentChange": false,
-        "textMode": "auto",
-        "wideLayout": true
-      },
-      "pluginVersion": "12.1.0",
-      "targets": [
         {
           "datasource": {
             "type": "prometheus",
             "uid": "${DATASOURCE}"
           },
-          "disableTextWrap": false,
-          "editorMode": "builder",
-          "exemplar": false,
-          "expr": "aerospike_workload_ags_idmgrinfo{instance=~\"$client\"}",
-          "format": "table",
-          "fullMetaSearch": false,
-          "includeNullMetadata": true,
-          "instant": false,
-          "legendFormat": "__auto",
-          "range": true,
-          "refId": "A",
-          "useBackend": false
+          "description": "Top Level Nodes",
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "thresholds"
+              },
+              "decimals": 0,
+              "mappings": [
+                {
+                  "options": {
+                    "0": {
+                      "color": "yellow",
+                      "index": 1,
+                      "text": "Disabled"
+                    },
+                    "-1": {
+                      "color": "blue",
+                      "index": 0,
+                      "text": "NA"
+                    }
+                  },
+                  "type": "value"
+                }
+              ],
+              "noValue": "--",
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": 0
+                  }
+                ]
+              },
+              "unit": "locale"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 4,
+            "w": 3,
+            "x": 15,
+            "y": 14
+          },
+          "id": 46,
+          "options": {
+            "colorMode": "value",
+            "graphMode": "area",
+            "justifyMode": "auto",
+            "orientation": "auto",
+            "percentChangeColorMode": "standard",
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ],
+              "fields": "/^rootNodesCnt$/",
+              "values": false
+            },
+            "showPercentChange": false,
+            "textMode": "auto",
+            "wideLayout": true
+          },
+          "pluginVersion": "12.1.0",
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${DATASOURCE}"
+              },
+              "disableTextWrap": false,
+              "editorMode": "builder",
+              "exemplar": false,
+              "expr": "aerospike_workload_ags_idmgrinfo{instance=~\"$client\"}",
+              "format": "table",
+              "fullMetaSearch": false,
+              "includeNullMetadata": true,
+              "instant": false,
+              "legendFormat": "__auto",
+              "range": true,
+              "refId": "A",
+              "useBackend": false
+            }
+          ],
+          "title": "Parent Nodes",
+          "type": "stat"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DATASOURCE}"
+          },
+          "description": "The depth required to satisfy the Query",
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "thresholds"
+              },
+              "decimals": 0,
+              "mappings": [
+                {
+                  "options": {
+                    "0": {
+                      "color": "semi-dark-blue",
+                      "index": 0,
+                      "text": "NA"
+                    }
+                  },
+                  "type": "value"
+                }
+              ],
+              "noValue": "--",
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": 0
+                  }
+                ]
+              },
+              "unit": "locale"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 4,
+            "w": 3,
+            "x": 18,
+            "y": 14
+          },
+          "id": 47,
+          "options": {
+            "colorMode": "value",
+            "graphMode": "area",
+            "justifyMode": "auto",
+            "orientation": "auto",
+            "percentChangeColorMode": "standard",
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ],
+              "fields": "/^requestedDepth$/",
+              "values": false
+            },
+            "showPercentChange": false,
+            "textMode": "auto",
+            "wideLayout": true
+          },
+          "pluginVersion": "12.1.0",
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${DATASOURCE}"
+              },
+              "disableTextWrap": false,
+              "editorMode": "builder",
+              "exemplar": false,
+              "expr": "aerospike_workload_ags_idmgrinfo{instance=~\"$client\"}",
+              "format": "table",
+              "fullMetaSearch": false,
+              "includeNullMetadata": true,
+              "instant": false,
+              "legendFormat": "__auto",
+              "range": true,
+              "refId": "A",
+              "useBackend": false
+            }
+          ],
+          "title": "Request Depth",
+          "type": "stat"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DATASOURCE}"
+          },
+          "description": "The maximum possible relationships",
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "thresholds"
+              },
+              "decimals": 0,
+              "mappings": [
+                {
+                  "options": {
+                    "0": {
+                      "color": "semi-dark-blue",
+                      "index": 0,
+                      "text": "NA"
+                    }
+                  },
+                  "type": "value"
+                }
+              ],
+              "noValue": "--",
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": 0
+                  }
+                ]
+              },
+              "unit": "locale"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 4,
+            "w": 3,
+            "x": 21,
+            "y": 14
+          },
+          "id": 49,
+          "options": {
+            "colorMode": "value",
+            "graphMode": "area",
+            "justifyMode": "auto",
+            "orientation": "auto",
+            "percentChangeColorMode": "standard",
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ],
+              "fields": "/^relationships$/",
+              "values": false
+            },
+            "showPercentChange": false,
+            "textMode": "auto",
+            "wideLayout": true
+          },
+          "pluginVersion": "12.1.0",
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${DATASOURCE}"
+              },
+              "disableTextWrap": false,
+              "editorMode": "builder",
+              "exemplar": false,
+              "expr": "aerospike_workload_ags_idmgrinfo{instance=~\"$client\"}",
+              "format": "table",
+              "fullMetaSearch": false,
+              "includeNullMetadata": true,
+              "instant": false,
+              "legendFormat": "__auto",
+              "range": true,
+              "refId": "A",
+              "useBackend": false
+            }
+          ],
+          "title": "Possible Relationships",
+          "type": "stat"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DATASOURCE}"
+          },
+          "description": "The number of distinct ids",
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "thresholds"
+              },
+              "decimals": 0,
+              "mappings": [
+                {
+                  "options": {
+                    "0": {
+                      "color": "yellow",
+                      "index": 1,
+                      "text": "Disabled"
+                    },
+                    "-1": {
+                      "color": "blue",
+                      "index": 0,
+                      "text": "NA"
+                    }
+                  },
+                  "type": "value"
+                }
+              ],
+              "noValue": "--",
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": 0
+                  }
+                ]
+              },
+              "unit": "locale"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 4,
+            "w": 3,
+            "x": 15,
+            "y": 18
+          },
+          "id": 37,
+          "options": {
+            "colorMode": "value",
+            "graphMode": "area",
+            "justifyMode": "auto",
+            "orientation": "auto",
+            "percentChangeColorMode": "standard",
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ],
+              "fields": "/^distinctNodeCnt$/",
+              "values": false
+            },
+            "showPercentChange": false,
+            "textMode": "auto",
+            "wideLayout": true
+          },
+          "pluginVersion": "12.1.0",
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${DATASOURCE}"
+              },
+              "disableTextWrap": false,
+              "editorMode": "builder",
+              "exemplar": false,
+              "expr": "aerospike_workload_ags_idmgrinfo{instance=~\"$client\"}",
+              "format": "table",
+              "fullMetaSearch": false,
+              "includeNullMetadata": true,
+              "instant": false,
+              "legendFormat": "__auto",
+              "range": true,
+              "refId": "A",
+              "useBackend": false
+            }
+          ],
+          "title": "Distinct Ids",
+          "type": "stat"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DATASOURCE}"
+          },
+          "description": "The maximum possible depth",
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "thresholds"
+              },
+              "decimals": 0,
+              "mappings": [
+                {
+                  "options": {
+                    "0": {
+                      "color": "semi-dark-blue",
+                      "index": 0,
+                      "text": "NA"
+                    }
+                  },
+                  "type": "value"
+                }
+              ],
+              "noValue": "--",
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": 0
+                  }
+                ]
+              },
+              "unit": "locale"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 4,
+            "w": 3,
+            "x": 18,
+            "y": 18
+          },
+          "id": 48,
+          "options": {
+            "colorMode": "value",
+            "graphMode": "area",
+            "justifyMode": "auto",
+            "orientation": "auto",
+            "percentChangeColorMode": "standard",
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ],
+              "fields": "/^possibleDepth$/",
+              "values": false
+            },
+            "showPercentChange": false,
+            "textMode": "auto",
+            "wideLayout": true
+          },
+          "pluginVersion": "12.1.0",
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${DATASOURCE}"
+              },
+              "disableTextWrap": false,
+              "editorMode": "builder",
+              "exemplar": false,
+              "expr": "aerospike_workload_ags_idmgrinfo{instance=~\"$client\"}",
+              "format": "table",
+              "fullMetaSearch": false,
+              "includeNullMetadata": true,
+              "instant": false,
+              "legendFormat": "__auto",
+              "range": true,
+              "refId": "A",
+              "useBackend": false
+            }
+          ],
+          "title": "Possible Depth",
+          "type": "stat"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DATASOURCE}"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "thresholds"
+              },
+              "decimals": 0,
+              "mappings": [
+                {
+                  "options": {
+                    "0": {
+                      "color": "yellow",
+                      "index": 0,
+                      "text": "Disabled"
+                    }
+                  },
+                  "type": "value"
+                }
+              ],
+              "noValue": "--",
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": 0
+                  }
+                ]
+              },
+              "unit": "dtdurationms"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 4,
+            "w": 3,
+            "x": 21,
+            "y": 18
+          },
+          "id": 40,
+          "options": {
+            "colorMode": "value",
+            "graphMode": "area",
+            "justifyMode": "auto",
+            "orientation": "auto",
+            "percentChangeColorMode": "standard",
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ],
+              "fields": "/^runtimems$/",
+              "values": false
+            },
+            "showPercentChange": false,
+            "textMode": "auto",
+            "wideLayout": true
+          },
+          "pluginVersion": "12.1.0",
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${DATASOURCE}"
+              },
+              "disableTextWrap": false,
+              "editorMode": "builder",
+              "exemplar": false,
+              "expr": "aerospike_workload_ags_idmgrinfo{instance=~\"$client\"}",
+              "format": "table",
+              "fullMetaSearch": false,
+              "includeNullMetadata": true,
+              "instant": false,
+              "legendFormat": "__auto",
+              "range": true,
+              "refId": "A",
+              "useBackend": false
+            }
+          ],
+          "title": "Running Time",
+          "type": "stat"
         }
       ],
-      "title": "Running Time",
-      "type": "stat"
+      "title": "Ids/Values Nodes",
+      "type": "row"
     },
     {
       "collapsed": true,
@@ -1678,7 +2106,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 19
+        "y": 14
       },
       "id": 28,
       "panels": [
@@ -1714,7 +2142,7 @@
             "h": 5,
             "w": 3,
             "x": 0,
-            "y": 20
+            "y": 15
           },
           "id": 29,
           "options": {
@@ -1801,7 +2229,7 @@
             "h": 5,
             "w": 3,
             "x": 3,
-            "y": 20
+            "y": 15
           },
           "id": 30,
           "options": {
@@ -1902,7 +2330,7 @@
             "h": 5,
             "w": 3,
             "x": 6,
-            "y": 20
+            "y": 15
           },
           "id": 31,
           "options": {
@@ -2114,7 +2542,7 @@
             "h": 5,
             "w": 4,
             "x": 9,
-            "y": 20
+            "y": 15
           },
           "id": 32,
           "options": {
@@ -2271,7 +2699,7 @@
             "h": 5,
             "w": 8,
             "x": 13,
-            "y": 20
+            "y": 15
           },
           "id": 33,
           "options": {
@@ -2386,7 +2814,7 @@
             "h": 5,
             "w": 3,
             "x": 21,
-            "y": 20
+            "y": 15
           },
           "id": 34,
           "options": {
@@ -2477,7 +2905,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 20
+        "y": 15
       },
       "id": 35,
       "panels": [],
@@ -2516,7 +2944,7 @@
         "h": 5,
         "w": 3,
         "x": 0,
-        "y": 21
+        "y": 16
       },
       "id": 8,
       "options": {
@@ -2603,7 +3031,7 @@
         "h": 5,
         "w": 3,
         "x": 3,
-        "y": 21
+        "y": 16
       },
       "id": 12,
       "options": {
@@ -2642,6 +3070,92 @@
         }
       ],
       "title": "Completed Calls",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DATASOURCE}"
+      },
+      "description": "Current Target QPS",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "noValue": "--",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              }
+            ]
+          },
+          "unit": "locale"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 3,
+        "x": 6,
+        "y": 16
+      },
+      "id": 45,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "/^currCPS$/",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "pluginVersion": "12.1.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DATASOURCE}"
+          },
+          "disableTextWrap": false,
+          "editorMode": "builder",
+          "expr": "aerospike_workload_ags_stateinfo{instance=~\"$client\", workload=~\"$workload\", wltype=~\"$workloadtype\", type=\"static\", wlstage=\"Workload\"}",
+          "format": "table",
+          "fullMetaSearch": false,
+          "includeNullMetadata": true,
+          "legendFormat": "__auto",
+          "range": true,
+          "refId": "A",
+          "useBackend": false
+        }
+      ],
+      "title": "Target QPS",
+      "transformations": [
+        {
+          "id": "sortBy",
+          "options": {
+            "fields": {},
+            "sort": [
+              {
+                "desc": false,
+                "field": "Value"
+              }
+            ]
+          }
+        }
+      ],
       "type": "stat"
     },
     {
@@ -2703,8 +3217,8 @@
       "gridPos": {
         "h": 5,
         "w": 3,
-        "x": 6,
-        "y": 21
+        "x": 9,
+        "y": 16
       },
       "id": 11,
       "options": {
@@ -2915,8 +3429,8 @@
       "gridPos": {
         "h": 5,
         "w": 4,
-        "x": 9,
-        "y": 21
+        "x": 12,
+        "y": 16
       },
       "id": 21,
       "options": {
@@ -3070,9 +3584,9 @@
       },
       "gridPos": {
         "h": 5,
-        "w": 8,
-        "x": 13,
-        "y": 21
+        "w": 5,
+        "x": 16,
+        "y": 16
       },
       "id": 24,
       "options": {
@@ -3187,7 +3701,7 @@
         "h": 5,
         "w": 3,
         "x": 21,
-        "y": 21
+        "y": 16
       },
       "id": 9,
       "options": {
@@ -3274,7 +3788,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 26
+        "y": 21
       },
       "id": 27,
       "panels": [],
@@ -3345,7 +3859,7 @@
         "h": 9,
         "w": 24,
         "x": 0,
-        "y": 27
+        "y": 22
       },
       "id": 3,
       "options": {
@@ -3473,7 +3987,7 @@
         "h": 10,
         "w": 24,
         "x": 0,
-        "y": 36
+        "y": 31
       },
       "id": 19,
       "options": {
@@ -3514,278 +4028,279 @@
       "type": "timeseries"
     },
     {
-      "collapsed": false,
+      "collapsed": true,
       "gridPos": {
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 46
+        "y": 41
       },
       "id": 23,
-      "panels": [],
+      "panels": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DATASOURCE}"
+          },
+          "description": "All Errors",
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "fixedColor": "light-red",
+                "mode": "fixed"
+              },
+              "custom": {
+                "align": "center",
+                "cellOptions": {
+                  "type": "color-text",
+                  "wrapText": true
+                },
+                "filterable": true,
+                "inspect": true
+              },
+              "decimals": 0,
+              "fieldMinMax": false,
+              "mappings": [],
+              "noValue": "No Errors Detected",
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": 0
+                  }
+                ]
+              },
+              "unit": "locale"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 11,
+            "w": 24,
+            "x": 0,
+            "y": 42
+          },
+          "id": 16,
+          "options": {
+            "cellHeight": "lg",
+            "footer": {
+              "countRows": false,
+              "enablePagination": true,
+              "fields": "",
+              "reducer": [
+                "sum"
+              ],
+              "show": false
+            },
+            "showHeader": true
+          },
+          "pluginVersion": "12.1.0",
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${DATASOURCE}"
+              },
+              "disableTextWrap": false,
+              "editorMode": "builder",
+              "exemplar": false,
+              "expr": "aerospike_workload_ags_exception_total{instance=~\"$client\", workload=~\"$workload\", wltype=~\"$workloadtype\", wlstage=~\"$workloadstage\"}",
+              "format": "time_series",
+              "fullMetaSearch": false,
+              "includeNullMetadata": true,
+              "instant": false,
+              "legendFormat": "__auto",
+              "range": true,
+              "refId": "A",
+              "useBackend": false
+            }
+          ],
+          "title": "All Error",
+          "transformations": [
+            {
+              "id": "reduce",
+              "options": {
+                "includeTimeField": false,
+                "labelsToFields": true,
+                "mode": "seriesToRows",
+                "reducers": [
+                  "lastNotNull"
+                ]
+              }
+            },
+            {
+              "id": "organize",
+              "options": {
+                "excludeByName": {
+                  "Field": true,
+                  "__name__": true,
+                  "instance": true,
+                  "job": true,
+                  "otel_scope_name": true,
+                  "pid": true,
+                  "startTimeMillis": true,
+                  "startTimeSecs": true,
+                  "wlstage": true
+                },
+                "includeByName": {},
+                "indexByName": {
+                  "Field": 5,
+                  "Max": 4,
+                  "__name__": 6,
+                  "exception": 3,
+                  "exception_type": 2,
+                  "instance": 7,
+                  "job": 8,
+                  "otel_scope_name": 9,
+                  "pid": 10,
+                  "startTimeMillis": 11,
+                  "wltype": 0,
+                  "workload": 1
+                },
+                "renameByName": {
+                  "Max": "Errors",
+                  "exception": "Caused",
+                  "exception_type": "Exception",
+                  "wltype": "Type",
+                  "workload": "Name"
+                }
+              }
+            },
+            {
+              "id": "groupToNestedTable",
+              "options": {
+                "fields": {
+                  "Errors": {
+                    "aggregations": []
+                  },
+                  "Exception": {
+                    "aggregations": [],
+                    "operation": "groupby"
+                  },
+                  "Name": {
+                    "aggregations": [],
+                    "operation": "groupby"
+                  },
+                  "Type": {
+                    "aggregations": [],
+                    "operation": "groupby"
+                  }
+                },
+                "showSubframeHeaders": true
+              }
+            }
+          ],
+          "type": "table"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DATASOURCE}"
+          },
+          "description": "All Errors",
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisBorderShow": false,
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "barWidthFactor": 0.6,
+                "drawStyle": "line",
+                "fillOpacity": 0,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "insertNulls": false,
+                "lineInterpolation": "linear",
+                "lineWidth": 1,
+                "pointSize": 5,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "showPoints": "auto",
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "decimals": 0,
+              "fieldMinMax": false,
+              "mappings": [],
+              "noValue": "No Errors Detected",
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": 0
+                  }
+                ]
+              },
+              "unit": "locale"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 11,
+            "w": 24,
+            "x": 0,
+            "y": 53
+          },
+          "id": 18,
+          "options": {
+            "legend": {
+              "calcs": [],
+              "displayMode": "list",
+              "placement": "bottom",
+              "showLegend": true
+            },
+            "tooltip": {
+              "hideZeros": false,
+              "mode": "single",
+              "sort": "none"
+            }
+          },
+          "pluginVersion": "12.1.0",
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${DATASOURCE}"
+              },
+              "disableTextWrap": false,
+              "editorMode": "builder",
+              "exemplar": false,
+              "expr": "aerospike_workload_ags_exception_total{instance=~\"$client\", workload=~\"$workload\", wltype=~\"$workloadtype\", wlstage=~\"$workloadstage\"}",
+              "format": "time_series",
+              "fullMetaSearch": false,
+              "includeNullMetadata": true,
+              "instant": false,
+              "legendFormat": "{{wlstage}}-{{wltype}} - {{exception_type}}: {{exception}}",
+              "range": true,
+              "refId": "A",
+              "useBackend": false
+            }
+          ],
+          "title": "All Error",
+          "type": "timeseries"
+        }
+      ],
       "title": "Error Information",
       "type": "row"
-    },
-    {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${DATASOURCE}"
-      },
-      "description": "All Errors",
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "fixedColor": "light-red",
-            "mode": "fixed"
-          },
-          "custom": {
-            "align": "center",
-            "cellOptions": {
-              "type": "color-text",
-              "wrapText": true
-            },
-            "filterable": true,
-            "inspect": true
-          },
-          "decimals": 0,
-          "fieldMinMax": false,
-          "mappings": [],
-          "noValue": "No Errors Detected",
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": 0
-              }
-            ]
-          },
-          "unit": "locale"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 11,
-        "w": 24,
-        "x": 0,
-        "y": 47
-      },
-      "id": 16,
-      "options": {
-        "cellHeight": "lg",
-        "footer": {
-          "countRows": false,
-          "enablePagination": true,
-          "fields": "",
-          "reducer": [
-            "sum"
-          ],
-          "show": false
-        },
-        "showHeader": true
-      },
-      "pluginVersion": "12.1.0",
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${DATASOURCE}"
-          },
-          "disableTextWrap": false,
-          "editorMode": "builder",
-          "exemplar": false,
-          "expr": "aerospike_workload_ags_exception_total{instance=~\"$client\", workload=~\"$workload\", wltype=~\"$workloadtype\", wlstage=~\"$workloadstage\"}",
-          "format": "time_series",
-          "fullMetaSearch": false,
-          "includeNullMetadata": true,
-          "instant": false,
-          "legendFormat": "__auto",
-          "range": true,
-          "refId": "A",
-          "useBackend": false
-        }
-      ],
-      "title": "All Error",
-      "transformations": [
-        {
-          "id": "reduce",
-          "options": {
-            "includeTimeField": false,
-            "labelsToFields": true,
-            "mode": "seriesToRows",
-            "reducers": [
-              "lastNotNull"
-            ]
-          }
-        },
-        {
-          "id": "organize",
-          "options": {
-            "excludeByName": {
-              "Field": true,
-              "__name__": true,
-              "instance": true,
-              "job": true,
-              "otel_scope_name": true,
-              "pid": true,
-              "startTimeMillis": true,
-              "startTimeSecs": true,
-              "wlstage": true
-            },
-            "includeByName": {},
-            "indexByName": {
-              "Field": 5,
-              "Max": 4,
-              "__name__": 6,
-              "exception": 3,
-              "exception_type": 2,
-              "instance": 7,
-              "job": 8,
-              "otel_scope_name": 9,
-              "pid": 10,
-              "startTimeMillis": 11,
-              "wltype": 0,
-              "workload": 1
-            },
-            "renameByName": {
-              "Max": "Errors",
-              "exception": "Caused",
-              "exception_type": "Exception",
-              "wltype": "Type",
-              "workload": "Name"
-            }
-          }
-        },
-        {
-          "id": "groupToNestedTable",
-          "options": {
-            "fields": {
-              "Errors": {
-                "aggregations": []
-              },
-              "Exception": {
-                "aggregations": [],
-                "operation": "groupby"
-              },
-              "Name": {
-                "aggregations": [],
-                "operation": "groupby"
-              },
-              "Type": {
-                "aggregations": [],
-                "operation": "groupby"
-              }
-            },
-            "showSubframeHeaders": true
-          }
-        }
-      ],
-      "type": "table"
-    },
-    {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${DATASOURCE}"
-      },
-      "description": "All Errors",
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "axisBorderShow": false,
-            "axisCenteredZero": false,
-            "axisColorMode": "text",
-            "axisLabel": "",
-            "axisPlacement": "auto",
-            "barAlignment": 0,
-            "barWidthFactor": 0.6,
-            "drawStyle": "line",
-            "fillOpacity": 0,
-            "gradientMode": "none",
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            },
-            "insertNulls": false,
-            "lineInterpolation": "linear",
-            "lineWidth": 1,
-            "pointSize": 5,
-            "scaleDistribution": {
-              "type": "linear"
-            },
-            "showPoints": "auto",
-            "spanNulls": false,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
-          },
-          "decimals": 0,
-          "fieldMinMax": false,
-          "mappings": [],
-          "noValue": "No Errors Detected",
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": 0
-              }
-            ]
-          },
-          "unit": "locale"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 11,
-        "w": 24,
-        "x": 0,
-        "y": 58
-      },
-      "id": 18,
-      "options": {
-        "legend": {
-          "calcs": [],
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": true
-        },
-        "tooltip": {
-          "hideZeros": false,
-          "mode": "single",
-          "sort": "none"
-        }
-      },
-      "pluginVersion": "12.1.0",
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${DATASOURCE}"
-          },
-          "disableTextWrap": false,
-          "editorMode": "builder",
-          "exemplar": false,
-          "expr": "aerospike_workload_ags_exception_total{instance=~\"$client\", workload=~\"$workload\", wltype=~\"$workloadtype\", wlstage=~\"$workloadstage\"}",
-          "format": "time_series",
-          "fullMetaSearch": false,
-          "includeNullMetadata": true,
-          "instant": false,
-          "legendFormat": "{{wlstage}}-{{wltype}} - {{exception_type}}: {{exception}}",
-          "range": true,
-          "refId": "A",
-          "useBackend": false
-        }
-      ],
-      "title": "All Error",
-      "type": "timeseries"
     }
   ],
   "preload": false,
@@ -3816,9 +4331,7 @@
       {
         "current": {
           "text": "All",
-          "value": [
-            "$__all"
-          ]
+          "value": "$__all"
         },
         "datasource": {
           "type": "prometheus",
@@ -3842,9 +4355,7 @@
       {
         "current": {
           "text": "All",
-          "value": [
-            "$__all"
-          ]
+          "value": "$__all"
         },
         "datasource": {
           "type": "prometheus",
@@ -3868,9 +4379,7 @@
       {
         "current": {
           "text": "All",
-          "value": [
-            "$__all"
-          ]
+          "value": "$__all"
         },
         "datasource": {
           "type": "prometheus",
@@ -3895,9 +4404,7 @@
       {
         "current": {
           "text": "All",
-          "value": [
-            "$__all"
-          ]
+          "value": "$__all"
         },
         "datasource": {
           "type": "prometheus",
@@ -3938,5 +4445,5 @@
   "timezone": "browser",
   "title": "Aerospike Tinker Bench",
   "uid": "besk2xu6dpp1ca",
-  "version": 62
+  "version": 65
 }

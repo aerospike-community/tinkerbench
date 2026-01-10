@@ -118,7 +118,7 @@ public final class OpenTelemetryExporter implements com.aerospike.OpenTelemetry 
 
         this.printDebug("SDK and Metrics Completed");
 
-        this.hbAttributes = new Attributes[4];
+        this.hbAttributes = new Attributes[5];
 
         this.printDebug("Creating Signal Handler...");
 
@@ -262,10 +262,14 @@ public final class OpenTelemetryExporter implements com.aerospike.OpenTelemetry 
     }
 
     private void updateInfoGauge(boolean initial) {
-        this.updateInfoGauge(initial, false);
+        this.updateInfoGauge(initial, false, 0);
     }
 
-    private void updateInfoGauge(boolean initial, boolean force) {
+    private void updateInfoGauge(boolean initial, int currentCPS) {
+        this.updateInfoGauge(initial, false, currentCPS);
+    }
+
+    private void updateInfoGauge(boolean initial, boolean force, int currentCPS) {
 
         if(!force && this.closed.get()) { return; }
 
@@ -283,6 +287,9 @@ public final class OpenTelemetryExporter implements com.aerospike.OpenTelemetry 
             attributes.put("endTimeSecs", this.endTimeSecs);
             attributes.put("endLocalDateTime", this.endLocalDateTime.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
             attributes.put("runDurationSecs", Math.round(this.endTimeSecs - (this.startTimeMillis / 1000.0)));
+        }
+        if(currentCPS != 0) {
+            attributes.put("currCPS", currentCPS);
         }
 
         long hCnt = (long) hbCnt.incrementAndGet();
@@ -306,8 +313,11 @@ public final class OpenTelemetryExporter implements com.aerospike.OpenTelemetry 
     public void setIdMgrGauge(final String mgrClass,
                                 final String[] labels,
                                 final String gremlinString,
-                                final int requestedCnt,
-                                final int actualCnt,
+                                final int distinctNodeCnt,
+                                final int rootNodesCnt,
+                                final int requestedDepth,
+                                final int possibleDepth,
+                                final int relationships,
                                 final long runtimeMills) {
         if(this.closed.get()) { return; }
 
@@ -329,9 +339,15 @@ public final class OpenTelemetryExporter implements com.aerospike.OpenTelemetry 
                 AttributeKey.stringKey("type"), "static",
                 AttributeKey.stringKey("manger_class"), mgrClass == null ? "NA" : mgrClass,
                 AttributeKey.stringKey("label"), label == null ? "NA" : label,
-                AttributeKey.longKey("requested_cnt"), (long) requestedCnt,
-                AttributeKey.longKey("actual_cnt"), (long) actualCnt,
                 AttributeKey.longKey("runtimems"), runtimeMills
+        ));
+
+        attributes.putAll(Attributes.of(
+                AttributeKey.longKey("distinctNodeCnt"), (long) distinctNodeCnt,
+                AttributeKey.longKey("rootNodesCnt"), (long) rootNodesCnt,
+                AttributeKey.longKey("requestedDepth"), (long) requestedDepth,
+                AttributeKey.longKey("possibleDepth"), (long) possibleDepth,
+                AttributeKey.longKey("relationships"), (long) relationships
         ));
 
         attributes.putAll(Attributes.of(
@@ -395,6 +411,12 @@ public final class OpenTelemetryExporter implements com.aerospike.OpenTelemetry 
                         AttributeKey.stringKey("duration"), targetDuration.toString(),
                         AttributeKey.longKey("durationSecs"), targetDuration.toSeconds(),
                         AttributeKey.longKey("errorlimit"), (long) args.errorsAbort
+                );
+        this.hbAttributes[4] =
+                Attributes.of(
+                        AttributeKey.longKey("CPSEnd"), (long) (args.incrQPS > 0 ? args.endQPS : -1),
+                        AttributeKey.longKey("CPSIncr"), (long) args.incrQPS,
+                        AttributeKey.longKey("CPSRatePct"), (long) args.qpsThreshold
                 );
 
         this.updateInfoGauge(true);
@@ -494,14 +516,14 @@ public final class OpenTelemetryExporter implements com.aerospike.OpenTelemetry 
     }
 
     @Override
-    public void setConnectionState(String connectionState){
+    public void setConnectionState(String connectionState, int currentCPS){
         if(this.closed.get() | this.abortRun.get()) { return; }
 
         this.connectionState = connectionState;
 
         this.printDebug("Status Change  " + connectionState, false);
 
-        this.updateInfoGauge(false);
+        this.updateInfoGauge(false, currentCPS);
     }
 
     private void setConnectionStateAbort(String state) {
@@ -517,7 +539,7 @@ public final class OpenTelemetryExporter implements com.aerospike.OpenTelemetry 
             this.printDebug("Status Change  " + state, false);
 
             this.printMsg("Sending OpenTelemetry LUpdating Metrics in Abort Mode...", false);
-            this.updateInfoGauge(false, true);
+            this.updateInfoGauge(false, true, 0);
             this.printMsg("OpenTelemetry Waiting to complete... Ctrl-C to cancel OpenTelemetry update...", false);
             Thread.sleep(this.closeWaitMS + 1000); //need to wait for PROM to re-scrap...
             this.internalClose();

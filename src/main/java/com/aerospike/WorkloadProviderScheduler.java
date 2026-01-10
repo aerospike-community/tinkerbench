@@ -818,7 +818,8 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
                 stopDateTime = LocalDateTime.now();
             }
 
-            openTelemetry.setConnectionState(workloadStatus.toString());
+            openTelemetry.setConnectionState(workloadStatus.toString(),
+                                                this.warmup ? 0 : this.callsPerSecond);
 
             logger.PrintDebug("WorkloadProviderScheduler", "New Status %s for %s",
                     workloadStatus,
@@ -995,12 +996,9 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
             System.out.printf("\tStopping %s due to %s...%n",
                     warmup ? "warmup" : "workload",
                     abortRun.get() ? "Signal" : "Duration Reached");
-            final double qpsRatePct = getCPSDiffPct();
-            if(qpsRatePct < qpsThreshold) {
+            if(getCPSDiffPct() < qpsThreshold) {
                 qpsErrorRun.set(true);
             }
-            System.out.printf("\t\tRate Achievement: %.2f%%%n",
-                                qpsRatePct);
         }
         schedulerPool.shutdownNow();
         workerPool.shutdownNow();

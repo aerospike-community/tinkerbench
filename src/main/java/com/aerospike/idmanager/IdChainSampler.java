@@ -252,8 +252,11 @@ public class IdChainSampler implements IdManagerQuery {
             openTelemetry.setIdMgrGauge(this.getClass().getSimpleName(),
                                     null,
                                     gremlin,
-                                    -1,
-                                    this.relationshipGraph.getTotal(),
+                                    this.getIdCount(),
+                                    this.getStartingIdsCount(),
+                                    this.getDepth() + 1,
+                                    this.getInitialDepth() + 1,
+                                    this.getNbrRelationships(),
                                     runningLatency);
         }
     }
@@ -416,7 +419,7 @@ public class IdChainSampler implements IdManagerQuery {
             disabled = true;
             System.out.println("IdChainSampler is disabled but an import file was supplied. Ignoring importing of file...");
             logger.PrintDebug("IdChainSampler.importFile", "IdChainSampler disabled");
-            openTelemetry.setIdMgrGauge(null, null, null, -1, 0, 0);
+            openTelemetry.setIdMgrGauge(null, null, null, -1, -1, 0, 0, 0, 0);
             return 0;
         }
 
@@ -440,8 +443,11 @@ public class IdChainSampler implements IdManagerQuery {
                 openTelemetry.setIdMgrGauge("*",
                                             labels,
                                             null,
-                                            sampleSize,
-                                            this.relationshipGraph.getTotal(),
+                                            this.getIdCount(),
+                                            this.getStartingIdsCount(),
+                                            this.getDepth() + 1,
+                                            this.getInitialDepth() + 1,
+                                            this.getNbrRelationships(),
                                             latency);
             }
             return latency;
@@ -526,8 +532,11 @@ public class IdChainSampler implements IdManagerQuery {
             openTelemetry.setIdMgrGauge(file.getName(),
                                         labels,
                                         null,
-                                        sampleSize,
-                                        this.relationshipGraph.getTotal(),
+                                        this.getIdCount(),
+                                        this.getStartingIdsCount(),
+                                        this.getDepth() + 1,
+                                        this.getInitialDepth() + 1,
+                                        this.getNbrRelationships(),
                                         latency);
         }
 

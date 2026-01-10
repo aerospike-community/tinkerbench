@@ -119,7 +119,7 @@ public class IdSampler implements IdManager {
             sampledIds = null;
             disabled = true;
             logger.PrintDebug("IdSampler", "IdSampler disabled");
-            openTelemetry.setIdMgrGauge(null, null, null, -1, 0, 0);
+            openTelemetry.setIdMgrGauge(null, null, null, -1, -1, 0, 0, 0, 0);
         } else {
             try {
                 if(labels == null || labels.length == 0) {
@@ -177,8 +177,11 @@ public class IdSampler implements IdManager {
                 openTelemetry.setIdMgrGauge(this.getClass().getSimpleName(),
                                             labels,
                                             null,
-                                            sampleSize,
-                                            sampledIds.size(),
+                                            this.getIdCount(),
+                                            this.getStartingIdsCount(),
+                                            this.getDepth() + 1,
+                                            this.getInitialDepth() + 1,
+                                            this.getNbrRelationships(),
                                             runningLatency);
             }
 
@@ -302,7 +305,7 @@ public class IdSampler implements IdManager {
             disabled = true;
             System.out.println("IdSampler is disabled but an import file was supplied. Ignoring importing of file...");
             logger.PrintDebug("IdSampler.importFile", "IdSampler disabled");
-            openTelemetry.setIdMgrGauge(null, null, null, -1, 0, 0);
+            openTelemetry.setIdMgrGauge(null, null, null, -1, -1, 0, 0, 0, 0);
             return 0;
         }
 
@@ -337,8 +340,11 @@ public class IdSampler implements IdManager {
                     openTelemetry.setIdMgrGauge("*",
                                                     labels,
                                                     null,
-                                                    sampleSize,
-                                                    sampledIds.size(),
+                                                    this.getIdCount(),
+                                                    this.getStartingIdsCount(),
+                                                    this.getDepth() + 1,
+                                                    this.getInitialDepth() + 1,
+                                                    this.getNbrRelationships(),
                                                     latency);
                 }
                 progressBar.refresh();
@@ -399,8 +405,11 @@ public class IdSampler implements IdManager {
             openTelemetry.setIdMgrGauge(file.getName(),
                                         labels,
                                         null,
-                                        sampleSize,
-                                        sampledIds.size(),
+                                        this.getIdCount(),
+                                        this.getStartingIdsCount(),
+                                        this.getDepth() + 1,
+                                        this.getInitialDepth() + 1,
+                                        this.getNbrRelationships(),
                                         latency);
         }
 
@@ -470,8 +479,10 @@ public class IdSampler implements IdManager {
     public void printStats(final LogSource logger) {
         final String msg = String.format("""
                                         Using Id Manager '%s':
+                                          Labels: %s
                                           Number of Starting Nodes: %,d""",
                                 this.getClass().getSimpleName(),
+                                Arrays.toString(this.labels),
                                 this.getStartingIdsCount());
         Helpers.Println(System.out,
                         msg,
