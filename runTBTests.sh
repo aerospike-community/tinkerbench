@@ -87,11 +87,6 @@ fi
 # Extract just the filename
 JAR_NAME=$(basename "$JAR_FILE")
 
-# -----------------------------
-# LOAD TESTS FROM CSV
-# -----------------------------
-CSV_FILE="./tests.csv"
-
 if [[ ! -f "$CSV_FILE" ]]; then
   echo "Error: CSV file not found: $CSV_FILE"
   exit 1
@@ -129,6 +124,38 @@ timestamp() {
   date +"%Y-%m-%d %H:%M:%S"
 }
 
+print_summary() {
+  echo -e "${CYAN}========================================${RESET}"
+  echo -e "${CYAN} MATRIX TEST RUNNER COMPLETE ${RESET}"
+  echo -e "${CYAN}========================================${RESET}"
+
+  echo -e "${GREEN}Passed:${RESET} $PASSED"
+  echo -e "${RED}Failed:${RESET} $FAILED"
+  echo -e "${YELLOW}Skipped:${RESET} $SKIPPED"
+  echo -e "${CYAN}Ran:${RESET}  $RAN"
+  echo -e "${CYAN}Total:${RESET}  $TOTAL"
+  echo -e "${CYAN}Logs:${RESET}   $LOG_DIR"
+  echo
+
+  echo -e "${BLUE}========== COVERAGE REPORT ==========${RESET}"
+  for i in $(seq 1 "$TOTAL"); do
+    status="${COVERAGE_STATUS[$i]}"
+    cmd="${COVERAGE_COMMAND[$i]}"
+    rc="${COVERAGE_COMMAND_RC[$i]}"
+
+    if [[ "$status" == "PASS" ]]; then
+      echo -e "${GREEN}[PASS]${RESET} Test #$i → $cmd  → RC: $rc"
+    elif [[ "$status" == "SKIPPED" ]]; then
+      echo -e "${YELLOW}[SKIP]${RESET} Test #$i → $cmd  → RC: $rc"
+    else
+      echo -e "${RED}[FAIL]${RESET} Test #$i → $cmd  → RC: $rc"
+    fi
+  done
+  echo -e "${BLUE}======================================${RESET}"
+}
+
+trap print_summary EXIT
+
 # -----------------------------
 # EXECUTE A SINGLE TEST
 # -----------------------------
@@ -142,11 +169,31 @@ run_test() {
   expected_rc="$(echo "$entry" | cut -d',' -f1)"
   cmd="$(echo "$entry" | cut -d',' -f2-)"
 
+  # Strip trailing CR (if file is CRLF)
+  cmd="${cmd%$'\r'}"
+  # Strip leading and trailing single quotes if present
+  cmd="${cmd#\"\'}"
+  cmd="${cmd%\"\'\"}"
+
+  # If the string starts and ends with a double-quote, remove them
+  if [[ "$cmd" == \"*\" ]]; then
+    cmd="${cmd:1:${#cmd}-2}"
+  fi
+  cmd="${cmd//\'\'/\"}"
+
+  eval "set -- $cmd"
+  local evalcmd="$@"
+  local -a cmd_array
+
+  read -r -a cmd_array <<< "$evalcmd"
+
   local logfile="$LOG_DIR/test_${TOTAL}.log"
   local attempt=0
   local rc=0
 
-  COVERAGE_COMMAND[$TOTAL]="$cmd"
+  COVERAGE_COMMAND[$TOTAL]="$evalcmd"
+
+  echo -e "${BLUE}======================================${RESET}"
 
   echo -e "${BLUE}[$(timestamp)] START TEST #$TOTAL${RESET}"
   echo -e "${CYAN}Command:${RESET} $cmd"
@@ -159,12 +206,11 @@ run_test() {
     echo -e "${YELLOW}Test: ${TOTAL} Attempt $((attempt+1))/$((RETRY_COUNT+1))${RESET}"
 
     echo -e "[$(timestamp)] ${YELLOW}Test: ${TOTAL}${RESET} Executing:"
-    echo "$cmd"
+    echo "$evalcmd"
     echo
 
-    #bash -c "java $cmd | tee $logfile"
-    #rc=$?
-    java $cmd | tee "$logfile"
+    java "${cmd_array[@]}" 2>&1 | tee "$logfile"
+    #java $evalcmd 2>&1 | tee "$logfile"
     rc=$?
 
     #${PIPESTATUS[0]}
@@ -245,42 +291,6 @@ for entry in "${COMMANDS[@]}"; do
     break
   fi
 done
-
-# -----------------------------
-# FINAL SUMMARY
-# -----------------------------
-echo -e "${CYAN}========================================${RESET}"
-echo -e "${CYAN} MATRIX TEST RUNNER COMPLETE ${RESET}"
-echo -e "${CYAN}========================================${RESET}"
-
-echo -e "${GREEN}Passed:${RESET} $PASSED"
-echo -e "${RED}Failed:${RESET} $FAILED"
-echo -e "${YELLOW}Skipped:${RESET} $SKIPPED"
-echo -e "${CYAN}Ran:${RESET}  $RAN"
-echo -e "${CYAN}Total:${RESET}  $TOTAL"
-echo -e "${CYAN}Logs:${RESET}   $LOG_DIR"
-echo
-
-# -----------------------------
-# COVERAGE REPORT
-# -----------------------------
-echo -e "${BLUE}========== COVERAGE REPORT ==========${RESET}"
-
-for i in $(seq 1 "$TOTAL"); do
-  status="${COVERAGE_STATUS[$i]}"
-  cmd="${COVERAGE_COMMAND[$i]}"
-  rc="${COVERAGE_COMMAND_RC[$i]}"
-
-  if [[ "$status" == "PASS" ]]; then
-    echo -e "${GREEN}[PASS]${RESET} Test #$i → $cmd  → RC: $rc"
-  elif [[ "$status" == "SKIPPED" ]]; then
-    echo -e "${YELLOW}[SKIP]${RESET} Test #$i → $cmd  → RC: $rc"
-  else
-    echo -e "${RED}[FAIL]${RESET} Test #$i → $cmd  → RC: $rc"
-  fi
-done
-
-echo -e "${BLUE}======================================${RESET}"
 
 # Exit code for CI
 if [[ "$FAILED" -gt 0 ]]; then
