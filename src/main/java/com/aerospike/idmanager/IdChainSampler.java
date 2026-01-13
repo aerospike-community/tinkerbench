@@ -3,8 +3,6 @@ package com.aerospike.idmanager;
 import com.aerospike.*;
 import com.opencsv.CSVReader;
 import com.opencsv.exceptions.CsvValidationException;
-import me.tongfei.progressbar.ProgressBar;
-import me.tongfei.progressbar.ProgressBarBuilder;
 
 import org.apache.tinkerpop.gremlin.jsr223.GremlinLangScriptEngine;
 import org.apache.tinkerpop.gremlin.structure.util.reference.ReferencePath;
@@ -101,7 +99,7 @@ public class IdChainSampler implements IdManagerQuery {
         return idArray.length;
     }
     private void addNode(final AbstractMap<?,?> items,
-                        final ProgressBar progressBar) {
+                        final ProgressBarBuilder.ProgressBar progressBar) {
 
         if(items.containsKey("startId")) {
             this.relationshipGraph.markAsTopLevelParent(items.get("startId"));
@@ -126,7 +124,7 @@ public class IdChainSampler implements IdManagerQuery {
     }
 
     private void populateFromGraphDB(final Stream<?> stream,
-                                         final ProgressBar progressBar) {
+                                         final ProgressBarBuilder.ProgressBar progressBar) {
         stream.forEach(item -> {
             if (item instanceof AbstractMap<?,?> map) {
                 addNode(map, progressBar);
@@ -201,10 +199,10 @@ public class IdChainSampler implements IdManagerQuery {
                         Helpers.GREEN_BACKGROUND);
         logger.info(String.format("Using IdChainSampler manager. Obtaining Ids using Query '%s'",
                                     gremlin));
-        try (ProgressBar progressBar = new ProgressBarBuilder()
-                .setTaskName("Obtaining Ids...")
-                .hideEta()
-                .build()) {
+        try (ProgressBarBuilder.ProgressBar progressBar = ProgressBarBuilder.Builder()
+                                                            .setTaskName("Obtaining Ids...")
+                                                            .hideEta()
+                                                            .build()) {
             progressBar.setExtraMessage("Querying DB...");
             progressBar.step();
             start = System.currentTimeMillis();
@@ -474,10 +472,10 @@ public class IdChainSampler implements IdManagerQuery {
         }
 
         long startTime = System.currentTimeMillis();
-        try (ProgressBar progressBar = new ProgressBarBuilder()
-                .setTaskName("Loading ids")
-                .hideEta()
-                .build();
+        try (ProgressBarBuilder.ProgressBar progressBar = ProgressBarBuilder.Builder()
+                                                            .setTaskName("Loading ids")
+                                                            .hideEta()
+                                                            .build();
              CSVReader reader = new CSVReader(new FileReader(file))) {
 
             progressBar.maxHint(file.length());
@@ -564,11 +562,11 @@ public class IdChainSampler implements IdManagerQuery {
                                 this.getInitialDepth(),
                                 exportFile.getAbsolutePath());
 
-            try (ProgressBar progressBar = new ProgressBarBuilder()
-                    .setInitialMax(this.relationshipGraph.getTotalDistinctChildCount())
-                    .setTaskName("Exporting vertices ids")
-                    .hideEta()
-                    .build();
+            try (ProgressBarBuilder.ProgressBar progressBar = ProgressBarBuilder.Builder()
+                                                                .setInitialMax(this.relationshipGraph.getTotalDistinctChildCount())
+                                                                .setTaskName("Exporting vertices ids")
+                                                                .hideEta()
+                                                                .build();
                  BufferedWriter writer = new BufferedWriter(new FileWriter(exportFile))) {
 
                 progressBar.setExtraMessage(exportFile.getName());

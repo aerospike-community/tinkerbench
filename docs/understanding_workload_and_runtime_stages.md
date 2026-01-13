@@ -1,7 +1,7 @@
 ![Workload](media/gremlin-logo-Running.png)
 # Understanding Workload and Runtime Stages
 
-TikerBench2 has two workload run types. They are:
+TikerBench has two workload run types. They are:
 
 -   Warmup – Conducted if the warmup duration (`--WarmupDuration`) is defined. This executes the query like “workload” for the purpose of “warming up” the database. Meeting the targeted QPS rate may or may not occur. Summary results are captured and reported. This run is not required.
 -   Workload – This preforms the “**main”** workload and strides to make and maintain the QPS rate for the duration of the run. Results are captured and reported based on the configuration provided.
@@ -19,3 +19,15 @@ When TinkerBench executes it goes through the following stages:
     5.  Shutdown
 5.  TinkerBench Cleanup
 6.  Report Results This stage will display the results based on the configuration provided.
+
+## Using QPS Sweep
+
+TinkerBecnh has the capabilities to run a range of rates starting at the `--QueriesPerSec` and ending at the `--EndQueriesPerSec` (non-zero value). Each segment is ran for the defined duration. Once completed, the current rate is incremented by `--IncrementQueriesPerSec`.
+
+If any segment failes because of an exception/error, the sweep is canceled and a non-zero return code is produced. Th argument `--EndQueriesPerSec` controls when TinkerBench completes the run.
+
+If `--EndQueriesPerSec` is non-zero, TinkerBench wil run until the defined rate is reached (inclusive) or if and exception/error occurs.
+
+If the value is zero, TinkerBench will ran **indefinitely** until the rate cannot be maintained based on `--QPSPctThreshold` or an exception/error occurs.
+
+**Note**: If a warmup is enabled, it is ran only once (as normal). Each segement in the sweep, rans as a normal workload and each segment produces the standard QPS report.
