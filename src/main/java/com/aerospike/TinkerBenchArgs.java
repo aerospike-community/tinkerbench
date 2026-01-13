@@ -208,6 +208,7 @@ public abstract class TinkerBenchArgs implements Callable<Integer> {
     public final AtomicBoolean errorRun = new AtomicBoolean(false);
     public final AtomicBoolean qpsErrorRun = new AtomicBoolean(false);
 
+    public static boolean inBackgroundMode  = false;
 
     /**
      * {@link IVersionProvider} implementation that returns version information from {@code /MANIFEST.MF} and {@code /META-INF/MANIFEST.MF} file.
@@ -509,6 +510,8 @@ public abstract class TinkerBenchArgs implements Callable<Integer> {
     }
 
     public void validate() {
+
+        inBackgroundMode = this.backgroundMode;
 
         if(missing(queryNameOrString)){
             throw new CommandLine.ParameterException(commandlineSpec.commandLine(),

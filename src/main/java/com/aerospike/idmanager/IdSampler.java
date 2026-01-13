@@ -1,12 +1,7 @@
 package com.aerospike.idmanager;
 
-import com.aerospike.Helpers;
-import com.aerospike.IdManager;
-import com.aerospike.LogSource;
-import com.aerospike.OpenTelemetry;
+import com.aerospike.*;
 import com.opencsv.exceptions.CsvValidationException;
-import me.tongfei.progressbar.ProgressBar;
-import me.tongfei.progressbar.ProgressBarBuilder;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
 
@@ -319,11 +314,12 @@ public class IdSampler implements IdManager {
         if(Helpers.hasWildcard(filePath)) {
             long latency = 0;
 
-            try (ProgressBar progressBar = new ProgressBarBuilder()
-                                                .setTaskName("Loading vertices ids")
-                                                .hideEta()
-                                                .build()) {
+            try (ProgressBarBuilder.ProgressBar progressBar = ProgressBarBuilder.Builder()
+                                                                .setTaskName("Loading vertices ids")
+                                                                .hideEta()
+                                                                .build()) {
                 final List<File> files = Helpers.GetFiles(null, filePath);
+
                 progressBar.maxHint(files.size());
 
                 for (File importFile : files) {
@@ -435,11 +431,11 @@ public class IdSampler implements IdManager {
                                         sampledIds.size(),
                                         exportFile.getAbsolutePath());
 
-            try (ProgressBar progressBar = new ProgressBarBuilder()
-                                                .setInitialMax(sampledIds.size())
-                                                .setTaskName("Exporting vertices ids")
-                                                .hideEta()
-                                                .build();
+            try (ProgressBarBuilder.ProgressBar progressBar = ProgressBarBuilder.Builder()
+                                                                .setInitialMax(sampledIds.size())
+                                                                .setTaskName("Exporting vertices ids")
+                                                                .hideEta()
+                                                                .build();
                     BufferedWriter writer = new BufferedWriter(new FileWriter(exportFile))) {
 
                 progressBar.setExtraMessage(exportFile.getName());

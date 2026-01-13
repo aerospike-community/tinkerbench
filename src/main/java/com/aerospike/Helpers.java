@@ -572,6 +572,9 @@ public class Helpers {
     private static final List<String> validbools = Arrays.asList("true", "false");
 
     public static Object DetermineValue(final String item) {
+
+        if(item == null || item.isEmpty()) return item;
+
         Pair<Boolean, Boolean> isNumeric = isNumeric(item);
         String type = "String";
 
