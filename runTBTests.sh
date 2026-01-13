@@ -1,12 +1,77 @@
 #!/usr/bin/env bash
-set -euo pipefail
+
+#set -euo pipefail
+set -uo pipefail
+
+echo "Running under: $0"
+echo "BASH_VERSION=$BASH_VERSION"
 
 # -----------------------------
-# CONFIGURATION
+# CLI ARGUMENT PARSING
 # -----------------------------
 LOG_DIR="./logs"
-RETRY_COUNT=2          # Number of retries per test
-CONTINUE_ON_ERROR=false # true = keep going, false = stop on first failure
+RETRY_COUNT=0
+CONTINUE_ON_ERROR=true
+SKIP_FIRST_TEST=0
+ONLY_RUN_TESTS=()
+
+print_help() {
+  echo ""
+  echo "TinkerBench Matrix Test Runner"
+  echo "----------------------------------------"
+  echo "Usage:"
+  echo "  runTBTests.sh [options]"
+  echo ""
+  echo "Options:"
+  echo "  --csv <path>              Path to CSV file (default: ./tbTests.csv)"
+  echo "  --retry <n>               Number of retries per test (default: 0)"
+  echo "  --continue-on-error <t/f> Continue after failure (default: true)"
+  echo "  --skip <n>                Skip first N tests (default: 0)"
+  echo "  --only <list>             Run only specific tests (comma-separated)"
+  echo "  --logdir <path>           Directory for logs (default: ./logs)"
+  echo "  --help                    Show this help message"
+  echo ""
+}
+
+CSV_FILE="./tbTests.csv"
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --csv)
+      CSV_FILE="$2"
+      shift 2
+      ;;
+    --retry)
+      RETRY_COUNT="$2"
+      shift 2
+      ;;
+    --continue-on-error)
+      CONTINUE_ON_ERROR="$2"
+      shift 2
+      ;;
+    --skip)
+      SKIP_FIRST_TEST="$2"
+      shift 2
+      ;;
+    --only)
+      IFS=',' read -r -a ONLY_RUN_TESTS <<< "$2"
+      shift 2
+      ;;
+    --logdir)
+      LOG_DIR="$2"
+      shift 2
+      ;;
+    --help)
+      print_help
+      exit 0
+      ;;
+    *)
+      echo "Unknown argument: $1"
+      print_help
+      exit 1
+      ;;
+  esac
+done
 
 
 # Find the jar file with dependencies
@@ -22,91 +87,13 @@ fi
 # Extract just the filename
 JAR_NAME=$(basename "$JAR_FILE")
 
+if [[ ! -f "$CSV_FILE" ]]; then
+  echo "Error: CSV file not found: $CSV_FILE"
+  exit 1
+fi
 
-declare -a COMMANDS=(
-  "0|java -jar ./target/$JAR_NAME AirRoutesQuery2 --duration PT1m -id IdChainSampler -import './src/test/AirRoutesQuery2-Chaining-Ids.csv' -prom"
-  "0|java -jar ./target/$JAR_NAME 'g.V(%s).out('REL_DEVICE_TO_INDIVIDUAL').in('REL_DEVICE_TO_INDIVIDUAL')' -a 34.123.43.17"
-  "0|java -jar ./target/$JAR_NAME --help"
-  "0|java -jar ./target/$JAR_NAME TestRun --no-prometheus -d 15"
-  "0|java -jar ./target/$JAR_NAME --version"
-  "0|java -jar ./target/$JAR_NAME AirRoutesQuery1 -d 1m -export './src/test/idsexport.csv'"
-  "0|java -jar ./target/$JAR_NAME AirRoutesQuery1 -d 1m -label city -import './src/test' -prom"
-  "0|java -jar ./target/$JAR_NAME AirRoutesQuery1 -d 1m -import './src/test' -prom"
-  "0|java -jar ./target/$JAR_NAME AirRoutesQuery1 -d 1m -import './src/test/idsexport.csv'"
-  "0|java -jar ./target/$JAR_NAME AirRoutesQuery1 -d 1m -import './src/test/ids100.csv' -prom"
-  "0|java -jar ./target/$JAR_NAME AirRoutesQuery1 -d 1m -label city -import './src/testnone' -prom"
-  "0|java -jar ./target/$JAR_NAME AirRoutesQuery1 -d 1M -t evaluationTimeout=30000 -t paging=2"
-  "0|java -jar ./target/$JAR_NAME AirRoutesQuery1 -d 5M -s 10 -w 20 -q 1000"
-  "0|java -jar ./target/$JAR_NAME AirRoutesQuery1 -d 5M -s 10 -w 20 -q 1000 -prom"
-  "0|java -jar ./target/$JAR_NAME AirRoutesQuery1 -d PT5M -wu PT2M -s 2 -prom --HdrHistFmt"
-  "0|java -jar ./target/$JAR_NAME AirRoutesQuery1 -n 10.0.0.1,10.0.0.2,10.0.0.3"
-  "0|java -jar ./target/$JAR_NAME AirRoutesQuery1 -d 5M -wu 2M -s 1 -w 10 -q 500 -prom"
-  "0|java -jar ./target/$JAR_NAME AirRoutesQuery1 -d 15 -s 1 -w 10 -prom -debug"
-  "0|java -jar ./target/$JAR_NAME AirRoutesQuery1 -d PT1M -q 100 -s 1 -w 1"
-  "0|java -jar ./target/$JAR_NAME AirRoutesQuery1 -d PT1M -b junkptop=1"
-  "0|java -jar ./target/$JAR_NAME AirRoutesQuery1 -d PT1M -b maxConnectionPoolSize=-1"
-  "0|java -jar ./target/$JAR_NAME AirRoutesQuery1 -d PT1M -b maxConnectionPoolSize=8 -g evaluationTimeout=30000"
-  "0|java -jar ./target/$JAR_NAME AirRoutesQuery1 -d PT1M -b maxConnectionPoolSize=8"
-  "0|java -jar ./target/$JAR_NAME AirRoutesQuery1 -d PT1M -b maxConnectionPoolSize=abc1"
-  "0|java -jar ./target/$JAR_NAME AirRoutesQuery1 -d PT1M -prom"
-  "0|java -jar ./target/$JAR_NAME AirRoutesQuery1 -d PT1M -s 1 -w 10 -prom --HdrHistFmt"
-  "0|java -jar ./target/$JAR_NAME AirRoutesQuery1 -d PT1M -s 1 -w 10 -prom"
-  "0|java -jar ./target/$JAR_NAME AirRoutesQuery1 -d PT1M"
-  "0|java -jar ./target/$JAR_NAME 'g.V(%1\$s,%-98\$s)' --duration 1m -id com.aerospike.idmanager.IdChainSampler --IdGremlinQuery 'g.with('evaluationTimeout',3000000).V().has('airport','code',within('SFO')).as('start').repeat(out('route').simplePath()).emit(not(out('route')).or().loops().is(3)).times(3).path().by(id).as('p').select('start','p').by(id).by().group().by('start').by('p').unfold().project('startId','paths').by(keys).by(values).toList()' -prom"
-  "0|java -jar ./target/$JAR_NAME 'g.V(%1\$s,%2\$s)' --duration 5m -id com.aerospike.idmanager.IdChainSampler --IdGremlinQuery 'g.with('evaluationTimeout',3000000).V().has('airport','code',within('SFO')).as('start').repeat(out('route').simplePath()).emit(not(out('route')).or().loops().is(3)).times(3).path().by(id).as('p').select('start','p').by(id).by().group().by('start').by('p').unfold().project('startId','paths').by(keys).by(values).toList()' -prom"
-  "0|java -jar ./target/$JAR_NAME 'g.V(%1\$s,%2\$s)' --duration 5m -id com.aerospike.idmanager.IdChainSampler -import './src/test/SFO-Parents-Export.csv' -prom"
-  "0|java -jar ./target/$JAR_NAME 'g.V(%1\$s,%2\$s)' --duration PT15S -id com.aerospike.idmanager.IdChainSampler -import './src/test/SFO-B-Export.csv'"
-  "0|java -jar ./target/$JAR_NAME 'g.V(%1\$s,%2\$s)' --duration PT15S -id com.aerospike.idmanager.IdChainSampler --IdGremlinQuery 'g.with('evaluationTimeout',300).V().has('airport','code',within('SFO')).as('start').repeat(out('route').simplePath()).emit(not(out('route')).or().loops().is(5)).times(5).path().by(id).as('p').select('start','p').by(id).by().group().by('start').by('p').unfold().project('startId','paths').by(keys).by(values).toList()'"
-  "0|java -jar ./target/$JAR_NAME 'g.V(%1\$s,%2\$s)' --duration PT15S -id null --IdGremlinQuery 'g.with('evaluationTimeout',3000000).V().has('airport','code',within('SFO')).as('start').repeat(out('route').simplePath()).emit(not(out('route')).or().loops().is(3)).times(3).path().by(id).as('p').select('start','p').by(id).by().group().by('start').by('p').unfold().project('startId','paths').by(keys).by(values).toList()'"
-  "0|java -jar ./target/$JAR_NAME 'g.V(%1\$s,%2\$s).limit(2)' --duration PT15S -id com.aerospike.idmanager.IdChainSampler --IdGremlinQuery 'g.with('evaluationTimeout',3000).V(23).path().by(id)'"
-  "0|java -jar ./target/$JAR_NAME 'g.V(%1\$s).outE().inV().hasId(%1\$s)' --duration PT15S"
-  "0|java -jar ./target/$JAR_NAME 'g.V(%1\$s).outE().inV().hasId(%2\$s)' --duration PT1m -id com.aerospike.idmanager.IdChainSampler -import './src/test/SFO-B-results.csv' -prom"
-  "0|java -jar ./target/$JAR_NAME 'g.V(%1\$s).outE().inV().hasId(%2\$s)' --duration PT15S"
-  "0|java -jar ./target/$JAR_NAME 'g.V(%1\$s).outE().inV().hasId(%5\$s)' --duration 15s -id com.aerospike.idmanager.IdChainSampler -import './src/test/SFO-B-results.csv' -prom"
-  "0|java -jar ./target/$JAR_NAME 'g.V(%1\$s).out().count()' --duration PT15S"
-  "0|java -jar ./target/$JAR_NAME 'g.V(%1\$s,%2\$s)' --duration PT15S -id com.aerospike.idmanager.IdChainSampler --IdGremlinQuery 'g.with('evaluationTimeout',3000000).V().has('airport','code',within('SFO')).as('start').repeat(out('route').simplePath()).emit(not(out('route')).or().loops().is(3)).times(3).path().by(id).as('p').select('start','p').by(id).by().group().by('start').by('p').unfold().project('startId','paths').by(keys).by(values).toList()' -export './src/test/SFO-Parents-Export.csv'"
-  "0|java -jar ./target/$JAR_NAME 'g.V(%8\$s).outE().inV().hasId(%4\$s)' --duration PT15S -id com.aerospike.idmanager.IdChainSampler -import './src/test/SFO-B-results.csv' -export './src/test/SFO-B-Export.csv'"
-  "0|java -jar ./target/$JAR_NAME 'g.V(%8\$s).outE().inV().hasId(%4\$s)' --duration PT15S -id com.aerospike.idmanager.IdChainSampler -import './src/test/SFO-B-results.csv'"
-  "0|java -jar ./target/$JAR_NAME 'g.V(%s).outE().inV().hasId(%s)' --duration PT15S -id com.aerospike.idmanager.IdChainSampler -import './src/test/SFO-B-results.csv'"
-  "0|java -jar ./target/$JAR_NAME 'g.V(%s).out().count().toList()' --duration 2M -prom"
-  "0|java -jar ./target/$JAR_NAME 'g.V(%s).out().count().toList()' --duration PT15S"
-  "0|java -jar ./target/$JAR_NAME 'g.V(%s,%s).limit(4)' --duration PT15S -wm 15s -qps 100 -incr 25 -end 200"
-  "0|java -jar ./target/$JAR_NAME 'g.V(%s,%s).limit(4)' --duration PT15S -wm 15s -qps 10000"
-  "0|java -jar ./target/$JAR_NAME 'g.V(%s,%s).limit(4)' --duration PT15S"
-  "0|java -jar ./target/$JAR_NAME 'g.V(%s).out().limit(5).nopath().by(values('code','city').fold())' -d 15 -s 2 -prom"
-  "0|java -jar ./target/$JAR_NAME TestRun --IdManager List"
-  "0|java -jar ./target/$JAR_NAME 'g.V(%s).out().count().toList()' -d 1H -s 5 -w 20 -q 1500 -prom"
-  "0|java -jar ./target/$JAR_NAME 'g.V(%s).out().count().toList()' -d 1M"
-  "0|java -jar ./target/$JAR_NAME 'g.V(%s).out().count().toList()' -prom"
-  "0|java -jar ./target/$JAR_NAME 'g.V(%s).out().limit(5).path().by(values('code','city').fold())' -d 1M -s 2 -prom -label airport,country"
-  "0|java -jar ./target/$JAR_NAME 'g.V(%s).out().limit(5).path().by(values('code','city').fold())' -d 15 -s 2 -prom -label nolabel"
-  "0|java -jar ./target/$JAR_NAME 'g.V(%s).out().limit(5).path().by(values('code','city').fold())' -d PT5M -wu PT2M -s 2 -prom -label airport"
-  "0|java -jar ./target/$JAR_NAME 'g.V(%s).out().limit(5).path().by(values('code','city').fold())' -d PT5M -wu PT2M -s 2 -prom"
-  "0|java -jar ./target/$JAR_NAME 'g.V(3).out().limit(5).path().by(values('code','city').fold()).tolist()' -d 5M -wu 2M -s 1 -w 50 -id null -prom"
-  "0|java -jar ./target/$JAR_NAME 'g.V(3).out().limit(5).path().by(values('code','city').fold()).tolist()' -d 5M -wu 2M -s 1 -w 50 -sample 0 -prom"
-  "0|java -jar ./target/$JAR_NAME 'g.V(%s).out().limit(5).path().by(values('code','city').fold()).tolist()' -d 5M -wu 2M -s 1 -w 50 -sample 1000 -prom"
-  "0|java -jar ./target/$JAR_NAME 'g.V(%s).out('REL_DEVICE_TO_INDIVIDUAL').in('REL_DEVICE_TO_INDIVIDUAL')' -r -d 30"
-  "0|java -jar ./target/$JAR_NAME 'g.V(%s).out('REL_DEVICE_TO_INDIVIDUAL').in('REL_DEVICE_TO_INDIVIDUAL')' -a 34.173.95.112"
-  "0|java -jar ./target/$JAR_NAME 'g.V(%s).out('REL_DEVICE_TO_INDIVIDUAL').in('REL_DEVICE_TO_INDIVIDUAL')'"
-
-  "0|java -jar ./target/$JAR_NAME AirRoutesQuery2"
-  "0|java -jar ./target/$JAR_NAME --version"
-  "0|java -Dlogback.configurationFile=./src/test/java/logback.xml -jar ./target/$JAR_NAME TestRun -d 15s -wm 15s -q 100 -incr 25 -end 200 -s 4"
-  "0|java -Dlogback.configurationFile=./src/test/java/logback.xml -jar ./target/$JAR_NAME TestRun -d 1m -wm 1m -q 100 -incr 25 -end 200 -s 4 -prom"
-  "0|java -Dlogback.configurationFile=./src/test/java/logback.xml -jar ./target/$JAR_NAME TestRun -s 1 -d 30 -debug"
-  "0|java -Dlogback.configurationFile=./src/test/java/logback.xml -jar ./target/$JAR_NAME TestRun -d PT1M -q 100 -s 4 -prom"
-  "0|java -DTBQryJar=./samples/PreDefinedQueries/target/PreDefinedQueries-1.0.jar -jar ./target/$JAR_NAME list"
-  "0|java -jar ./target/$JAR_NAME list"
-  "0|java -Dlogback.configurationFile=./src/test/java/logback.xml -jar ./target/$JAR_NAME 'g.V(%s).out().limit(5).path().by(values('code','city').bad.fold())' -d 1M -prom"
-  "0|java -Dlogback.configurationFile=./src/test/java/logback.xml -jar ./target/$JAR_NAME 'g.V(3).out().limit(5).path().by(values('code','city').fold())' -d 1M -prom"
-  "0|java -Dlogback.configurationFile=./src/test/java/logback.xml -jar ./target/$JAR_NAME 'g.V(%1\$s,%2\$s)' --duration PT15S -id disable --IdGremlinQuery 'g.with('evaluationTimeout',3000000).V().has('airport','code',within('SFO')).as('start').repeat(out('route').simplePath()).emit(not(out('route')).or().loops().is(3)).times(3).path().by(id).as('p').select('start','p').by(id).by().group().by('start').by('p').unfold().project('startId','paths').by(keys).by(values).toList()' -prom"
-  "0|java -Dlogback.configurationFile=./src/test/java/logback.xml -jar ./target/$JAR_NAME 'g.V(%1\$s,%2\$s)' --duration PT15S -id list --IdGremlinQuery 'g.with('evaluationTimeout',3000000).V().has('airport','code',within('SFO')).as('start').repeat(out('route').simplePath()).emit(not(out('route')).or().loops().is(3)).times(3).path().by(id).as('p').select('start','p').by(id).by().group().by('start').by('p').unfold().project('startId','paths').by(keys).by(values).toList()' -prom"
-  "0|java -Dlogback.configurationFile=./src/test/java/logback.xml -jar ./target/$JAR_NAME 'g.V(%1\$s,%2\$s)' --duration PT15S --IdGremlinQuery 'g.with('evaluationTimeout',3000000).V().has('airport','code',within('SFO')).as('start').repeat(out('route').simplePath()).emit(not(out('route')).or().loops().is(3)).times(3).path().by(id).as('p').select('start','p').by(id).by().group().by('start').by('p').unfold().project('startId','paths').by(keys).by(values).toList()' -prom"
-  "0|java -Dlogback.configurationFile=./src/test/java/logback.xml -jar ./target/$JAR_NAME 'g.V(%1\$s,%2\$s)' --duration PT15S -id IdChainSampler --IdGremlinQuery 'g.with('evaluationTimeout',3000000).V().has('airport','code',within('SFO')).as('start').repeat(out('route').simplePath()).emit(not(out('route')).or().loops().is(3)).times(3).path().by(id).as('p').select('start','p').by(id).by().group().by('start').by('p').unfold().project('startId','paths').by(keys).by(values).toList()' -prom"
-  "0|java -Dlogback.configurationFile=./src/test/java/logback.xml -jar ./target/$JAR_NAME 'g.V(%1\$s,%2\$s).limit(2)' --duration PT15S -id com.aerospike.idmanager.IdChainSampler --IdGremlinQuery 'g.with('evaluationTimeout',3000).V(23).path().by(id)' -prom"
-  "0|java -jar ./target/$JAR_NAME 'g.V(3).out().limit(5).path().by(values('code','city').fold())' -d 5M -wu 2M -s -1 -q 500 -prom"
-)
-
+# Read CSV into array, skipping header
+mapfile -t COMMANDS < <(tail -n +2 "$CSV_FILE")
 
 mkdir -p "$LOG_DIR"
 
@@ -126,27 +113,87 @@ RESET="\033[0m"
 TOTAL=0
 PASSED=0
 FAILED=0
+SKIPPED=0
+RAN=0
 
 declare -A COVERAGE_STATUS   # key = test index, value = PASS/FAIL
 declare -A COVERAGE_COMMAND  # key = test index, value = command string
+declare -A COVERAGE_COMMAND_RC  # key = test index, value = command's return code
 
 timestamp() {
   date +"%Y-%m-%d %H:%M:%S"
 }
+
+print_summary() {
+  echo -e "${CYAN}========================================${RESET}"
+  echo -e "${CYAN} MATRIX TEST RUNNER COMPLETE ${RESET}"
+  echo -e "${CYAN}========================================${RESET}"
+
+  echo -e "${GREEN}Passed:${RESET} $PASSED"
+  echo -e "${RED}Failed:${RESET} $FAILED"
+  echo -e "${YELLOW}Skipped:${RESET} $SKIPPED"
+  echo -e "${CYAN}Ran:${RESET}  $RAN"
+  echo -e "${CYAN}Total:${RESET}  $TOTAL"
+  echo -e "${CYAN}Logs:${RESET}   $LOG_DIR"
+  echo
+
+  echo -e "${BLUE}========== COVERAGE REPORT ==========${RESET}"
+  for i in $(seq 1 "$TOTAL"); do
+    status="${COVERAGE_STATUS[$i]}"
+    cmd="${COVERAGE_COMMAND[$i]}"
+    rc="${COVERAGE_COMMAND_RC[$i]}"
+
+    if [[ "$status" == "PASS" ]]; then
+      echo -e "${GREEN}[PASS]${RESET} Test #$i → $cmd  → RC: $rc"
+    elif [[ "$status" == "SKIPPED" ]]; then
+      echo -e "${YELLOW}[SKIP]${RESET} Test #$i → $cmd  → RC: $rc"
+    else
+      echo -e "${RED}[FAIL]${RESET} Test #$i → $cmd  → RC: $rc"
+    fi
+  done
+  echo -e "${BLUE}======================================${RESET}"
+}
+
+trap print_summary EXIT
 
 # -----------------------------
 # EXECUTE A SINGLE TEST
 # -----------------------------
 run_test() {
   local entry="$1"
-  local expected_rc="${entry%%|*}"
-  local cmd="${entry#*|}"
+
+  # CSV format: ExpectedRC,Command
+  local expected_rc
+  local cmd
+
+  expected_rc="$(echo "$entry" | cut -d',' -f1)"
+  cmd="$(echo "$entry" | cut -d',' -f2-)"
+
+  # Strip trailing CR (if file is CRLF)
+  cmd="${cmd%$'\r'}"
+  # Strip leading and trailing single quotes if present
+  cmd="${cmd#\"\'}"
+  cmd="${cmd%\"\'\"}"
+
+  # If the string starts and ends with a double-quote, remove them
+  if [[ "$cmd" == \"*\" ]]; then
+    cmd="${cmd:1:${#cmd}-2}"
+  fi
+  cmd="${cmd//\'\'/\"}"
+
+  eval "set -- $cmd"
+  local evalcmd="$@"
+  local -a cmd_array
+
+  read -r -a cmd_array <<< "$evalcmd"
 
   local logfile="$LOG_DIR/test_${TOTAL}.log"
   local attempt=0
   local rc=0
 
-  COVERAGE_COMMAND[$TOTAL]="$cmd"
+  COVERAGE_COMMAND[$TOTAL]="$evalcmd"
+
+  echo -e "${BLUE}======================================${RESET}"
 
   echo -e "${BLUE}[$(timestamp)] START TEST #$TOTAL${RESET}"
   echo -e "${CYAN}Command:${RESET} $cmd"
@@ -156,20 +203,28 @@ run_test() {
 
   # Retry loop
   while (( attempt <= RETRY_COUNT )); do
-    echo -e "${YELLOW}Attempt $((attempt+1))/${RETRY_COUNT}+1${RESET}"
+    echo -e "${YELLOW}Test: ${TOTAL} Attempt $((attempt+1))/$((RETRY_COUNT+1))${RESET}"
 
-    {
-      echo "[$(timestamp)] Executing:"
-      echo "$cmd"
+    echo -e "[$(timestamp)] ${YELLOW}Test: ${TOTAL}${RESET} Executing:"
+    echo "$evalcmd"
+    echo
+
+    java "${cmd_array[@]}" 2>&1 | tee "$logfile"
+    #java $evalcmd 2>&1 | tee "$logfile"
+    rc=$?
+
+    #${PIPESTATUS[0]}
+    echo
+    echo "[$(timestamp)] Return code: $rc"
+    COVERAGE_COMMAND_RC[$TOTAL]="${expected_rc}/${rc}"
+
+    if [[ "$expected_rc" == "ANY" ]]; then
+      echo -e "${GREEN}[$(timestamp)] RESULT: PASS (any return code accepted)${RESET}"
+      COVERAGE_STATUS[$TOTAL]="PASS"
+      ((PASSED++))
       echo
-
-      bash -c "$cmd"
-      rc=$?
-
-      echo
-      echo "[$(timestamp)] Return code: $rc"
-    } &> "$logfile"
-
+      return 0
+    fi
     if [[ "$rc" -eq "$expected_rc" ]]; then
       echo -e "${GREEN}[$(timestamp)] RESULT: PASS${RESET}"
       COVERAGE_STATUS[$TOTAL]="PASS"
@@ -190,8 +245,9 @@ run_test() {
 
   if [[ "$CONTINUE_ON_ERROR" == false ]]; then
     echo -e "${RED}Stopping due to failure (continue-on-error disabled).${RESET}"
-    exit 1
+    return 2
   fi
+  return 1
 }
 
 # -----------------------------
@@ -199,43 +255,42 @@ run_test() {
 # -----------------------------
 echo -e "${CYAN}========================================${RESET}"
 echo -e "${CYAN} MATRIX TEST RUNNER START ${RESET}"
+echo -e "${CYAN} JAR FILE ${JAR_NAME} ${RESET}"
 echo -e "${CYAN}========================================${RESET}"
 echo
 
 for entry in "${COMMANDS[@]}"; do
   ((TOTAL++))
+  if (( TOTAL <= SKIP_FIRST_TEST )); then
+    echo -e "${YELLOW}Skipping test #$TOTAL as per configuration.${RESET}"
+    COVERAGE_STATUS[$TOTAL]="SKIPPED"
+    COVERAGE_COMMAND[$TOTAL]="${entry#*|}"
+    COVERAGE_COMMAND_RC[$TOTAL]="N/A"
+    ((SKIPPED++))
+    continue
+  fi
+  if [[ ${#ONLY_RUN_TESTS[@]} -gt 0 ]]; then
+    if [[ ! " ${ONLY_RUN_TESTS[*]} " =~ " ${TOTAL} " ]]; then
+      echo -e "${YELLOW}Skipping test #$TOTAL as it's not in ONLY_RUN_TESTS.${RESET}"
+      COVERAGE_STATUS[$TOTAL]="SKIPPED"
+      COVERAGE_COMMAND[$TOTAL]="${entry#*|}"
+      COVERAGE_COMMAND_RC[$TOTAL]="N/A"
+      ((SKIPPED++))
+      continue
+    fi
+  fi
   run_test "$entry"
-done
-
-# -----------------------------
-# FINAL SUMMARY
-# -----------------------------
-echo -e "${CYAN}========================================${RESET}"
-echo -e "${CYAN} MATRIX TEST RUNNER COMPLETE ${RESET}"
-echo -e "${CYAN}========================================${RESET}"
-echo -e "${GREEN}Passed:${RESET} $PASSED"
-echo -e "${RED}Failed:${RESET} $FAILED"
-echo -e "${CYAN}Total:${RESET}  $TOTAL"
-echo -e "${CYAN}Logs:${RESET}   $LOG_DIR"
-echo
-
-# -----------------------------
-# COVERAGE REPORT
-# -----------------------------
-echo -e "${BLUE}========== COVERAGE REPORT ==========${RESET}"
-
-for i in $(seq 1 "$TOTAL"); do
-  status="${COVERAGE_STATUS[$i]}"
-  cmd="${COVERAGE_COMMAND[$i]}"
-
-  if [[ "$status" == "PASS" ]]; then
-    echo -e "${GREEN}[PASS]${RESET} Test #$i → $cmd"
-  else
-    echo -e "${RED}[FAIL]${RESET} Test #$i → $cmd"
+  rc=$?
+  ((RAN++))
+  if [[ "$rc" -eq 2 ]]; then
+    echo -e "${RED}Exiting main loop due to test failure and continue-on-error disabled.${RESET}"
+    break
+  fi
+  if [[ "$RAN" -eq "${#ONLY_RUN_TESTS[@]}" ]]; then
+    echo -e "${CYAN}Reached the limit of ONLY_RUN_TESTS (${#ONLY_RUN_TESTS[@]} tests). Exiting main loop.${RESET}"
+    break
   fi
 done
-
-echo -e "${BLUE}======================================${RESET}"
 
 # Exit code for CI
 if [[ "$FAILED" -gt 0 ]]; then

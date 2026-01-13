@@ -1,12 +1,13 @@
 package com.aerospike;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import picocli.CommandLine;
-
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.concurrent.atomic.AtomicInteger;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import picocli.CommandLine;
 
 public class Main extends TinkerBenchArgs {
 
@@ -322,6 +323,14 @@ public class Main extends TinkerBenchArgs {
         }));
 
         new CommandLine(mainInstance).execute(args);
+        if(exitStatus.get() == 0) {
+            System.out.println("Exiting successfully.");
+        } else {
+            Helpers.Println(System.out,
+                    String.format("Exiting with errors. Code: %d", exitStatus.get()),
+                    Helpers.RED,
+                    Helpers.YELLOW_BACKGROUND);
+        }
         System.exit(exitStatus.get());
     }
 }
