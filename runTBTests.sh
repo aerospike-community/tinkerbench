@@ -12,6 +12,7 @@ echo "BASH_VERSION=$BASH_VERSION"
 LOG_DIR="./logs"
 RETRY_COUNT=0
 CONTINUE_ON_ERROR=true
+DISPLAY_ERROR=true
 SKIP_FIRST_TEST=0
 ONLY_RUN_TESTS=()
 
@@ -26,6 +27,7 @@ print_help() {
   echo "  --csv <path>              Path to CSV file (default: ./tbTests.csv)"
   echo "  --retry <n>               Number of retries per test (default: 0)"
   echo "  --continue-on-error <t/f> Continue after failure (default: true)"
+  echo "  --display-error <t/f>     Display error messages to console only (default: true)"
   echo "  --skip <n>                Skip first N tests (default: 0)"
   echo "  --only <list>             Run only specific tests (comma-separated)"
   echo "  --logdir <path>           Directory for logs (default: ./logs)"
@@ -47,6 +49,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     --continue-on-error)
       CONTINUE_ON_ERROR="$2"
+      shift 2
+      ;;
+    --display-error)
+      DISPLAY_ERROR="$2"
       shift 2
       ;;
     --skip)
@@ -119,6 +125,7 @@ RAN=0
 declare -A COVERAGE_STATUS   # key = test index, value = PASS/FAIL
 declare -A COVERAGE_COMMAND  # key = test index, value = command string
 declare -A COVERAGE_COMMAND_RC  # key = test index, value = command's return code
+declare -A COVERAGE_COMMAND_NON_RC  # key = test index, value = true if command's return code is not zero
 
 timestamp() {
   date +"%Y-%m-%d %H:%M:%S"
@@ -138,17 +145,26 @@ print_summary() {
   echo
 
   echo -e "${BLUE}========== COVERAGE REPORT ==========${RESET}"
+  local status=''
+  local cmd=''
+  local rc=''
+  local non_rc=''
+
   for i in $(seq 1 "$TOTAL"); do
     status="${COVERAGE_STATUS[$i]}"
     cmd="${COVERAGE_COMMAND[$i]}"
     rc="${COVERAGE_COMMAND_RC[$i]}"
+    non_rc=''
+    if [[ "${COVERAGE_COMMAND_NON_RC[$i]}" == true ]]; then
+      non_rc=" ${YELLOW}[Non-Zero]${RESET}"
+    fi
 
     if [[ "$status" == "PASS" ]]; then
-      echo -e "${GREEN}[PASS]${RESET} Test #$i → $cmd  → RC: $rc"
+      echo -e "${GREEN}[PASS]${RESET} Test #$i  → RC: $rc$non_rc"
     elif [[ "$status" == "SKIPPED" ]]; then
-      echo -e "${YELLOW}[SKIP]${RESET} Test #$i → $cmd  → RC: $rc"
+      echo -e "${YELLOW}[SKIP]${RESET} Test #$i"
     else
-      echo -e "${RED}[FAIL]${RESET} Test #$i → $cmd  → RC: $rc"
+      echo -e "${RED}[FAIL]${RESET} Test #$i → RC: $rc → $cmd"
     fi
   done
   echo -e "${BLUE}======================================${RESET}"
@@ -188,6 +204,7 @@ run_test() {
   read -r -a cmd_array <<< "$evalcmd"
 
   local logfile="$LOG_DIR/test_${TOTAL}.log"
+  local logfile_error="$LOG_DIR/test_${TOTAL}_error.log"
   local attempt=0
   local rc=0
 
@@ -209,14 +226,33 @@ run_test() {
     echo "$evalcmd"
     echo
 
-    java "${cmd_array[@]}" 2>&1 | tee "$logfile"
-    #java $evalcmd 2>&1 | tee "$logfile"
-    rc=$?
+    if [[ "$DISPLAY_ERROR" == true ]]; then
+      # stdout → logfile
+      # stderr → tee → logfile + console
+      echo -e "[$(timestamp)] ${GREEN}Running... Please Wait...${RESET}"
+      java "${cmd_array[@]}" \
+              1>"$logfile" \
+              2> >(tee "${logfile_error}" >&2)
+      rc=$?
+    else
+      # Redirect both stdout and stderr to tee
+      java "${cmd_array[@]}" 2>&1 | tee "$logfile"
+      rc=$?
+    fi
+    # If the log error file exists but is empty, delete it
+    if [[ -f "$logfile_error" && ! -s "$logfile_error" ]]; then
+      rm -f "$logfile_error"
+    fi
 
-    #${PIPESTATUS[0]}
     echo
     echo "[$(timestamp)] Return code: $rc"
     COVERAGE_COMMAND_RC[$TOTAL]="${expected_rc}/${rc}"
+
+    if [[ "$rc" -ne 0 ]]; then
+      COVERAGE_COMMAND_NON_RC[$TOTAL]=true
+    else
+      COVERAGE_COMMAND_NON_RC[$TOTAL]=false
+    fi
 
     if [[ "$expected_rc" == "ANY" ]]; then
       echo -e "${GREEN}[$(timestamp)] RESULT: PASS (any return code accepted)${RESET}"
@@ -266,6 +302,7 @@ for entry in "${COMMANDS[@]}"; do
     COVERAGE_STATUS[$TOTAL]="SKIPPED"
     COVERAGE_COMMAND[$TOTAL]="${entry#*|}"
     COVERAGE_COMMAND_RC[$TOTAL]="N/A"
+    COVERAGE_COMMAND_NON_RC[$TOTAL]=false
     ((SKIPPED++))
     continue
   fi
@@ -275,6 +312,7 @@ for entry in "${COMMANDS[@]}"; do
       COVERAGE_STATUS[$TOTAL]="SKIPPED"
       COVERAGE_COMMAND[$TOTAL]="${entry#*|}"
       COVERAGE_COMMAND_RC[$TOTAL]="N/A"
+      COVERAGE_COMMAND_NON_RC[$TOTAL]=false
       ((SKIPPED++))
       continue
     fi
