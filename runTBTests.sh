@@ -213,9 +213,10 @@ run_test() {
   echo -e "${BLUE}======================================${RESET}"
 
   echo -e "${BLUE}[$(timestamp)] START TEST #$TOTAL${RESET}"
-  echo -e "${CYAN}Command:${RESET} $cmd"
+  #echo -e "${CYAN}Command:${RESET} $cmd"
   echo -e "${CYAN}Expected RC:${RESET} $expected_rc"
   echo -e "${CYAN}Log:${RESET} $logfile"
+  echo -e "${CYAN}Error Log:${RESET} $logfile_error"
   echo "----------------------------------------"
 
   if [[ -f "$logfile_error" ]]; then
@@ -229,7 +230,7 @@ run_test() {
   while (( attempt <= RETRY_COUNT )); do
     echo -e "${YELLOW}Test: ${TOTAL} Attempt $((attempt+1))/$((RETRY_COUNT+1))${RESET}"
 
-    echo -e "[$(timestamp)] ${YELLOW}Test: ${TOTAL}${RESET} Executing:"
+    echo -e "[$(timestamp)] ${CYAN}Test: ${TOTAL}${BLUE} Executing:${RESET}"
     echo "$evalcmd"
     echo
 
