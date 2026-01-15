@@ -25,6 +25,7 @@ public final class OpenTelemetryDummy  implements OpenTelemetry {
                       Duration targetDuration,
                       long pendingActions,
                       boolean warmup,
+                      boolean warmupRan,
                       StringBuilder otherInfo) { }
     @Override
     public void setIdMgrGauge(final String mgrClass,
@@ -58,7 +59,7 @@ public final class OpenTelemetryDummy  implements OpenTelemetry {
 
     @SuppressWarnings("unused")
     @Override
-    public void recordElapsedTime(long elapsedNanos) {
+    public void recordElapsedTime(long elapsedNanos, double currentQPS) {
     }
 
     @Override

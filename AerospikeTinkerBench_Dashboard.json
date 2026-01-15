@@ -19,7 +19,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 74,
+  "id": 76,
   "links": [],
   "panels": [
     {
@@ -269,6 +269,7 @@
               "CPSEnd": true,
               "CPSIncr": true,
               "CPSRatePct": true,
+              "CPSThreshold": true,
               "CallsPerSecond": true,
               "CallsPerSecond 1": true,
               "CallsPerSecond 2": true,
@@ -1881,7 +1882,7 @@
             "h": 4,
             "w": 3,
             "x": 15,
-            "y": 18
+            "y": 23
           },
           "id": 37,
           "options": {
@@ -1967,7 +1968,7 @@
             "h": 4,
             "w": 3,
             "x": 18,
-            "y": 18
+            "y": 23
           },
           "id": 48,
           "options": {
@@ -2052,7 +2053,7 @@
             "h": 4,
             "w": 3,
             "x": 21,
-            "y": 18
+            "y": 23
           },
           "id": 40,
           "options": {
@@ -2227,7 +2228,7 @@
           },
           "gridPos": {
             "h": 5,
-            "w": 3,
+            "w": 4,
             "x": 3,
             "y": 15
           },
@@ -2268,6 +2269,12 @@
             }
           ],
           "title": "Completed Calls",
+          "transformations": [
+            {
+              "id": "sortBy",
+              "options": {}
+            }
+          ],
           "type": "stat"
         },
         {
@@ -2329,7 +2336,7 @@
           "gridPos": {
             "h": 5,
             "w": 3,
-            "x": 6,
+            "x": 7,
             "y": 15
           },
           "id": 31,
@@ -2541,7 +2548,7 @@
           "gridPos": {
             "h": 5,
             "w": 4,
-            "x": 9,
+            "x": 10,
             "y": 15
           },
           "id": 32,
@@ -2569,7 +2576,7 @@
                 "uid": "${DATASOURCE}"
               },
               "disableTextWrap": false,
-              "editorMode": "code",
+              "editorMode": "builder",
               "exemplar": false,
               "expr": "timestamp(aerospike_workload_ags_stateinfo{instance=~\"$client\", workload=~\"$workload\", wltype=~\"$workloadtype\", wlstage=\"Warmup\"})",
               "format": "table",
@@ -2612,7 +2619,8 @@
                 "mappings": [
                   {
                     "fieldName": "durationSecs",
-                    "handlerKey": "max"
+                    "handlerKey": "max",
+                    "reducerId": "lastNotNull"
                   }
                 ]
               }
@@ -2625,83 +2633,42 @@
             "type": "prometheus",
             "uid": "${DATASOURCE}"
           },
-          "description": "Average Rate for last Period range",
+          "description": "Current QPS Rate",
           "fieldConfig": {
             "defaults": {
               "color": {
                 "mode": "thresholds"
               },
               "mappings": [],
-              "min": 0,
               "noValue": "--",
               "thresholds": {
-                "mode": "percentage",
+                "mode": "absolute",
                 "steps": [
                   {
-                    "color": "semi-dark-blue",
+                    "color": "green",
                     "value": 0
                   },
                   {
-                    "color": "blue",
+                    "color": "green",
                     "value": 0
-                  },
-                  {
-                    "color": "semi-dark-red",
-                    "value": 25
-                  },
-                  {
-                    "color": "light-red",
-                    "value": 50
-                  },
-                  {
-                    "color": "orange",
-                    "value": 70
-                  },
-                  {
-                    "color": "yellow",
-                    "value": 80
-                  },
-                  {
-                    "color": "light-green",
-                    "value": 90
-                  },
-                  {
-                    "color": "dark-green",
-                    "value": 100
-                  },
-                  {
-                    "color": "light-green",
-                    "value": 110
-                  },
-                  {
-                    "color": "super-light-green",
-                    "value": 120
-                  },
-                  {
-                    "color": "yellow",
-                    "value": 130
-                  },
-                  {
-                    "color": "#EAB839",
-                    "value": 150
                   },
                   {
                     "color": "red",
-                    "value": 175
+                    "value": 1
                   }
                 ]
               },
-              "unit": "ops"
+              "unit": "locale"
             },
             "overrides": []
           },
           "gridPos": {
             "h": 5,
-            "w": 8,
-            "x": 13,
+            "w": 7,
+            "x": 14,
             "y": 15
           },
-          "id": 33,
+          "id": 51,
           "options": {
             "colorMode": "value",
             "graphMode": "area",
@@ -2712,7 +2679,7 @@
               "calcs": [
                 "lastNotNull"
               ],
-              "fields": "",
+              "fields": "/^Value$/",
               "values": false
             },
             "showPercentChange": false,
@@ -2728,45 +2695,43 @@
               },
               "disableTextWrap": false,
               "editorMode": "builder",
-              "expr": "avg(rate(aerospike_workload_ags_lng_latency_milliseconds_count{instance=~\"$client\", workload=~\"$workload\", wltype=~\"$workloadtype\", wlstage=\"Warmup\"}[$__rate_interval]))",
-              "format": "time_series",
+              "expr": "aerospike_workload_ags_currentQPS{instance=~\"$client\", workload=~\"$workload\", wltype=~\"$workloadtype\", wlstage=\"Warmup\"} > 0",
+              "format": "table",
               "fullMetaSearch": false,
               "includeNullMetadata": true,
-              "legendFormat": "Rate",
+              "legendFormat": "__auto",
               "range": true,
               "refId": "A",
               "useBackend": false
-            },
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "${DATASOURCE}"
-              },
-              "disableTextWrap": false,
-              "editorMode": "builder",
-              "exemplar": false,
-              "expr": "aerospike_workload_ags_stateinfo{instance=~\"$client\", workload=~\"$workload\", wltype=~\"$workloadtype\", type=\"static\", wlstage=\"Warmup\"}",
-              "format": "table",
-              "fullMetaSearch": false,
-              "hide": false,
-              "includeNullMetadata": true,
-              "instant": true,
-              "legendFormat": "__auto",
-              "range": false,
-              "refId": "B",
-              "useBackend": false
             }
           ],
-          "title": "Running Average Rate (last segment)",
+          "title": "Running QPS",
           "transformations": [
+            {
+              "id": "convertFieldType",
+              "options": {
+                "conversions": [
+                  {
+                    "destinationType": "number",
+                    "targetField": "CPSThreshold"
+                  }
+                ],
+                "fields": {}
+              }
+            },
             {
               "id": "configFromData",
               "options": {
-                "configRefId": "B",
+                "configRefId": "A",
                 "mappings": [
                   {
-                    "fieldName": "CallsPerSecond",
-                    "handlerKey": "max"
+                    "fieldName": "CPSThreshold",
+                    "handlerArguments": {
+                      "threshold": {
+                        "color": "green"
+                      }
+                    },
+                    "handlerKey": "threshold1"
                   }
                 ]
               }
@@ -3029,7 +2994,7 @@
       },
       "gridPos": {
         "h": 5,
-        "w": 3,
+        "w": 4,
         "x": 3,
         "y": 16
       },
@@ -3070,92 +3035,6 @@
         }
       ],
       "title": "Completed Calls",
-      "type": "stat"
-    },
-    {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${DATASOURCE}"
-      },
-      "description": "Current Target QPS",
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
-          "mappings": [],
-          "noValue": "--",
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": 0
-              }
-            ]
-          },
-          "unit": "locale"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 5,
-        "w": 3,
-        "x": 6,
-        "y": 16
-      },
-      "id": 45,
-      "options": {
-        "colorMode": "value",
-        "graphMode": "area",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "percentChangeColorMode": "standard",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "/^currCPS$/",
-          "values": false
-        },
-        "showPercentChange": false,
-        "textMode": "auto",
-        "wideLayout": true
-      },
-      "pluginVersion": "12.1.0",
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${DATASOURCE}"
-          },
-          "disableTextWrap": false,
-          "editorMode": "builder",
-          "expr": "aerospike_workload_ags_stateinfo{instance=~\"$client\", workload=~\"$workload\", wltype=~\"$workloadtype\", type=\"static\", wlstage=\"Workload\"}",
-          "format": "table",
-          "fullMetaSearch": false,
-          "includeNullMetadata": true,
-          "legendFormat": "__auto",
-          "range": true,
-          "refId": "A",
-          "useBackend": false
-        }
-      ],
-      "title": "Target QPS",
-      "transformations": [
-        {
-          "id": "sortBy",
-          "options": {
-            "fields": {},
-            "sort": [
-              {
-                "desc": false,
-                "field": "Value"
-              }
-            ]
-          }
-        }
-      ],
       "type": "stat"
     },
     {
@@ -3217,7 +3096,7 @@
       "gridPos": {
         "h": 5,
         "w": 3,
-        "x": 9,
+        "x": 7,
         "y": 16
       },
       "id": 11,
@@ -3429,7 +3308,7 @@
       "gridPos": {
         "h": 5,
         "w": 4,
-        "x": 12,
+        "x": 10,
         "y": 16
       },
       "id": 21,
@@ -3512,83 +3391,38 @@
         "type": "prometheus",
         "uid": "${DATASOURCE}"
       },
-      "description": "Average Rate for Last Period range",
+      "description": "Current QPS Rate",
       "fieldConfig": {
         "defaults": {
           "color": {
             "mode": "thresholds"
           },
           "mappings": [],
-          "min": 0,
           "noValue": "--",
           "thresholds": {
-            "mode": "percentage",
+            "mode": "absolute",
             "steps": [
               {
-                "color": "semi-dark-blue",
+                "color": "green",
                 "value": 0
               },
               {
-                "color": "blue",
+                "color": "green",
                 "value": 0
-              },
-              {
-                "color": "semi-dark-red",
-                "value": 25
-              },
-              {
-                "color": "light-red",
-                "value": 50
-              },
-              {
-                "color": "orange",
-                "value": 70
-              },
-              {
-                "color": "yellow",
-                "value": 80
-              },
-              {
-                "color": "light-green",
-                "value": 90
-              },
-              {
-                "color": "dark-green",
-                "value": 100
-              },
-              {
-                "color": "light-green",
-                "value": 110
-              },
-              {
-                "color": "super-light-green",
-                "value": 120
-              },
-              {
-                "color": "yellow",
-                "value": 130
-              },
-              {
-                "color": "#EAB839",
-                "value": 150
-              },
-              {
-                "color": "red",
-                "value": 175
               }
             ]
           },
-          "unit": "ops"
+          "unit": "locale"
         },
         "overrides": []
       },
       "gridPos": {
         "h": 5,
-        "w": 5,
-        "x": 16,
+        "w": 7,
+        "x": 14,
         "y": 16
       },
-      "id": 24,
+      "id": 45,
       "options": {
         "colorMode": "value",
         "graphMode": "area",
@@ -3599,7 +3433,7 @@
           "calcs": [
             "lastNotNull"
           ],
-          "fields": "",
+          "fields": "/^Value$/",
           "values": false
         },
         "showPercentChange": false,
@@ -3614,46 +3448,44 @@
             "uid": "${DATASOURCE}"
           },
           "disableTextWrap": false,
-          "editorMode": "code",
-          "expr": "avg(rate(aerospike_workload_ags_lng_latency_milliseconds_count{instance=~\"$client\", workload=~\"$workload\", wltype=~\"$workloadtype\", wlstage=\"Workload\"}[$__rate_interval]))",
-          "format": "time_series",
+          "editorMode": "builder",
+          "expr": "aerospike_workload_ags_currentQPS{instance=~\"$client\", workload=~\"$workload\", wltype=~\"$workloadtype\", wlstage=\"Workload\"} > 0",
+          "format": "table",
           "fullMetaSearch": false,
           "includeNullMetadata": true,
-          "legendFormat": "Rate",
+          "legendFormat": "__auto",
           "range": true,
           "refId": "A",
           "useBackend": false
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${DATASOURCE}"
-          },
-          "disableTextWrap": false,
-          "editorMode": "code",
-          "exemplar": false,
-          "expr": "aerospike_workload_ags_stateinfo{instance=~\"$client\", workload=~\"$workload\", wltype=~\"$workloadtype\", type=\"static\", wlstage=\"Workload\"}",
-          "format": "table",
-          "fullMetaSearch": false,
-          "hide": false,
-          "includeNullMetadata": true,
-          "instant": true,
-          "legendFormat": "__auto",
-          "range": false,
-          "refId": "B",
-          "useBackend": false
         }
       ],
-      "title": "Running Average Rate (last segment)",
+      "title": "Running QPS",
       "transformations": [
+        {
+          "id": "convertFieldType",
+          "options": {
+            "conversions": [
+              {
+                "destinationType": "number",
+                "targetField": "CPSThreshold"
+              }
+            ],
+            "fields": {}
+          }
+        },
         {
           "id": "configFromData",
           "options": {
-            "configRefId": "B",
+            "configRefId": "A",
             "mappings": [
               {
-                "fieldName": "CallsPerSecond",
-                "handlerKey": "max"
+                "fieldName": "CPSThreshold",
+                "handlerArguments": {
+                  "threshold": {
+                    "color": "green"
+                  }
+                },
+                "handlerKey": "threshold1"
               }
             ]
           }
@@ -3823,7 +3655,7 @@
               "viz": false
             },
             "insertNulls": false,
-            "lineInterpolation": "linear",
+            "lineInterpolation": "stepAfter",
             "lineWidth": 1,
             "pointSize": 5,
             "scaleDistribution": {
@@ -3839,7 +3671,7 @@
               "mode": "off"
             }
           },
-          "decimals": 2,
+          "decimals": 0,
           "fieldMinMax": false,
           "mappings": [],
           "thresholds": {
@@ -3861,7 +3693,7 @@
         "x": 0,
         "y": 22
       },
-      "id": 3,
+      "id": 50,
       "options": {
         "legend": {
           "calcs": [
@@ -3875,7 +3707,7 @@
             "p95",
             "p99"
           ],
-          "displayMode": "list",
+          "displayMode": "table",
           "placement": "bottom",
           "showLegend": true
         },
@@ -3894,9 +3726,13 @@
           },
           "disableTextWrap": false,
           "editorMode": "builder",
-          "expr": "rate(aerospike_workload_ags_lng_latency_milliseconds_count{instance=~\"$client\", workload=~\"$workload\", wltype=~\"$workloadtype\", wlstage=~\"$workloadstage\"}[$__rate_interval])",
+          "exemplar": false,
+          "expr": "aerospike_workload_ags_currentQPS{instance=~\"$client\", workload=~\"$workload\", wltype=~\"$workloadtype\", wlstage=~\"$workloadstage\"} > 0",
+          "format": "time_series",
           "fullMetaSearch": false,
+          "hide": false,
           "includeNullMetadata": true,
+          "instant": false,
           "legendFormat": "{{wlstage}}-{{wltype}}",
           "range": true,
           "refId": "A",
@@ -3996,7 +3832,7 @@
             "mean",
             "max"
           ],
-          "displayMode": "list",
+          "displayMode": "table",
           "placement": "bottom",
           "showLegend": true
         },
@@ -4221,7 +4057,7 @@
                   "viz": false
                 },
                 "insertNulls": false,
-                "lineInterpolation": "linear",
+                "lineInterpolation": "stepBefore",
                 "lineWidth": 1,
                 "pointSize": 5,
                 "scaleDistribution": {
@@ -4445,5 +4281,5 @@
   "timezone": "browser",
   "title": "Aerospike Tinker Bench",
   "uid": "besk2xu6dpp1ca",
-  "version": 65
+  "version": 9
 }

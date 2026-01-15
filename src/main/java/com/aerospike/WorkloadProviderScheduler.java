@@ -146,6 +146,7 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
                                 targetRunDuration,
                                 0,
                                 isWarmup,
+                                ranWarmUp,
                                 null);
         setStatus(WorkloadStatus.Initialized);
 
@@ -349,6 +350,7 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
                                 targetRunDuration,
                                 pendingCount.get(),
                                 warmup,
+                                this.ranwarmup,
                                 null);
             setStatus(WorkloadStatus.CanRun);
             logger.PrintDebug("WorkloadProviderScheduler", "Set Query to %s", queryRunnable);
@@ -866,7 +868,7 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
         private void Success(long latency) {
             successfulDuration.addAndGet(latency);
             RecordLatency(latency);
-            openTelemetry.recordElapsedTime(latency);
+            openTelemetry.recordElapsedTime(latency, getCallsPerSecond());
         }
 
         private void Error(long latency, Exception e) {

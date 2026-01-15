@@ -328,7 +328,7 @@ public class Main extends TinkerBenchArgs {
         } else {
             Helpers.Println(System.out,
                     String.format("Exiting with errors. Code: %d", exitStatus.get()),
-                    Helpers.RED,
+                    Helpers.BLACK,
                     Helpers.YELLOW_BACKGROUND);
         }
         System.exit(exitStatus.get());

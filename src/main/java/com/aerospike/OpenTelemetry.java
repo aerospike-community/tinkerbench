@@ -12,6 +12,7 @@ public interface OpenTelemetry extends AutoCloseable {
                Duration targetDuration,
                long pendingActions,
                boolean warmup,
+               boolean warmupRan,
                StringBuilder otherInfo);
 
     void setIdMgrGauge(final String mgrClass,
@@ -27,7 +28,7 @@ public interface OpenTelemetry extends AutoCloseable {
     void addException(Exception exception);
     void addException(String exceptionType, String message);
 
-    void recordElapsedTime(long elapsedNanos);
+    void recordElapsedTime(long elapsedNanos, double currentQPS);
 
     void incrPendingTransCounter();
     void decrPendingTransCounter();
