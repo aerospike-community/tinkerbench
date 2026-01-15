@@ -27,7 +27,7 @@ print_help() {
   echo "  --csv <path>              Path to CSV file (default: ./tbTests.csv)"
   echo "  --retry <n>               Number of retries per test (default: 0)"
   echo "  --continue-on-error <t/f> Continue after failure (default: true)"
-  echo "  --display-error <t/f>     Display error messages to console only (default: true)"
+  echo "  --display-error-only <t/f> Display error messages to console only (default: true)"
   echo "  --skip <n>                Skip first N tests (default: 0)"
   echo "  --only <list>             Run only specific tests (comma-separated)"
   echo "  --logdir <path>           Directory for logs (default: ./logs)"
@@ -51,7 +51,7 @@ while [[ $# -gt 0 ]]; do
       CONTINUE_ON_ERROR="$2"
       shift 2
       ;;
-    --display-error)
+    --display-error-only)
       DISPLAY_ERROR="$2"
       shift 2
       ;;
@@ -217,6 +217,13 @@ run_test() {
   echo -e "${CYAN}Expected RC:${RESET} $expected_rc"
   echo -e "${CYAN}Log:${RESET} $logfile"
   echo "----------------------------------------"
+
+  if [[ -f "$logfile_error" ]]; then
+      rm -f "$logfile_error"
+  fi
+  if [[ -f "$logfile" ]]; then
+      rm -f "$logfile"
+  fi
 
   # Retry loop
   while (( attempt <= RETRY_COUNT )); do
