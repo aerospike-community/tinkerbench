@@ -11,6 +11,7 @@ import picocli.CommandLine;
 
 public class Main extends TinkerBenchArgs {
 
+    @SuppressWarnings("unused")
     private static final Logger log = LoggerFactory.getLogger(Main.class);
     private static final AtomicInteger exitStatus = new AtomicInteger(0);
     private static QueryRunnable workloadRunnerCache;
@@ -137,6 +138,7 @@ public class Main extends TinkerBenchArgs {
         }
     }
 
+    @Override
     public Integer call() throws Exception {
         if(ListPredefinedQueries()) {
             exitStatus.set(1);
@@ -215,7 +217,7 @@ public class Main extends TinkerBenchArgs {
                 }
 
                 int currentQPS = this.queriesPerSecond;
-                final int endQPS = this.endQPS <= 0 ? Integer.MAX_VALUE : this.endQPS;
+                final int maxEndQPS = this.endQPS <= 0 ? Integer.MAX_VALUE : this.endQPS;
 
                 Helpers.Println(System.out,
                         String.format("Target QPS of %s",
@@ -244,7 +246,7 @@ public class Main extends TinkerBenchArgs {
                         break;
                     }
                     currentQPS += incrQPS;
-                    if(currentQPS <= endQPS) {
+                    if(currentQPS <= maxEndQPS) {
                         ranWarmup = true;
                         Helpers.Println(System.out,
                                 String.format("Changing Target QPS to %s",
@@ -253,7 +255,7 @@ public class Main extends TinkerBenchArgs {
                                 Helpers.GREEN_BACKGROUND);
                         logger.info(String.format("Changing Target QPS: %d", currentQPS));
                     }
-                } while (currentQPS <= endQPS);
+                } while (currentQPS <= maxEndQPS);
 
                 terminateRun.set(true);
             }

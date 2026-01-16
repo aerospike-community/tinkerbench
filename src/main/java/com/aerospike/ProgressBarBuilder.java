@@ -1,9 +1,5 @@
 package com.aerospike;
 
-import me.tongfei.progressbar.*;
-import me.tongfei.progressbar.wrapped.*;
-
-import java.io.*;
 import java.text.DecimalFormat;
 import java.time.Duration;
 import java.time.Instant;
@@ -11,6 +7,13 @@ import java.time.temporal.ChronoUnit;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
+
+import me.tongfei.progressbar.ConsoleProgressBarConsumer;
+import me.tongfei.progressbar.DelegatingProgressBarConsumer;
+import me.tongfei.progressbar.ProgressBarConsumer;
+import me.tongfei.progressbar.ProgressBarRenderer;
+import me.tongfei.progressbar.ProgressBarStyle;
+import me.tongfei.progressbar.ProgressState;
 
 public final class ProgressBarBuilder implements AutoCloseable {
 
@@ -59,6 +62,7 @@ public final class ProgressBarBuilder implements AutoCloseable {
             return this;
         }
 
+        @Override
         public void close() {
             if(!closed.get()) {
                 closed.set(true);

@@ -1,18 +1,30 @@
 package com.aerospike.idmanager;
 
-import com.aerospike.*;
-import com.opencsv.exceptions.CsvValidationException;
-import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
-import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
-
-import java.io.*;
-import java.util.*;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.Random;
 import java.util.concurrent.CompletionException;
 
-import com.opencsv.CSVReaderHeaderAware;
-
+import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
+import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
 import static org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__.id;
 import static org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__.label;
+
+import com.aerospike.Helpers;
+import com.aerospike.IdManager;
+import com.aerospike.LogSource;
+import com.aerospike.OpenTelemetry;
+import com.aerospike.ProgressBarBuilder;
+import com.opencsv.CSVReaderHeaderAware;
+import com.opencsv.exceptions.CsvValidationException;
 
 public class IdSampler implements IdManager {
     private List<Map<String,Object>> sampledIds = null;

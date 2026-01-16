@@ -1,15 +1,5 @@
 package com.aerospike;
 
-import io.opentelemetry.api.common.AttributeKey;
-import io.opentelemetry.api.common.Attributes;
-import io.opentelemetry.api.common.AttributesBuilder;
-import io.opentelemetry.api.metrics.*;
-import io.opentelemetry.exporter.prometheus.PrometheusHttpServer;
-import io.opentelemetry.sdk.OpenTelemetrySdk;
-import io.opentelemetry.sdk.metrics.SdkMeterProvider;
-import io.opentelemetry.sdk.resources.Resource;
-import org.apache.tinkerpop.gremlin.driver.exception.ResponseException;
-
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDateTime;
@@ -21,9 +11,22 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
+import org.apache.tinkerpop.gremlin.driver.exception.ResponseException;
+
+import io.opentelemetry.api.common.AttributeKey;
+import io.opentelemetry.api.common.Attributes;
+import io.opentelemetry.api.common.AttributesBuilder;
+import io.opentelemetry.api.metrics.DoubleHistogram;
+import io.opentelemetry.api.metrics.LongCounter;
+import io.opentelemetry.api.metrics.LongGauge;
+import io.opentelemetry.api.metrics.LongUpDownCounter;
+import io.opentelemetry.api.metrics.Meter;
+import io.opentelemetry.exporter.prometheus.PrometheusHttpServer;
+import io.opentelemetry.sdk.OpenTelemetrySdk;
+import io.opentelemetry.sdk.metrics.SdkMeterProvider;
+import io.opentelemetry.sdk.resources.Resource;
 import static io.opentelemetry.semconv.ServiceAttributes.SERVICE_NAME;
 
 public final class OpenTelemetryExporter implements com.aerospike.OpenTelemetry {
@@ -386,6 +389,7 @@ public final class OpenTelemetryExporter implements com.aerospike.OpenTelemetry 
                             );
     }
 
+    @Override
     public void Reset(TinkerBenchArgs args,
                       String workloadName,
                       String workloadType,
@@ -468,8 +472,7 @@ public final class OpenTelemetryExporter implements com.aerospike.OpenTelemetry 
         if(this.closed.get()) { return; }
 
         String errMessage = exception.getMessage();
-        if(exception instanceof ResponseException) {
-            ResponseException re = (ResponseException) exception;
+        if(exception instanceof ResponseException re) {
             StringBuilder sb = errMessage == null
                                     ? new StringBuilder()
                                     : new StringBuilder(errMessage);
@@ -615,7 +618,7 @@ public final class OpenTelemetryExporter implements com.aerospike.OpenTelemetry 
                 Thread.sleep(this.closeWaitMS + 1000); //need to wait for PROM to re-scrap...
             }
         }
-       catch (Exception ignored) {}
+       catch (InterruptedException ignored) {}
        finally {
             closed.set(true);
         }
@@ -647,6 +650,7 @@ public final class OpenTelemetryExporter implements com.aerospike.OpenTelemetry 
         this.printDebug("Closed OpenTelemetry Exporter");
     }
 
+    @Override
     public String printConfiguration() {
         return String.format("Open Telemetry Enabled at %s%n\tPrometheus Exporter using Port %d%n\tClose wait interval %d ms%n\tScope Name: '%s'%n\tMetric Prefix Name: '%s'",
                 this.startLocalDateTime.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME),

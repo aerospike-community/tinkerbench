@@ -108,3 +108,21 @@ Note the difference between the console report and the Grafana panel. The Promet
 
 | ![image](media/gremlin-apache.png) | Console and log reports are always the most accurate source of information and any observations should be made on these reports. The Grafana dashboard is an overview of the progress of the workload. |
 |------------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+
+## Using "TestRun" Predefined Query
+
+The "TestRun" predefined query can be used to determine the base performance of TinkerBench.
+
+This predefined query runs completely on the local host. It will not make any remote connections and is used to determine how well TinkerBench will run before any work load is executed.
+
+If performance is poor, this will clearly indicate that the local host is undersized or the [schedulers/workers](understanding_command_line_interface.md) need to be adjusted.
+
+To determine a base performance, just run the following:
+
+```bash
+./tinkerbench TestRun
+```
+
+Once completed, check the console output for the "Workload" segment. The "99.9%" latency percentile should be under 1.5ms. The mean should be under 1.05ms. This predefined query has a built-in 1ms sleep. The closer the latency to 1ms the better. Typically, the overhead should be around 42 microseconds.
+
+![TestRun Demo](./media/TestRunCsonoleOutputTune.png)

@@ -4,7 +4,6 @@ import java.time.Duration;
 
 public final class OpenTelemetryDummy  implements OpenTelemetry {
 
-    @SuppressWarnings("unused")
     public OpenTelemetryDummy(TinkerBenchArgs args,
                               StringBuilder otherInfo) {
     }
@@ -39,7 +38,6 @@ public final class OpenTelemetryDummy  implements OpenTelemetry {
                               final long runtime) {
     }
 
-    @SuppressWarnings("unused")
     @Override
     public void incrPendingTransCounter() {
     }
@@ -47,17 +45,14 @@ public final class OpenTelemetryDummy  implements OpenTelemetry {
     @Override
     public void decrPendingTransCounter() {}
 
-    @SuppressWarnings("unused")
     @Override
     public void addException(Exception exception) {
     }
 
-    @SuppressWarnings("unused")
     @Override
     public void addException(String exceptionType, String message) {
     }
 
-    @SuppressWarnings("unused")
     @Override
     public void recordElapsedTime(long elapsedNanos, double currentQPS) {
     }
@@ -66,7 +61,6 @@ public final class OpenTelemetryDummy  implements OpenTelemetry {
     public void close() throws Exception {
     }
 
-    @SuppressWarnings("unused")
     @Override
     public void setConnectionState(String connectionState, int currentCPS){
     }

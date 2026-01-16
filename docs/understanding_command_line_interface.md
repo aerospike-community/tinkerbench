@@ -112,3 +112,13 @@ java -Dpicocli.defaults.TinkerBench.path=.\mytbpropfile.properties tinkerbench-1
 
 | ![image](media/gremlin-apache.png) | Warning: If the proprety's file doesn't exists or the context of the file is incorrect. You may not receive an error indicating an issue with the property file. |
 |------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+
+## Return Codes
+
+TinkerBench has the following return codes:
+
+- Zero           -- Normal Completion
+- One or Two     -- Commona Line Error
+- Three          -- QPS rate was not maintained based on `----QueriesPerSec` and `---QPSPctThreshold' parameters
+- Four           -- An error or exception occurred
+- Five and above -- TinkerBench aborted either by error, 'Ctrl-C', etc.
