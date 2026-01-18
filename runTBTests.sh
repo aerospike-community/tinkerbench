@@ -145,6 +145,9 @@ print_summary() {
   echo
 
   echo -e "${BLUE}========== COVERAGE REPORT ==========${RESET}"
+  echo -e "${GREEN}[Status] Test ### → RC: Expected/Actual → Command Line${RESET}"
+  echo -e "${BLUE}--------------------------------------${RESET}"
+
   local status=''
   local cmd=''
   local rc=''
@@ -269,7 +272,8 @@ run_test() {
       echo
       return 0
     fi
-    if [[ "$rc" -eq "$expected_rc" ]]; then
+    if [[ "|$expected_rc|" == *"|$rc|"* ]]; then
+    #if [[ "$rc" -eq "$expected_rc" ]]; then
       echo -e "${GREEN}[$(timestamp)] RESULT: PASS${RESET}"
       COVERAGE_STATUS[$TOTAL]="PASS"
       ((PASSED++))
