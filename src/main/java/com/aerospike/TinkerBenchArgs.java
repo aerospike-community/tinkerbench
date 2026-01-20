@@ -1,28 +1,17 @@
 package com.aerospike;
 
-import com.aerospike.idmanager.IdChainSampler;
-import com.aerospike.idmanager.IdSampler;
-import com.aerospike.idmanager.dummyManager;
-import org.apache.commons.lang3.StringUtils;
-import org.javatuples.Pair;
-import picocli.CommandLine;
-import picocli.CommandLine.Command;
-import picocli.CommandLine.Option;
-import picocli.CommandLine.IVersionProvider;
-import picocli.CommandLine.Parameters;
-import picocli.CommandLine.Spec;
-import picocli.CommandLine.Model.CommandSpec;
-import picocli.CommandLine.Model.OptionSpec;
-import picocli.CommandLine.Model.PositionalParamSpec;
-import picocli.CommandLine.ParseResult;
-
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
 import java.net.URL;
 import java.time.Duration;
 import java.time.format.DateTimeParseException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Enumeration;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.jar.Attributes;
@@ -30,6 +19,24 @@ import java.util.jar.Manifest;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+
+import org.apache.commons.lang3.StringUtils;
+import org.javatuples.Pair;
+
+import com.aerospike.idmanager.IdChainSampler;
+import com.aerospike.idmanager.IdSampler;
+import com.aerospike.idmanager.dummyManager;
+
+import picocli.CommandLine;
+import picocli.CommandLine.Command;
+import picocli.CommandLine.IVersionProvider;
+import picocli.CommandLine.Model.CommandSpec;
+import picocli.CommandLine.Model.OptionSpec;
+import picocli.CommandLine.Model.PositionalParamSpec;
+import picocli.CommandLine.Option;
+import picocli.CommandLine.Parameters;
+import picocli.CommandLine.ParseResult;
+import picocli.CommandLine.Spec;
 
 @Command(name = "TinkerBench",
         mixinStandardHelpOptions = true,
@@ -72,6 +79,23 @@ public abstract class TinkerBenchArgs implements Callable<Integer> {
             defaultValue = "100")
     int queriesPerSecond;
 
+    @Option(names = {"-incr", "-iqps", "--IncrementQueriesPerSec"},
+            description = "The increment to the queries per seconds until End QPS. Disabled if zero. Default is ${DEFAULT-VALUE}",
+            defaultValue = "0")
+    int incrQPS;
+
+    @Option(names = {"-end", "-eqps", "--EndQueriesPerSec"},
+            description = "If Incremental QPS enabled, this will be the ending QPS (inclusive). If zero, the QPS will be Incremented until the QPS cannot be maintained. Default is ${DEFAULT-VALUE}",
+            defaultValue = "1000")
+    int endQPS;
+
+    @Option(names = {"-qpspct", "--QPSPctThreshold"},
+            description = "The QPS rate threshold percentage between actual and target QPS.%n"
+                            + "If this percentage is not met, the test is considered failed.%n"
+                            + "Disabled if zero. Default is ${DEFAULT-VALUE}",
+            defaultValue = "95")
+    int qpsThreshold;
+
     @Option(names = {"-n", "-a", "--host"},
             description = "Specify the Aerospike Graph Server's host name or IP address.%nMultiple AGS hosts can be given by providing this option multiple times.%nExample:%n\t-n agsHost1 -n agsHost2, etc.%nDefault is '${DEFAULT-VALUE}'",
             split = ",",
@@ -97,7 +121,7 @@ public abstract class TinkerBenchArgs implements Callable<Integer> {
     @Option(names = {"-wu", "-wm", "--WarmupDuration"},
             converter = DurationConverter.class,
             description = "The warmup time duration (wall clock).%nA zero duration will disable the warmup.%nThe format can be in Hour(s)|H|Hr(s), Minute(s)|M|Min(s), and/or Second(s)|S|Sec(s), ISO 8601 format (PT1H2M3.5S), or just an integer value which represents seconds.%nExample:%n\t1h30s -> One hours and 30 seconds%n\t45 -> 45 seconds...%nDefault is ${DEFAULT-VALUE}",
-            defaultValue = "0")
+            defaultValue = "30s")
     Duration warmupDuration;
 
     @Option(names = {"-g", "-t", "--gremlin"},
@@ -188,12 +212,17 @@ public abstract class TinkerBenchArgs implements Callable<Integer> {
     public final AtomicBoolean abortRun = new AtomicBoolean(false);
     public final AtomicBoolean abortSIGRun = new AtomicBoolean(false);
     public final AtomicBoolean terminateRun = new AtomicBoolean(false);
+    public final AtomicBoolean errorRun = new AtomicBoolean(false);
+    public final AtomicBoolean qpsErrorRun = new AtomicBoolean(false);
+
+    public static boolean inBackgroundMode  = false;
 
     /**
      * {@link IVersionProvider} implementation that returns version information from {@code /MANIFEST.MF} and {@code /META-INF/MANIFEST.MF} file.
      */
     static final class ManifestVersionProvider implements IVersionProvider {
 
+        @Override
         public String[] getVersion() throws Exception {
             final List<String> versions = new ArrayList<>();
 
@@ -218,7 +247,7 @@ public abstract class TinkerBenchArgs implements Callable<Integer> {
                                     "tinkergraph-gremlin",
                                     versions);
 
-            return versions.toArray(new String[0]);
+            return versions.toArray(String[]::new);
         }
 
         private void getVersionsFromMetaInf(Enumeration<URL> resources,
@@ -418,7 +447,7 @@ public abstract class TinkerBenchArgs implements Callable<Integer> {
                 } else {
                     throw new IllegalArgumentException("Class " + value + " does not implement IdManager interface.");
                 }
-            } catch (Exception e) {
+            } catch (ClassNotFoundException | IllegalAccessException | IllegalArgumentException | InstantiationException | NoSuchMethodException | SecurityException | InvocationTargetException e) {
                 throw new IllegalArgumentException("Failed to instantiate IdManager from class: " + value, e);
             }
         }
@@ -490,6 +519,8 @@ public abstract class TinkerBenchArgs implements Callable<Integer> {
 
     public void validate() {
 
+        inBackgroundMode = this.backgroundMode;
+
         if(missing(queryNameOrString)){
             throw new CommandLine.ParameterException(commandlineSpec.commandLine(),
                     "Argument Query string or Query Name ('queryNameOrString') cannot be null");
@@ -522,12 +553,34 @@ public abstract class TinkerBenchArgs implements Callable<Integer> {
 
         if(port <= 0) {
             throw new CommandLine.ParameterException(commandlineSpec.commandLine(),
-                    "Argument AGS port cannot be zero or negative.");
+                    "Argument AGS 'port' cannot be zero or negative.");
         }
 
         if(errorsAbort <= 0) {
             throw new CommandLine.ParameterException(commandlineSpec.commandLine(),
-                    "Argument number of Errors to Abort cannot be zero or negative.");
+                    "Argument 'number of Errors' to Abort cannot be zero or negative.");
+        }
+
+        if(incrQPS < 0) {
+            throw new CommandLine.ParameterException(commandlineSpec.commandLine(),
+                    "Argument 'QPS Incremental' cannot be negative.");
+        }
+
+        if(qpsThreshold < 0) {
+            throw new CommandLine.ParameterException(commandlineSpec.commandLine(),
+                    "Argument 'QPS Threshold' cannot be negative.");
+        }
+
+        if(incrQPS > 0) {
+            if (endQPS > 0 && endQPS < queriesPerSecond) {
+                throw new CommandLine.ParameterException(commandlineSpec.commandLine(),
+                        String.format("Arguments 'End QPS' (%d) cannot be less than 'QPS' (%d).", endQPS, queriesPerSecond));
+            }
+        }
+
+        if(qpsThreshold == 0 && endQPS == 0) {
+            throw new CommandLine.ParameterException(commandlineSpec.commandLine(),
+                    "Arguments 'QPS Threshold' and 'End QPS' cannot both be zero.");
         }
 
         if(!missing(clusterConfigurationFile) && !clusterConfigurationFile.exists()) {
@@ -775,6 +828,6 @@ public abstract class TinkerBenchArgs implements Callable<Integer> {
                         (usesDefaultValue) ? " (Default)" : ""));
         }
 
-        return args.toArray(new String[0]);
+        return args.toArray(String[]::new);
     }
 }

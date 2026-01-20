@@ -2,6 +2,7 @@ package com.aerospike.idmanager;
 
 import com.aerospike.LogSource;
 import com.aerospike.OpenTelemetryDummy;
+import com.aerospike.TinkerBenchArgs;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -22,6 +23,7 @@ class IdChainSamplerTest {
     @BeforeEach
     void setUp() {
         idManager = new IdChainSampler();
+        TinkerBenchArgs.inBackgroundMode = true;
     }
 
     @Test

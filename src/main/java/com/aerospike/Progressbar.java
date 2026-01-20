@@ -1,42 +1,28 @@
 package com.aerospike;
 
-import me.tongfei.progressbar.ConsoleProgressBarConsumer;
-import me.tongfei.progressbar.DelegatingProgressBarConsumer;
-import me.tongfei.progressbar.ProgressBarBuilder;
-import me.tongfei.progressbar.ProgressBarConsumer;
-
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class Progressbar implements AutoCloseable {
 
     private final WorkloadProvider workloadProvider;
-    private final me.tongfei.progressbar.ProgressBar underlyingProgressBar;
-    private final ProgressBarConsumer consoleConsumer;
+    private final ProgressBarBuilder.ProgressBar underlyingProgressBar;
     private final AtomicBoolean closed = new AtomicBoolean(false);
     private final boolean isDebug;
-    private final boolean backGround;
 
     public Progressbar(WorkloadProvider workload) {
         this.workloadProvider = workload;
         this.isDebug = workload.isDebug();
-        this.backGround = workload.getCliArgs().backgroundMode;
 
-        if(backGround) {
-            consoleConsumer = new DelegatingProgressBarConsumer( (s) -> System.out.print(".") );
-        } else {
-            consoleConsumer = new ConsoleProgressBarConsumer(System.out);
-        }
-        this.underlyingProgressBar = new ProgressBarBuilder()
-                .setInitialMax(this.workloadProvider
-                                    .getTargetRunDuration()
-                                    .toSeconds())
-                .setTaskName(this.workloadProvider.isWarmup()
-                                ? "Warmup" : "Workload")
-                .hideEta()
-                .setConsumer(consoleConsumer)
-                .setUpdateIntervalMillis(1000)
-                .setUnit(" Seconds", 1)
-                .build();
+        this.underlyingProgressBar = ProgressBarBuilder.Builder(workload.getCliArgs().backgroundMode)
+                                        .setInitialMax(this.workloadProvider
+                                                        .getTargetRunDuration()
+                                                        .toSeconds())
+                                        .setTaskName(this.workloadProvider.isWarmup()
+                                                        ? "Warmup" : "Workload")
+                                        .hideEta()
+                                        .setUpdateIntervalMillis(1000)
+                                        .setUnit(" Seconds", 1)
+                                        .build();
     }
 
     public synchronized void start(String msg) {
@@ -115,7 +101,6 @@ public class Progressbar implements AutoCloseable {
         } catch (InterruptedException ignored) {}
 
         this.underlyingProgressBar.close();
-        this.consoleConsumer.close();
 
         System.out.println();
     }
@@ -127,7 +112,6 @@ public class Progressbar implements AutoCloseable {
         if(!closed.get()) {
             closed.set(true);
             underlyingProgressBar.close();
-            consoleConsumer.close();
         }
     }
 }

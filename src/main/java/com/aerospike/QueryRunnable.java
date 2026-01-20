@@ -40,6 +40,8 @@ public interface QueryRunnable extends AGSGraphTraversal,
 
     WorkloadTypes WorkloadType();
 
+    QueryRunnable SetWorkloadProvider(WorkloadProvider newProvider);
+
     QueryRunnable Start();
 
     QueryRunnable awaitTermination();

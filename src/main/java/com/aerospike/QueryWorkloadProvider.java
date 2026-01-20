@@ -8,10 +8,10 @@ Implements required interfaces to execute a workload AGS query.
  */
 public abstract class QueryWorkloadProvider implements QueryRunnable {
 
-    private final WorkloadProvider provider;
+    private WorkloadProvider provider;
     private final AGSGraphTraversal agsGraphTraversal;
     private final LogSource logger = LogSource.getInstance();
-    private final boolean isPrintResult;
+    private boolean isPrintResult;
     private final String workloadName;
     private final IdManager idManager;
     private Object[] idArray = new Object[0];
@@ -112,6 +112,22 @@ public abstract class QueryWorkloadProvider implements QueryRunnable {
             System.out.println(value);
             logger.info(value);
         }
+    }
+
+    @Override
+    public QueryRunnable SetWorkloadProvider(WorkloadProvider newProvider) {
+
+        if(newProvider == null) {
+            throw new IllegalArgumentException("newProvider cannot be null");
+        }
+
+        if(provider != null && provider.getStatus() != WorkloadStatus.Shutdown) {
+            throw new IllegalStateException("Current WorkloadProvider must be in shutdown state");
+        }
+        provider = newProvider;
+        this.isPrintResult = this.provider.getCliArgs().printResult;
+        this.provider.setQuery(this);
+        return this;
     }
 
     @Override

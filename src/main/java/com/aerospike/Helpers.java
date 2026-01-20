@@ -1,33 +1,49 @@
 package com.aerospike;
 
-import com.aerospike.idmanager.IdSampler;
-import org.apache.tinkerpop.gremlin.driver.exception.ResponseException;
-import org.javatuples.Pair;
-
-import java.io.*;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.PrintStream;
 import java.lang.management.ManagementFactory;
 import java.lang.management.RuntimeMXBean;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
-
 import java.lang.reflect.Method;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URL;
 import java.net.URLClassLoader;
-import java.nio.file.*;
+import java.nio.file.DirectoryStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.security.CodeSource;
 import java.security.ProtectionDomain;
-import java.time.*;
+import java.time.Duration;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.jar.JarEntry;
 import java.util.jar.JarInputStream;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+
+import org.apache.tinkerpop.gremlin.driver.exception.ResponseException;
+import org.javatuples.Pair;
 
 public class Helpers {
 
@@ -156,8 +172,7 @@ public class Helpers {
         return null;
     }
 
-    private static final List<Class<?>> PreDefinedClasses = new  ArrayList<Class<?>>();
-    private static final List<Class<?>> IdManagerClasses = new  ArrayList<Class<?>>();
+    private static final List<Class<?>> PreDefinedClasses = new  ArrayList<>();
 
     public static Class<?> getClass(String jarFilePath, String className) throws ClassNotFoundException {
         try {
@@ -301,9 +316,8 @@ public class Helpers {
         for (String classpathEntry : classPathEntries) {
             if (classpathEntry.endsWith(".jar")) {
                 File jar = new File(classpathEntry);
-                String classPath = null;
-                try {
-                    JarInputStream is = new JarInputStream(new FileInputStream(jar));
+                String classPath;
+                try (JarInputStream is = new JarInputStream(new FileInputStream(jar))) {
                     JarEntry entry;
                     while ((entry = is.getNextJarEntry()) != null) {
                         name = entry.getName();
@@ -324,7 +338,7 @@ public class Helpers {
                     }
                 } catch (Exception ignored) { }
             } else {
-                String classPath = null;
+                String classPath;
                 try {
                     File base = new File(classpathEntry + File.separatorChar + path);
                     for (File file : Objects.requireNonNull(base.listFiles())) {
@@ -552,8 +566,8 @@ public class Helpers {
         Pair<Boolean, Boolean> isNumeric = isNumeric(str);
         if(isNumeric.getValue0()) {
             if(isNumeric.getValue1())
-                return Float.parseFloat(str);
-            return Integer.parseInt(str);
+                return Float.valueOf(str);
+            return Integer.valueOf(str);
         }
 
         return toProperGremlinString(str);
@@ -572,6 +586,9 @@ public class Helpers {
     private static final List<String> validbools = Arrays.asList("true", "false");
 
     public static Object DetermineValue(final String item) {
+
+        if(item == null || item.isEmpty()) return item;
+
         Pair<Boolean, Boolean> isNumeric = isNumeric(item);
         String type = "String";
 
@@ -597,7 +614,7 @@ public class Helpers {
                                          final String subtype) {
         try {
             switch(type.toLowerCase().trim()) {
-                case "list": {
+                case "list" -> {
                     String[] items = item
                             .substring(1,item.length() - 1)
                             .split(",");
@@ -611,25 +628,30 @@ public class Helpers {
                     }
                     return list;
                 }
-                case "string":
+                case "string" -> {
                     return item;
-                case "float":
-                    return Float.parseFloat(item);
-                case "double":
-                    return Double.parseDouble(item);
-                case "integer":
-                case "int":
-                    return Integer.parseInt(item);
-                case "long":
-                    return Long.parseLong(item);
-                case "boolean":
-                case "bool":
-                    return Boolean.parseBoolean(item);
-                default:
+                }
+                case "float" -> {
+                    return Float.valueOf(item);
+                }
+                case "double" -> {
+                    return Double.valueOf(item);
+                }
+                case "integer", "int" -> {
+                    return Integer.valueOf(item);
+                }
+                case "long" -> {
+                    return Long.valueOf(item);
+                }
+                case "boolean", "bool" -> {
+                    return Boolean.valueOf(item);
+                }
+                default -> {
                     return Class.forName(item);
+                }
             }
 
-        } catch (Exception ignored) {}
+        } catch (ClassNotFoundException | NumberFormatException ignored) {}
         return null;
     }
 
@@ -918,7 +940,7 @@ public class Helpers {
                 throw new IOException("Unable to create directory " + directoryFile);
             }
 
-        } catch (Exception e) {
+        } catch (IOException e) {
             LogSource.getInstance().error(String.format("Error while trying to create the folder '%s'",
                             directoryFile),
                     e);

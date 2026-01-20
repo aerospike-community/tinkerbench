@@ -1,23 +1,30 @@
 package com.aerospike.idmanager;
 
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.Random;
+import java.util.concurrent.CompletionException;
+
+import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
+import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
+import static org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__.id;
+import static org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__.label;
+
 import com.aerospike.Helpers;
 import com.aerospike.IdManager;
 import com.aerospike.LogSource;
 import com.aerospike.OpenTelemetry;
-import com.opencsv.exceptions.CsvValidationException;
-import me.tongfei.progressbar.ProgressBar;
-import me.tongfei.progressbar.ProgressBarBuilder;
-import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
-import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
-
-import java.io.*;
-import java.util.*;
-import java.util.concurrent.CompletionException;
-
+import com.aerospike.ProgressBarBuilder;
 import com.opencsv.CSVReaderHeaderAware;
-
-import static org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__.id;
-import static org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__.label;
+import com.opencsv.exceptions.CsvValidationException;
 
 public class IdSampler implements IdManager {
     private List<Map<String,Object>> sampledIds = null;
@@ -119,7 +126,7 @@ public class IdSampler implements IdManager {
             sampledIds = null;
             disabled = true;
             logger.PrintDebug("IdSampler", "IdSampler disabled");
-            openTelemetry.setIdMgrGauge(null, null, null, -1, 0, 0);
+            openTelemetry.setIdMgrGauge(null, null, null, -1, -1, 0, 0, 0, 0);
         } else {
             try {
                 if(labels == null || labels.length == 0) {
@@ -177,8 +184,11 @@ public class IdSampler implements IdManager {
                 openTelemetry.setIdMgrGauge(this.getClass().getSimpleName(),
                                             labels,
                                             null,
-                                            sampleSize,
-                                            sampledIds.size(),
+                                            this.getIdCount(),
+                                            this.getStartingIdsCount(),
+                                            this.getDepth() + 1,
+                                            this.getInitialDepth() + 1,
+                                            this.getNbrRelationships(),
                                             runningLatency);
             }
 
@@ -302,7 +312,7 @@ public class IdSampler implements IdManager {
             disabled = true;
             System.out.println("IdSampler is disabled but an import file was supplied. Ignoring importing of file...");
             logger.PrintDebug("IdSampler.importFile", "IdSampler disabled");
-            openTelemetry.setIdMgrGauge(null, null, null, -1, 0, 0);
+            openTelemetry.setIdMgrGauge(null, null, null, -1, -1, 0, 0, 0, 0);
             return 0;
         }
 
@@ -316,11 +326,12 @@ public class IdSampler implements IdManager {
         if(Helpers.hasWildcard(filePath)) {
             long latency = 0;
 
-            try (ProgressBar progressBar = new ProgressBarBuilder()
-                                                .setTaskName("Loading vertices ids")
-                                                .hideEta()
-                                                .build()) {
+            try (ProgressBarBuilder.ProgressBar progressBar = ProgressBarBuilder.Builder()
+                                                                .setTaskName("Loading vertices ids")
+                                                                .hideEta()
+                                                                .build()) {
                 final List<File> files = Helpers.GetFiles(null, filePath);
+
                 progressBar.maxHint(files.size());
 
                 for (File importFile : files) {
@@ -337,8 +348,11 @@ public class IdSampler implements IdManager {
                     openTelemetry.setIdMgrGauge("*",
                                                     labels,
                                                     null,
-                                                    sampleSize,
-                                                    sampledIds.size(),
+                                                    this.getIdCount(),
+                                                    this.getStartingIdsCount(),
+                                                    this.getDepth() + 1,
+                                                    this.getInitialDepth() + 1,
+                                                    this.getNbrRelationships(),
                                                     latency);
                 }
                 progressBar.refresh();
@@ -399,8 +413,11 @@ public class IdSampler implements IdManager {
             openTelemetry.setIdMgrGauge(file.getName(),
                                         labels,
                                         null,
-                                        sampleSize,
-                                        sampledIds.size(),
+                                        this.getIdCount(),
+                                        this.getStartingIdsCount(),
+                                        this.getDepth() + 1,
+                                        this.getInitialDepth() + 1,
+                                        this.getNbrRelationships(),
                                         latency);
         }
 
@@ -426,11 +443,11 @@ public class IdSampler implements IdManager {
                                         sampledIds.size(),
                                         exportFile.getAbsolutePath());
 
-            try (ProgressBar progressBar = new ProgressBarBuilder()
-                                                .setInitialMax(sampledIds.size())
-                                                .setTaskName("Exporting vertices ids")
-                                                .hideEta()
-                                                .build();
+            try (ProgressBarBuilder.ProgressBar progressBar = ProgressBarBuilder.Builder()
+                                                                .setInitialMax(sampledIds.size())
+                                                                .setTaskName("Exporting vertices ids")
+                                                                .hideEta()
+                                                                .build();
                     BufferedWriter writer = new BufferedWriter(new FileWriter(exportFile))) {
 
                 progressBar.setExtraMessage(exportFile.getName());
@@ -470,8 +487,10 @@ public class IdSampler implements IdManager {
     public void printStats(final LogSource logger) {
         final String msg = String.format("""
                                         Using Id Manager '%s':
+                                          Labels: %s
                                           Number of Starting Nodes: %,d""",
                                 this.getClass().getSimpleName(),
+                                Arrays.toString(this.labels),
                                 this.getStartingIdsCount());
         Helpers.Println(System.out,
                         msg,

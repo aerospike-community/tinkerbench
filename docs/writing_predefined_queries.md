@@ -1,6 +1,27 @@
-# Writing a Custom Predefined Gremlin Query
+# Predefined Queries
 
 ![Predefined Query](media/Gremlin%20Query%20Diagram%20for%20Tinkerbench.png)
+
+A PreDefined Query is a Gremlin query that is embedded in Java Code instead of being dynamically interrupted and compiled for execution (i.e., versus passing in a Gremlin string).
+
+## Supplied Predefined Queries
+
+Using the `list` argument to TinkerBench will list the predefined queries defined (internal or custom).
+
+### Example Queries
+
+- AirRoutesQuery1 -- Air Routes Graph Traversal Query Example:
+    `G().V( getVId() ).out().limit(5).path().by(values("code","city").fold()).toList();`
+- AirRoutesQuery2 -- Air Routes Graph Traversal Query:
+    `G().V( getVId(0) ).out().hasId( getVId(1) ).out().limit(5).toList()`
+
+### Benchmark Queries
+
+- `TestRun` -- [Test Run](tuning.md#using-testrun-predefined-query) that doesn't query AGS but performs 1 ms sleep. This is used to develop an understanding baseline and overhead of TinkerBench.
+- `TestRunLong` -- Test Run that doesn't query AGS but Sleeps for 5 seconds. Simliar to `TestRun`.
+- `TestRunSpinWait` -- Test Run that doesn't query AGS but uses a `Spin Wait`.
+
+## Writing a Custom Predefined Gremlin Query
 
 TinkerBench allows the extension of existing and newly defined predefined Gremlin queries.
 

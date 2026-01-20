@@ -91,6 +91,11 @@ public interface WorkloadProvider extends AutoCloseable {
     double getCallsPerSecond();
 
     /*
+    Returns the difference as a Percentage between actual and target CPS
+     */
+    double getCPSDiffPct();
+
+    /*
     Returns the current errors-per-second rate.
      */
     double getErrorsPerSecond();
