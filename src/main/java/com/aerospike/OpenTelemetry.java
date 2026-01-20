@@ -12,24 +12,28 @@ public interface OpenTelemetry extends AutoCloseable {
                Duration targetDuration,
                long pendingActions,
                boolean warmup,
+               boolean warmupRan,
                StringBuilder otherInfo);
 
     void setIdMgrGauge(final String mgrClass,
                             final String[] labels,
                             final String gremlinString,
-                            final int requestedCnt,
-                            final int actualCnt,
+                           final int distinctNodeCnt,
+                           final int rootNodesCnt,
+                           final int requestedDepth,
+                           final int possibleDepth,
+                           final int relationships,
                             final long runtime);
 
     void addException(Exception exception);
     void addException(String exceptionType, String message);
 
-    void recordElapsedTime(long elapsedNanos);
+    void recordElapsedTime(long elapsedNanos, double currentQPS);
 
     void incrPendingTransCounter();
     void decrPendingTransCounter();
 
-    void setConnectionState(String connectionState);
+    void setConnectionState(String connectionState, int currentCPS);
 
     String printConfiguration();
 }

@@ -35,12 +35,17 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
     private final AtomicLong successfulDuration = new AtomicLong();
     private final AtomicLong errorDuration = new AtomicLong();
     private final AtomicLong errorCount = new AtomicLong();
+
     private final AtomicBoolean abortRun;
     private final AtomicBoolean terminateRun;
+    private final AtomicBoolean qpsErrorRun;
+    private final AtomicBoolean errorRun;
+
     private final AtomicBoolean terminateWorkers = new AtomicBoolean();
     private final AtomicBoolean waitingSchedulerShutdown = new AtomicBoolean();
     private final AtomicBoolean summaryPrinted = new AtomicBoolean();
     private final int errorThreshold;
+    private final int qpsThreshold;
     private final Boolean warmup;
     private final Boolean ranwarmup;
     private final Histogram histogram;
@@ -72,6 +77,7 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
 
     public WorkloadProviderScheduler(OpenTelemetry openTelemetry,
                                      Duration targetRunDuration,
+                                     int qps,
                                      boolean isWarmup,
                                      boolean ranWarmUp,
                                      TinkerBenchArgs cliArgs) {
@@ -79,11 +85,15 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
         this.hdrHistFmt = cliArgs.hdrHistFmt;
         this.abortRun = cliArgs.abortRun;
         this.terminateRun = cliArgs.terminateRun;
+        this.qpsErrorRun = cliArgs.qpsErrorRun;
+        this.errorRun = cliArgs.errorRun;
+
         this.errorThreshold = cliArgs.errorsAbort;
+        this.qpsThreshold = cliArgs.qpsThreshold;
         this.targetRunDuration =  targetRunDuration == null
-                ? cliArgs.duration
-                : targetRunDuration;
-        this.callsPerSecond = cliArgs.queriesPerSecond;
+                                    ? cliArgs.duration
+                                    : targetRunDuration;
+        this.callsPerSecond = qps <= 0 ? cliArgs.queriesPerSecond : qps;
         this.shutdownTimeout = cliArgs.shutdownTimeout;
         this.schedulers = cliArgs.schedulers;
         this.workers = cliArgs.workers;
@@ -99,10 +109,10 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
             this.histogram = new AtomicHistogram(higestTrackableDuration.toNanos(), numberOfSignificantValueDigits);
             if(log.isDebugEnabled()) {
                 logger.PrintDebug("WorkloadProviderScheduler",
-                                        "AtomicHistogram latency highestTrackableValue: %,d%n\tnumberOfSignificantValueDigits: %d%n\tFoot print: %,d (bytes)",
-                                    this.histogram.getHighestTrackableValue(),
-                                    this.histogram.getNumberOfSignificantValueDigits(),
-                                    this.histogram.getEstimatedFootprintInBytes());
+                        "AtomicHistogram latency highestTrackableValue: %,d%n\tnumberOfSignificantValueDigits: %d%n\tFoot print: %,d (bytes)",
+                        this.histogram.getHighestTrackableValue(),
+                        this.histogram.getNumberOfSignificantValueDigits(),
+                        this.histogram.getEstimatedFootprintInBytes());
             }
             //Tack pending queries for reporting
             long highestQueueDepth = this.callsPerSecond/2;
@@ -110,8 +120,8 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
             {
                 if(this.callsPerSecond <=2) {
                     highestQueueDepth = this.targetRunDuration.toSeconds()
-                                            * this.workers
-                                            * this.schedulers;
+                            * this.workers
+                            * this.schedulers;
                 } else {
                     highestQueueDepth = this.targetRunDuration.toSeconds();
                 }
@@ -136,6 +146,7 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
                                 targetRunDuration,
                                 0,
                                 isWarmup,
+                                ranWarmUp,
                                 null);
         setStatus(WorkloadStatus.Initialized);
 
@@ -145,12 +156,14 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
 
     public WorkloadProviderScheduler(OpenTelemetry openTelemetry,
                                      Duration targetRunDuration,
+                                     int qps,
                                      boolean warmup,
                                      boolean ranWarmUp,
                                      TinkerBenchArgs cliArgs,
                                      QueryRunnable query) {
         this(openTelemetry,
                 targetRunDuration,
+                qps,
                 warmup,
                 ranWarmUp,
                 cliArgs);
@@ -279,6 +292,13 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
     }
 
     /*
+    Returns the difference as a Percentage between actual and target CPS
+     */
+    public double getCPSDiffPct() {
+        return Helpers.RoundNumberOfSignificantDigits((getCallsPerSecond() / getTargetCallsPerSecond()) * 100.0, 2);
+    }
+
+    /*
     Returns the latency at the provided Percentile in MS
      */
     public double getLatencyMSAtPercentile(double desiredPercentile) {
@@ -330,6 +350,7 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
                                 targetRunDuration,
                                 pendingCount.get(),
                                 warmup,
+                                this.ranwarmup,
                                 null);
             setStatus(WorkloadStatus.CanRun);
             logger.PrintDebug("WorkloadProviderScheduler", "Set Query to %s", queryRunnable);
@@ -347,8 +368,7 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
             final int useScheduler = schedulers;
             final int base = callsPerSecond / useScheduler;
             final int remainder = callsPerSecond % useScheduler;
-            summaryPrinted.set(false);
-            waitingSchedulerShutdown.set(false);
+
             setStatus(WorkloadStatus.PendingRun);
 
             if(queryRunnable != null) {
@@ -373,6 +393,7 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
                                     "Exception on Start for Workload %s",
                                     queryRunnable);
                     logger.Print("WorkloadProviderScheduler", e);
+                    errorRun.set(true);
                     return this;
                 }
             }
@@ -549,12 +570,13 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
                     warmup ? "Warmup" : "Workload");
             return this;
         }
+
         //Summary Report
         {
             final long totalCount = getSuccessCount()
                     + getErrorCount()
                     + getAbortedCount();
-            final double pctQPSDiff = Helpers.RoundNumberOfSignificantDigits((getCallsPerSecond() / getTargetCallsPerSecond()) * 100.0, 2);
+            final double pctQPSDiff = getCPSDiffPct();
             final double pctDurDiff = Helpers.RoundNumberOfSignificantDigits(((double) getRunningDuration().toMillis() / getTargetRunDuration().toMillis()) * 100.0, 2);
 
             printStream.printf("%s Summary for %s:%n",
@@ -566,12 +588,12 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
             printStream.printf("\tRuntime Duration: %s (%.2f%% of Target Duration)%n",
                                     Helpers.FmtDuration(getRunningDuration()),
                                     pctDurDiff);
-
-            printStream.println("\tSuccessful Queries");
-            printStream.printf("\t\tMean QPS: %,.2f (%.2f%% of Target Rate of %s)%n",
+            printStream.printf("\tTarget QPS: %s%n",
+                    Helpers.FmtInt(getTargetCallsPerSecond()));
+            printStream.printf("\t\t\tMean QPS: %,.2f (%.2f%%)%n",
                                 getCallsPerSecond(),
-                                pctQPSDiff,
-                                Helpers.FmtInt(getTargetCallsPerSecond()));
+                                pctQPSDiff);
+            printStream.println("\tQueries Completed");
             printStream.printf("\t\tQueries: %,d%n", getSuccessCount());
             printStream.printf("\t\tCPU Time: %s%n", getAccumSuccessDuration());
 
@@ -734,11 +756,10 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
         System.out.println();
 
         try {
-            final double pctQPSDiff = Helpers.RoundNumberOfSignificantDigits((getCallsPerSecond() / getTargetCallsPerSecond()) * 100.0, 2);
-            if(pctQPSDiff > 95.0) {
-                System.out.print(Helpers.LIGHT_GREEN_BACKGROUND);
-            } else {
+            if(qpsErrorRun.get()) {
                 System.out.print(Helpers.YELLOW_BACKGROUND);
+            } else {
+                System.out.print(Helpers.LIGHT_GREEN_BACKGROUND);
             }
             System.out.print(Helpers.BLACK);
             PrintSummary(System.out, this.hdrHistFmt);
@@ -799,7 +820,8 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
                 stopDateTime = LocalDateTime.now();
             }
 
-            openTelemetry.setConnectionState(workloadStatus.toString());
+            openTelemetry.setConnectionState(workloadStatus.toString(),
+                                                this.warmup ? 0 : this.callsPerSecond);
 
             logger.PrintDebug("WorkloadProviderScheduler", "New Status %s for %s",
                     workloadStatus,
@@ -846,7 +868,7 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
         private void Success(long latency) {
             successfulDuration.addAndGet(latency);
             RecordLatency(latency);
-            openTelemetry.recordElapsedTime(latency);
+            openTelemetry.recordElapsedTime(latency, getCallsPerSecond());
         }
 
         private void Error(long latency, Exception e) {
@@ -957,6 +979,7 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
                 && !abortRun.get())
         {
             abortRun.set(true);
+            errorRun.set(true);
             progressbar.stop();
             System.err.printf("\tStopping %s due %d Errors for %s...%n",
                                 warmup ? "warmup" : "workload",
@@ -975,6 +998,9 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
             System.out.printf("\tStopping %s due to %s...%n",
                     warmup ? "warmup" : "workload",
                     abortRun.get() ? "Signal" : "Duration Reached");
+            if(getCPSDiffPct() < qpsThreshold) {
+                qpsErrorRun.set(true);
+            }
         }
         schedulerPool.shutdownNow();
         workerPool.shutdownNow();

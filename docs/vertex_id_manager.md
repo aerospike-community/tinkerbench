@@ -107,9 +107,9 @@ If `--label` or `--IdSampleSize` arguments are provided, the number of ids impor
 
 The path argument can be one of the following:
 
--   A path with wildcards
--   A directory where any `*.csv` files within that folder will be imported.
--   A file path with a file name and extension
+- A path with wildcards
+- A directory where any `*.csv` files within that folder will be imported.
+- A file path with a file name and extension
 
 #### Import Command Line
 
@@ -139,7 +139,7 @@ Where "-id" is the vertex id. The optional "-label" column can include the assoc
 
 ##### Example
 
-```
+```csv
 -id
 342
 1464
@@ -154,7 +154,7 @@ Where "-id" is the vertex id. The optional "-label" column can include the assoc
 
 ##### Example with Labels
 
-```
+```csv
 -id,-label
 342,airport
 1464,airport
@@ -215,18 +215,18 @@ Id 2
 
 Using a Id/value within a Gremlin query string is based on the top-level depth. Using the above example:
 
--   Level 1 – Id 1, Id 2
--   Level 2 – Id 1364, Id 147, Id 103, Id 2364, 247
--   Level 3 – Id 18, Id 182, Id 28, Id 21
+- Level 1 – Id 1, Id 2
+- Level 2 – Id 1364, Id 147, Id 103, Id 2364, 247
+- Level 3 – Id 18, Id 182, Id 28, Id 21
 
 Once an Id/value at a certain level is randomly selected, all downstream selections (children) will always be related to its “parent” selection.
 
 If “Id 2” is selected and Gremlin query request a depth of 4. Below is an example of the possible selections:
 
--   Level 2 - 2364, 247, 203, or 237 are possibilities
--   Id 2364 is selected -\> Level 3 – 28 or 21 are possibilities
--   Id 28 is selected -\> Level 4 – 282 or 284 are possibilities
--   Id 247 is selected -\> Level 3 has no possibilities (null is returned)
+- Level 2 - 2364, 247, 203, or 237 are possibilities
+- Id 2364 is selected -\> Level 3 – 28 or 21 are possibilities
+- Id 28 is selected -\> Level 4 – 282 or 284 are possibilities
+- Id 247 is selected -\> Level 3 has no possibilities (null is returned)
 
 ### Populating Ids/Values
 
@@ -416,7 +416,8 @@ java tinkerbench-2.1.0-jar-with-dependencies.jar 'g.V(%1$s).
 To embed a id/value within a Gremlin string, use the [Java advance string format syntax](https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/Formatter.html).
 
 The id/value placeholder has the following syntax:
-```
+
+```text
 %[-]<depth>$s
 ```
 
@@ -460,9 +461,9 @@ What this query does:
 
 Using the Air routes dataset and a Gremlin Query that loads "aireport codes" into the Id Manager (see below):
 
-```
+```groovy
 g.V().has('airport', 'code', %1$s).as('p1').
-  out('route').inV().has('airport', 'code', %2s).as('p2').
+  out('route').inV().has('airport', 'code', %2$s).as('p2').
   out('route').inV().has('airport', 'code', %4$s).as('p4').
   path().by('code')
 ```

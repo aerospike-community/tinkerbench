@@ -1,15 +1,5 @@
 package com.aerospike;
 
-import io.opentelemetry.api.common.AttributeKey;
-import io.opentelemetry.api.common.Attributes;
-import io.opentelemetry.api.common.AttributesBuilder;
-import io.opentelemetry.api.metrics.*;
-import io.opentelemetry.exporter.prometheus.PrometheusHttpServer;
-import io.opentelemetry.sdk.OpenTelemetrySdk;
-import io.opentelemetry.sdk.metrics.SdkMeterProvider;
-import io.opentelemetry.sdk.resources.Resource;
-import org.apache.tinkerpop.gremlin.driver.exception.ResponseException;
-
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDateTime;
@@ -21,7 +11,22 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
+import org.apache.tinkerpop.gremlin.driver.exception.ResponseException;
+
+import io.opentelemetry.api.common.AttributeKey;
+import io.opentelemetry.api.common.Attributes;
+import io.opentelemetry.api.common.AttributesBuilder;
+import io.opentelemetry.api.metrics.DoubleHistogram;
+import io.opentelemetry.api.metrics.LongCounter;
+import io.opentelemetry.api.metrics.LongGauge;
+import io.opentelemetry.api.metrics.LongUpDownCounter;
+import io.opentelemetry.api.metrics.Meter;
+import io.opentelemetry.exporter.prometheus.PrometheusHttpServer;
+import io.opentelemetry.sdk.OpenTelemetrySdk;
+import io.opentelemetry.sdk.metrics.SdkMeterProvider;
+import io.opentelemetry.sdk.resources.Resource;
 import static io.opentelemetry.semconv.ServiceAttributes.SERVICE_NAME;
 
 public final class OpenTelemetryExporter implements com.aerospike.OpenTelemetry {
@@ -38,14 +43,18 @@ public final class OpenTelemetryExporter implements com.aerospike.OpenTelemetry 
 
     private final Attributes[] hbAttributes;
     private final OpenTelemetrySdk openTelemetrySdk;
+    private final Meter openTelemetryMeter;
     private final LongGauge openTelemetryInfoGauge;
     private final LongGauge openTelemetryIdMgrGauge;
+    private final AtomicReference<LongGauge> openTelemetryQPSGauge = new AtomicReference<>();
     private final LongCounter openTelemetryExceptionCounter;
     private final LongUpDownCounter openTelemetryPendingCounter;
     private final DoubleHistogram openTelemetryLatencyMSHistogram;
 
-    private int isWarmup = 0; //0 -- unknown, 1 -- Warmup, 2 -- Workload
+    //0 -- unknown, 1 -- Warmup, 2 -- Workload only, 3 -- Workload (warmup initially ran)
+    private int isWarmup = 0;
     private String workloadType;
+    private long qpsThreshold;
     private final AtomicInteger hbCnt = new AtomicInteger();
     private final long startTimeMillis;
     private final LocalDateTime startLocalDateTime;
@@ -79,7 +88,7 @@ public final class OpenTelemetryExporter implements com.aerospike.OpenTelemetry 
         this.printDebug("Creating OpenTelemetryExporter");
 
         this.openTelemetrySdk = this.initOpenTelemetry();
-        Meter openTelemetryMeter = this.openTelemetrySdk.getMeter(SCOPE_NAME);
+        this.openTelemetryMeter = this.openTelemetrySdk.getMeter(SCOPE_NAME);
 
         this.printDebug("Creating Metrics");
 
@@ -96,6 +105,8 @@ public final class OpenTelemetryExporter implements com.aerospike.OpenTelemetry 
                         .setDescription("Aerospike Workload Id Manager Information")
                         .ofLongs()
                         .build();
+
+        NewQPSRate();
 
         this.openTelemetryExceptionCounter =
                 openTelemetryMeter
@@ -118,7 +129,7 @@ public final class OpenTelemetryExporter implements com.aerospike.OpenTelemetry 
 
         this.printDebug("SDK and Metrics Completed");
 
-        this.hbAttributes = new Attributes[4];
+        this.hbAttributes = new Attributes[5];
 
         this.printDebug("Creating Signal Handler...");
 
@@ -261,11 +272,22 @@ public final class OpenTelemetryExporter implements com.aerospike.OpenTelemetry 
         }
     }
 
+    private void NewQPSRate() {
+        this.openTelemetryQPSGauge.set(openTelemetryMeter
+                                        .gaugeBuilder(METRIC_NAME + ".currentQPS")
+                                        .setDescription("Aerospike Workload Current QPS")
+                                        .ofLongs()
+                                        .build());
+    }
     private void updateInfoGauge(boolean initial) {
-        this.updateInfoGauge(initial, false);
+        this.updateInfoGauge(initial, false, 0);
     }
 
-    private void updateInfoGauge(boolean initial, boolean force) {
+    private void updateInfoGauge(boolean initial, int currentCPS) {
+        this.updateInfoGauge(initial, false, currentCPS);
+    }
+
+    private void updateInfoGauge(boolean initial, boolean force, int currentCPS) {
 
         if(!force && this.closed.get()) { return; }
 
@@ -283,6 +305,10 @@ public final class OpenTelemetryExporter implements com.aerospike.OpenTelemetry 
             attributes.put("endTimeSecs", this.endTimeSecs);
             attributes.put("endLocalDateTime", this.endLocalDateTime.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
             attributes.put("runDurationSecs", Math.round(this.endTimeSecs - (this.startTimeMillis / 1000.0)));
+        }
+
+        if(currentCPS != 0) {
+            attributes.put("currCPS", currentCPS);
         }
 
         long hCnt = (long) hbCnt.incrementAndGet();
@@ -306,8 +332,11 @@ public final class OpenTelemetryExporter implements com.aerospike.OpenTelemetry 
     public void setIdMgrGauge(final String mgrClass,
                                 final String[] labels,
                                 final String gremlinString,
-                                final int requestedCnt,
-                                final int actualCnt,
+                                final int distinctNodeCnt,
+                                final int rootNodesCnt,
+                                final int requestedDepth,
+                                final int possibleDepth,
+                                final int relationships,
                                 final long runtimeMills) {
         if(this.closed.get()) { return; }
 
@@ -329,9 +358,15 @@ public final class OpenTelemetryExporter implements com.aerospike.OpenTelemetry 
                 AttributeKey.stringKey("type"), "static",
                 AttributeKey.stringKey("manger_class"), mgrClass == null ? "NA" : mgrClass,
                 AttributeKey.stringKey("label"), label == null ? "NA" : label,
-                AttributeKey.longKey("requested_cnt"), (long) requestedCnt,
-                AttributeKey.longKey("actual_cnt"), (long) actualCnt,
                 AttributeKey.longKey("runtimems"), runtimeMills
+        ));
+
+        attributes.putAll(Attributes.of(
+                AttributeKey.longKey("distinctNodeCnt"), (long) distinctNodeCnt,
+                AttributeKey.longKey("rootNodesCnt"), (long) rootNodesCnt,
+                AttributeKey.longKey("requestedDepth"), (long) requestedDepth,
+                AttributeKey.longKey("possibleDepth"), (long) possibleDepth,
+                AttributeKey.longKey("relationships"), (long) relationships
         ));
 
         attributes.putAll(Attributes.of(
@@ -342,15 +377,29 @@ public final class OpenTelemetryExporter implements com.aerospike.OpenTelemetry 
                                     attributes.build());
     }
 
+    private Attributes createKeyAttributes(final String workloadName,
+                                           final String workloadType,
+                                           final boolean isWarmup) {
+        return Attributes.of(
+                            AttributeKey.stringKey("workload"), workloadName,
+                            AttributeKey.stringKey("wlstage"), isWarmup ? "Warmup" : "Workload",
+                            AttributeKey.stringKey("wltype"), workloadType,
+                            AttributeKey.longKey("pid"), this.pid,
+                            AttributeKey.longKey("startTimeSecs"), Math.round(this.startTimeMillis / 1000.0)
+                            );
+    }
+
+    @Override
     public void Reset(TinkerBenchArgs args,
                       String workloadName,
                       String workloadType,
                       Duration targetDuration,
                       long pendingActions,
                       boolean warmup,
+                      boolean warmupRan,
                       StringBuilder otherInfo) {
 
-        this.isWarmup = warmup ? 1 : 2;
+        this.isWarmup = warmup ? 1 : (warmupRan ?  3 : 2);
         this.workloadType = workloadType == null ? "Initial" : workloadType;
         this.wlTypeStage = String.format("%s-%s",
                                             warmup ? "Warmup" : "Workload",
@@ -362,19 +411,26 @@ public final class OpenTelemetryExporter implements com.aerospike.OpenTelemetry 
 
         if(this.hbAttributes[0] != null
                 && workloadType != null
-                && pendingActions > 0)
+                && pendingActions > 0) {
             this.pendingTransCounter(pendingActions * -1);
+        }
+
+        if(workloadType != null
+                && !workloadType.equals("Initial")
+                && !warmup
+                && warmupRan) {
+            setQPSRate(0, createKeyAttributes(this.workloadName,
+                                                    this.workloadType,
+                                                    true)
+                                .toBuilder());
+            NewQPSRate();
+        }
 
         //These attributes commonly used by all events
         // They uniquely  identify events to this run
-        this.hbAttributes[0] =
-                Attributes.of(
-                        AttributeKey.stringKey("workload"), this.workloadName,
-                        AttributeKey.stringKey("wlstage"), warmup ? "Warmup" : "Workload",
-                        AttributeKey.stringKey("wltype"), this.workloadType,
-                        AttributeKey.longKey("pid"), this.pid,
-                        AttributeKey.longKey("startTimeSecs"), Math.round(this.startTimeMillis / 1000.0)
-                );
+        this.hbAttributes[0] = createKeyAttributes(this.workloadName,
+                                                    this.workloadType,
+                                                    warmup);
         //These attributes should be considered static
         this.hbAttributes[1] =
                 Attributes.of(
@@ -396,6 +452,14 @@ public final class OpenTelemetryExporter implements com.aerospike.OpenTelemetry 
                         AttributeKey.longKey("durationSecs"), targetDuration.toSeconds(),
                         AttributeKey.longKey("errorlimit"), (long) args.errorsAbort
                 );
+        this.qpsThreshold = Math.round(args.queriesPerSecond * (args.qpsThreshold / 100.00));
+        this.hbAttributes[4] =
+                Attributes.of(
+                        AttributeKey.longKey("CPSEnd"), (long) (args.incrQPS > 0 ? args.endQPS : -1),
+                        AttributeKey.longKey("CPSIncr"), (long) args.incrQPS,
+                        AttributeKey.longKey("CPSRatePct"), (long) args.qpsThreshold,
+                        AttributeKey.longKey("CPSThreshold"), this.qpsThreshold
+                );
 
         this.updateInfoGauge(true);
         if(workloadType != null) {
@@ -408,8 +472,7 @@ public final class OpenTelemetryExporter implements com.aerospike.OpenTelemetry 
         if(this.closed.get()) { return; }
 
         String errMessage = exception.getMessage();
-        if(exception instanceof ResponseException) {
-            ResponseException re = (ResponseException) exception;
+        if(exception instanceof ResponseException re) {
             StringBuilder sb = errMessage == null
                                     ? new StringBuilder()
                                     : new StringBuilder(errMessage);
@@ -459,15 +522,30 @@ public final class OpenTelemetryExporter implements com.aerospike.OpenTelemetry 
         this.logger.PrintDebug("OpenTelemetry", "Exception Counter %s", exceptionType);
     }
 
+    private void setQPSRate(final double rate, AttributesBuilder attributes) {
+
+        if(attributes == null) {
+            attributes = Attributes.builder();
+            attributes.putAll(this.hbAttributes[0]);
+        }
+        attributes.put("CPSThreshold", this.qpsThreshold);
+
+        this.openTelemetryQPSGauge.get().set(Math.round(rate),
+                                                attributes.build());
+
+    }
+
     @Override
-    public void recordElapsedTime(long elapsedNanos) {
+    public void recordElapsedTime(long elapsedNanos, double currentRunningQPS) {
         if(this.closed.get()) { return; }
 
         final AttributesBuilder attributes = Attributes.builder();
         attributes.putAll(this.hbAttributes[0]);
 
-        this.openTelemetryLatencyMSHistogram.record((double) elapsedNanos / Helpers.NS_TO_MS,
+        this.openTelemetryLatencyMSHistogram.record(((double) elapsedNanos / Helpers.NS_TO_MS),
                                                     attributes.build());
+
+        setQPSRate(currentRunningQPS, attributes);
 
         this.logger.PrintDebug("OpenTelemetry", "Elapsed Time Record  %s %s", workloadName, wlTypeStage);
     }
@@ -494,14 +572,14 @@ public final class OpenTelemetryExporter implements com.aerospike.OpenTelemetry 
     }
 
     @Override
-    public void setConnectionState(String connectionState){
+    public void setConnectionState(String connectionState, int currentCPS){
         if(this.closed.get() | this.abortRun.get()) { return; }
 
         this.connectionState = connectionState;
 
         this.printDebug("Status Change  " + connectionState, false);
 
-        this.updateInfoGauge(false);
+        this.updateInfoGauge(false, currentCPS);
     }
 
     private void setConnectionStateAbort(String state) {
@@ -517,7 +595,7 @@ public final class OpenTelemetryExporter implements com.aerospike.OpenTelemetry 
             this.printDebug("Status Change  " + state, false);
 
             this.printMsg("Sending OpenTelemetry LUpdating Metrics in Abort Mode...", false);
-            this.updateInfoGauge(false, true);
+            this.updateInfoGauge(false, true, 0);
             this.printMsg("OpenTelemetry Waiting to complete... Ctrl-C to cancel OpenTelemetry update...", false);
             Thread.sleep(this.closeWaitMS + 1000); //need to wait for PROM to re-scrap...
             this.internalClose();
@@ -540,7 +618,7 @@ public final class OpenTelemetryExporter implements com.aerospike.OpenTelemetry 
                 Thread.sleep(this.closeWaitMS + 1000); //need to wait for PROM to re-scrap...
             }
         }
-       catch (Exception ignored) {}
+       catch (InterruptedException ignored) {}
        finally {
             closed.set(true);
         }
@@ -569,9 +647,10 @@ public final class OpenTelemetryExporter implements com.aerospike.OpenTelemetry 
 
         this.internalClose();
 
-        this.printMsg("Closed OpenTelemetry Exporter", true);
+        this.printDebug("Closed OpenTelemetry Exporter");
     }
 
+    @Override
     public String printConfiguration() {
         return String.format("Open Telemetry Enabled at %s%n\tPrometheus Exporter using Port %d%n\tClose wait interval %d ms%n\tScope Name: '%s'%n\tMetric Prefix Name: '%s'",
                 this.startLocalDateTime.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME),
