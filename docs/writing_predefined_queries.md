@@ -42,7 +42,7 @@ The framework provides all the connection management, performance measurement, r
 Using the Java runtime command-line system property option providing the location of the Java Jar file. Multiple Jar files can be provided by separating each file by a semicolon. The location of the Jar file can also be defined in the Java class path. Below is an example:
 
 ```bash
-java -DTBQryJar=.\TB2PreDefinedQuery.jar tinkerbench-1.0.0-jar-with-dependencies.jar
+java -DTBQryJar=.\TB2PreDefinedQuery.jar -jar tinkerbench-*.jar
 ```
 
 ## Java Project Setup

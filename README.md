@@ -1,6 +1,6 @@
 ![A cartoon of a green alien with a black graduation cap AI-generated content may be incorrect.](docs/media/ASFremlinTB.png)
 
-**TinkerBench** is a benchmarking tool designed Graph databases based on [Apache TinkerPop](https://tinkerpop.apache.org/). It provides an efficient way to measure [Gremlin Query](https://docs.janusgraph.org/getting-started/gremlin/) performance in an easy and flexible manner.
+**TinkerBench** is a benchmarking tool designed for Graph databases based on [Apache TinkerPop](https://tinkerpop.apache.org/). It provides an efficient way to measure [Gremlin Query](https://docs.janusgraph.org/getting-started/gremlin/) performance in an easy and flexible manner.
 
 # Overview
 
@@ -8,7 +8,7 @@
 
 **TinkerBench** has two different ways to provide the Gremlin Query for analysis.
 
-- As a query String -- Pass the actual query string by means of the command line for execution. The query is compiled and that result is used for measurement. Static or random vertex identifiers can be used in the query.
+- As a query String -- Pass the actual query string by means of the command line for execution. The query is compiled and that result is used for measurement. Static or random vertex identifiers or property values can be used in the query.
 - Java Jar – Provide a [Java Jar](https://docs.oracle.com/javase/8/docs/technotes/guides/jar/jarGuide.html) file using the **TinkerBench** framework. With this method, you can pass the name of the custom query class by means of the command line for execution. This method provides an advanced way to handle complex configurations, complex queries, vertex/edge management, etc. The framework handles mundane things like measurements, error handling, logging, user interface, etc. The developer only needs to focus on the desired query behavior.
 
 ## Loading a Dataset
@@ -28,19 +28,19 @@ These examples assume the [Air Routes dataset](https://aws.amazon.com/blogs/data
 Displays detail help on every argument.
 
 ```bash
-java tinkerbench-1.0.0-jar-with-dependencies.jar --help
+java tinkerbench-*.jar --help
 ```
 
 Displays version information for TinkerBench and TinkerPop modules
 
 ```bash
-java tinkerbench-1.0.0-jar-with-dependencies.jar --version
+java tinkerbench-*.jar --version
 ```
 
 Displays details on predefined queries.
 
 ```bash
-java tinkerbench-1.0.0-jar-with-dependencies.jar list
+java tinkerbench-*.jar list
 ```
 
 ### Aerospike Graph is running locally (Single Node)
@@ -48,19 +48,19 @@ java tinkerbench-1.0.0-jar-with-dependencies.jar list
 This example runs the predefined query "AirRoutesQuery1" using the default workload duration of 15 minutes at a 100 Queries per Second rate. No warm up will be performed.
 
 ```bash
-java tinkerbench-1.0.0-jar-with-dependencies.jar AirRoutesQuery1
+java tinkerbench-*.jar AirRoutesQuery1
 ```
 
 This example runs the predefined query "AirRoutesQuery1" using the default workload duration of 15 minutes at a 100 Queries per Second rate. A warm up 1 minute warm up will be performed before the workload is executed.
 
 ```bash
-java tinkerbench-1.0.0-jar-with-dependencies.jar AirRoutesQuery1 -wu 1M
+java tinkerbench-*.jar AirRoutesQuery1 -wu 1M
 ```
 
 This example runs the Gremlin string query using the default workload duration of 15 minutes at a 500 Queries per Second rate. A warm up 2 minute (120 seconds) warm up will be performed before the workload is executed.
 
 ```bash
-java tinkerbench-1.0.0-jar-with-dependencies.jar "g.V(%s).out().limit(5).path().by(values('code','city').fold()).toList()" -wu 120 -qps 500
+java tinkerbench-*.jar "g.V(%s).out().limit(5).path().by(values('code','city').fold()).toList()" -wu 120 -qps 500
 ```
 
 ### Aerospike Graph is Running in a Cluster (Multiple Nodes)
@@ -68,14 +68,14 @@ java tinkerbench-1.0.0-jar-with-dependencies.jar "g.V(%s).out().limit(5).path().
 This example runs the predefined query "AirRoutesQuery1" using the default workload duration of 15 minutes at a 100 Queries per Second rate. No warm up will be performed. Connect to three nodes in the Graph cluster.
 
 ```bash
-java tinkerbench-1.0.0-jar-with-dependencies.jar AirRoutesQuery1 -n 10.0.0.1 -n 10.0.0.2 -n 10.0.0.3
+java tinkerbench-*.jar AirRoutesQuery1 -n 10.0.0.1 -n 10.0.0.2 -n 10.0.0.3
 ```
 
 # Topics
 
 ## [Understanding the Command Line Interface (CLI)](docs/understanding_command_line_interface.md)
 
-## [Understanding Workload and Runtime Stages](docs/understanding_workload_and_runtime_stages.md)
+## [Understanding Workload and Runtime Stages and QPS Sweeps](docs/understanding_workload_and_runtime_stages.md)
 
 ## [Understanding Errors](docs/understanding_errors.md)
 

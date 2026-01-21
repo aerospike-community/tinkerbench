@@ -588,6 +588,14 @@ public abstract class TinkerBenchArgs implements Callable<Integer> {
                     "File " + clusterConfigurationFile + " doesn't exist for option 'clusterBuildConfigFile'");
         }
 
+        if(queryNameOrString.startsWith("TestRun")) {
+            appTestMode=true;
+        }
+
+        if(commandlineSpec == null) {
+            return;
+        }
+
         ParseResult pr = commandlineSpec.commandLine().getParseResult();
         Map<String,OptionSpec> opts = commandlineSpec
                                     .options()
@@ -674,10 +682,6 @@ public abstract class TinkerBenchArgs implements Callable<Integer> {
                                 + "You can only supply the config file or the AGS port argument, not both!");
             }
         }
-
-        if(queryNameOrString.startsWith("TestRun")) {
-            appTestMode=true;
-        }
     }
 
     public boolean ListPredefinedQueries() {
@@ -753,6 +757,10 @@ public abstract class TinkerBenchArgs implements Callable<Integer> {
      */
     void PrintArguments(boolean onlyProvidedArgs) {
 
+        if(commandlineSpec == null) {
+            return;
+        }
+
         System.out.println("Java Runtime Version: "
                             + System.getProperty("java.runtime.version"));
 
@@ -783,6 +791,11 @@ public abstract class TinkerBenchArgs implements Callable<Integer> {
         if false, All provided arguments including defaulted values are printed.
      */
     String[] getArguments(boolean onlyProvidedArgs) {
+
+        if(commandlineSpec == null) {
+            return new String[0];
+        }
+
         ParseResult pr = commandlineSpec.commandLine().getParseResult();
 
         List<String> args = new ArrayList<>();
