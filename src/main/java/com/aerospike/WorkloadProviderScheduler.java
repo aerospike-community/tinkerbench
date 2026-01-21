@@ -494,7 +494,8 @@ public final class WorkloadProviderScheduler implements WorkloadProvider {
 
         boolean result = false;
 
-        if(status == WorkloadStatus.Running) {
+        if(status == WorkloadStatus.Running
+                || status == WorkloadStatus.WaitingCompletion) {
             result = true;
             logger.PrintDebug("WorkloadProviderScheduler",
                             "Awaiting for Completion...");
