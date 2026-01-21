@@ -114,11 +114,11 @@ The path argument can be one of the following:
 #### Import Command Line
 
 ```bash
-java tinkerbench-1.0.0-jar-with-dependencies.jar AirRoutesQuery1 --ImportIds ./savedids.csv
+java tinkerbench-*.jar AirRoutesQuery1 --ImportIds ./savedids.csv
 
-java tinkerbench-1.0.0-jar-with-dependencies.jar AirRoutesQuery1 --ImportIds ./*.csv
+java tinkerbench-*.jar AirRoutesQuery1 --ImportIds ./*.csv
 
-java tinkerbench-1.0.0-jar-with-dependencies.jar AirRoutesQuery1 --ImportIds ../myfolder/
+java tinkerbench-*.jar AirRoutesQuery1 --ImportIds ../myfolder/
 ```
 
 #### Vertex CSV File Format
@@ -183,7 +183,7 @@ The value to `--ExportIds` should be a valid file path with file name and extens
 #### Export Command Line
 
 ```bash
-java tinkerbench-1.0.0-jar-with-dependencies.jar AirRoutesQuery1 --ExportIds ./savedids.csv
+java tinkerbench-*.jar AirRoutesQuery1 --ExportIds ./savedids.csv
 ```
 
 ## Id Chain Sampler
@@ -341,7 +341,7 @@ g.V(1,2).
 ##### Command Line Example (Gremlin)
 
 ```bash
-java tinkerbench-2.1.0-jar-with-dependencies.jar 'g.V(%1$s).
+java tinkerbench-*.jar 'g.V(%1$s).
   repeat(out().simplePath()).
   until(hasId(%2$s)).
   path()' --IdManager com.aerospike.idmanager.IdChainSampler --IdGremlinQuery 'g.V(1,2).out("route").local(repeat(out("route").simplePa()).emit().times(2).path().by(id()).fold())'
@@ -395,17 +395,17 @@ Top-level parents must be deffined as a single one line entry. A single line can
 #### Import Command Line Id Chaining
 
 ```bash
-java tinkerbench-2.1.0-jar-with-dependencies.jar 'g.V(%1$s).
+java tinkerbench-*.jar 'g.V(%1$s).
   repeat(out().simplePath()).
   until(hasId(%2$s)).
   path()' --IdManager com.aerospike.idmanager.IdChainSampler --ImportIds ./savedchainids.csv
 
-java tinkerbench-2.1.0-jar-with-dependencies.jar 'g.V(%1$s).
+java tinkerbench-*.jar 'g.V(%1$s).
   repeat(out().simplePath()).
   until(hasId(%2$s)).
   path()' --IdManager com.aerospike.idmanager.IdChainSampler --ImportIds ./*.csv
 
-java tinkerbench-2.1.0-jar-with-dependencies.jar 'g.V(%1$s).
+java tinkerbench-*.jar 'g.V(%1$s).
   repeat(out().simplePath()).
   until(hasId(%2$s)).
   path()' --IdManager com.aerospike.idmanager.IdChainSampler --ImportIds ../myfolder/

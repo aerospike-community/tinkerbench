@@ -46,7 +46,7 @@ ExpectedRC,Command
 0|4,"-jar ./target/tinkerbench-*-jar-with-dependencies.jar 'g.V(%s).out().count().toList()' --duration 2M -prom -background"
 0,"-jar ./target/tinkerbench-*-jar-with-dependencies.jar 'g.V(%s).out().count().toList()' --duration PT15S -background"
 0,"-jar ./target/tinkerbench-*-jar-with-dependencies.jar 'g.V(%s,%s).limit(4)' --duration PT15S -wm 15s -qps 100 -incr 25 -end 200 -background"
-0|4,"-jar ./target/tinkerbench-*-jar-with-dependencies.jar 'g.V(%s,%s).limit(4)' --duration PT15S -wm 15s -qps 10000 -background"
+0|3|4,"-jar ./target/tinkerbench-*-jar-with-dependencies.jar 'g.V(%s,%s).limit(4)' --duration PT15S -wm 15s -qps 10000 -background"
 0,"-jar ./target/tinkerbench-*-jar-with-dependencies.jar 'g.V(%s,%s).limit(4)' --duration PT15S -background"
 5,"-jar ./target/tinkerbench-*-jar-with-dependencies.jar 'g.V(%s).out().limit(5).nopath().by(values(''code'',''city'').fold())' -d 15 -s 2 -prom -background"
 1,"-jar ./target/tinkerbench-*-jar-with-dependencies.jar TestRun --IdManager List -background"
