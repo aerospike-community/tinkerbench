@@ -83,6 +83,8 @@ java tinkerbench-*.jar AirRoutesQuery1 -n 10.0.0.1 -n 10.0.0.2 -n 10.0.0.3
 
 ## [Writing Custom PreDefined Queries](docs/writing_predefined_queries.md)
 
+## [Using the Vertex Id Manager](docs/vertex_id_manager.md)
+
 ## [Tuning TinkerBench](docs/tuning.md)
 
 ## [Grafana Dashboard](docs/grafana_dashboard.md)
