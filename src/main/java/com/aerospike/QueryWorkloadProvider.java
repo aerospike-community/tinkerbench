@@ -99,6 +99,7 @@ public abstract class QueryWorkloadProvider implements QueryRunnable {
     /*
     Prints the result from a Query
      */
+    @Override
     public <T> void PrintResult(T result) {
         if (isPrintResult) {
             String value;

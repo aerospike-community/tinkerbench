@@ -949,4 +949,31 @@ public class Helpers {
         return file;
     }
 
+    public final static class MutablePair<A, B> {
+        public A first;
+        public B second;
+
+        public MutablePair(final A first, final B second) {
+            this.first = first;
+            this.second = second;
+        }
+
+        public void setFirst(final A first) {
+            this.first = first;
+        }
+
+        public void setSecond(final B second) {
+            this.second = second;
+        }
+
+        @Override
+        public String toString() {
+            return "MutablePair [first=" + first + ", second=" + second + "]";
+        }
+
+        public static <A,B> Pair<A,B> with(final A value0, final B value1) {
+            return new Pair<A,B>(value0,value1);
+        }
+    }
+
 }

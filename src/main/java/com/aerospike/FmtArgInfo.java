@@ -6,13 +6,14 @@ import java.util.regex.Pattern;
 
 final class FmtArgInfo {
     ///This is a much more complete regex to parse the Gremlin string. This will allow an advance Id Manager based on String format params...
-    final static Pattern fmtargPattern = Pattern.compile("(?<arg>(?<begin>['\"][^%]*)?%(?<opts>(?:(?<pos>\\-?\\d+)\\$)?(?:[-#+ 0,(<]*)?(?:\\d*)?(?:\\.\\d*)?(?:[tT])?)(?<type>[a-zA-Z])[^),'\"]*(?<end>['\"])?)");
+    final static Pattern fmtargPattern = Pattern.compile("(?<arg>(?<begin>['\"][^%,]*)?%(?<opts>(?:(?<pos>\\-?\\d+)\\$)?(?:[-#+ 0,(<]*)?(?:\\d*)?(?:\\.\\d*)?(?:[tT])?)(?<type>[a-zA-Z])[^),'\"]*(?<end>['\"])?)");
 
     final FmtArg[] args;
     final IdManager idManager;
     /// If true, one of the format argument instances uses a negative position (reference Id from bottom child up this number of levels)
     final boolean hasDepthUpArgs;
 
+    String fmtArgString;
     String gremlinString;
     int maxArgsPosition;
 
@@ -20,6 +21,7 @@ final class FmtArgInfo {
 
         public final String fmtType;
         public final String fmtArgValue;
+
         /// The argument original position defined in the gremlin string
         /// '%-4$s' -> -4
         /// '%4$s' -> 4
@@ -34,6 +36,7 @@ final class FmtArgInfo {
         public int position;
         public char beginQuote;
         public char endQuote;
+        public String phVarName;
 
         public FmtArg(Matcher fmtargMatch) {
             this.fmtArgValue = fmtargMatch.group("arg");
@@ -96,6 +99,7 @@ final class FmtArgInfo {
             final String replacement = "%1\\$$1"; // The '$' needs to be escaped in the replacement string
 
             this.gremlinString = gremlinString.replaceAll(regex, replacement);
+            this.fmtArgString = this.gremlinString;
         }
 
         this.idManager = idManager;
@@ -148,7 +152,7 @@ final class FmtArgInfo {
                     if(argPos < maxDepth) {
                         newPos = maxDepth - argPos + 1;
                     }
-                    this.gremlinString = this.gremlinString.replaceAll(String.format("\\%%%d\\$", fmtArg.argPosition),
+                    this.fmtArgString = this.fmtArgString.replaceAll(String.format("\\%%%d\\$", fmtArg.argPosition),
                                                                         String.format("\\%%%d\\$", newPos));
                     fmtArg.position = newPos;
                     if(newPos > this.maxArgsPosition) {
@@ -159,8 +163,7 @@ final class FmtArgInfo {
         }
 
         this.determineGremlinString();
-
-        return this.gremlinString;
+        return this.fmtArgString;
     }
 
     /*
@@ -179,7 +182,7 @@ final class FmtArgInfo {
         if(!isString) { return; }
 
         int pos = 1;
-        String newGremlinString = gremlinString;
+        String newGremlinString = fmtArgString;
 
         final Map<String,Integer> argPos = new HashMap<>();
 
@@ -204,9 +207,13 @@ final class FmtArgInfo {
                                                                 replaceArg,
                                                                 pos);
             }
+
+            fmtArg.phVarName = "phTBVar" + fmtArg.position;
+            this.gremlinString = this.gremlinString.replace(fmtArg.fmtArgValue,
+                                                            fmtArg.phVarName);
         }
 
-        this.gremlinString = newGremlinString;
+        this.fmtArgString = newGremlinString;
     }
 
     /*
@@ -248,4 +255,9 @@ final class FmtArgInfo {
     public int maxArgs() { return this.maxArgsPosition; }
 
     public boolean hasDepthUpArgs() { return this.hasDepthUpArgs; }
+
+    public FmtArg[] args() { return this.args; }
+
+    public String gremlinString() { return this.gremlinString; }
+    public String fmtArgString() { return this.fmtArgString; }
 }

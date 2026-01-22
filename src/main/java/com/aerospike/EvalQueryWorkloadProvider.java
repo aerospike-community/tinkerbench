@@ -6,9 +6,14 @@ import org.apache.tinkerpop.gremlin.process.traversal.Bytecode;
 import org.apache.tinkerpop.gremlin.process.traversal.Traversal;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.DefaultGraphTraversal;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
+import org.apache.tinkerpop.gremlin.process.traversal.translator.GroovyTranslator;
 import org.javatuples.Pair;
 
 import javax.script.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -30,8 +35,7 @@ public final class EvalQueryWorkloadProvider extends QueryWorkloadProvider {
     GremlinLangScriptEngine engine;
     String traversalSource;
 
-    Bindings bindings;
-    ThreadLocal<Bytecode> bytecodeThreadLocal;
+    ThreadLocal<Helpers.MutablePair<Bytecode, Bindings>> bytecodeThreadLocal;
     boolean prepared = false;
 
     public enum Terminator {
@@ -107,6 +111,27 @@ public final class EvalQueryWorkloadProvider extends QueryWorkloadProvider {
         }
     }*/
 
+    private Bindings createBindings() {
+
+        final Bindings bindings = engine.createBindings();
+        bindings.put(traversalSource, G());
+
+        if (this.idFmtArgsPos.length() > 0) {
+            logger.PrintDebug("EvalQueryWorkloadProvider.getBindings", "Pre Call");
+            final Object[] useIds = this.idFmtArgsPos.getIds();
+
+            for (FmtArgInfo.FmtArg fmtId : this.idFmtArgsPos.args()) {
+                bindings.put(fmtId.phVarName, useIds[fmtId.position - 1]);
+            }
+
+            logger.PrintDebug("EvalQueryWorkloadProvider.getBindings", "Pre Call with id %s", useIds);
+        }
+
+        logger.PrintDebug("EvalQueryWorkloadProvider.getBindings", bindings.toString());
+
+        return  bindings;
+    }
+
     @Override
     public void PrepareCompile() {
 
@@ -127,8 +152,9 @@ public final class EvalQueryWorkloadProvider extends QueryWorkloadProvider {
 
         prepared = true;
         final String[] parts = gremlinString.split("\\.");
+        this.idFmtArgsPos.init();
 
-        final String gremlinString = this.idFmtArgsPos.init();
+        final String gremlinString = this.idFmtArgsPos.gremlinString();
 
         this.traversalSource = parts[0];
 
@@ -142,8 +168,6 @@ public final class EvalQueryWorkloadProvider extends QueryWorkloadProvider {
         engine = new GremlinLangScriptEngine();
 
         logger.PrintDebug("PrepareCompile", "Binding to " + this.traversalSource);
-        bindings = engine.createBindings();
-        bindings.put(traversalSource, G());
 
         try {
             logger.PrintDebug("PrepareCompile", "Generating Bytecode for \"%s\"", gremlinString);
@@ -164,7 +188,8 @@ public final class EvalQueryWorkloadProvider extends QueryWorkloadProvider {
             }
 
             final String sampleQuery = String.format("Sample Gremlin Query: '%s'",
-                                                        String.format(gremlinString, sampleIds));
+                                                        String.format(this.idFmtArgsPos.fmtArgString,
+                                                                        sampleIds));
             logger.info(sampleQuery);
             Helpers.Println(System.out,
                             sampleQuery,
@@ -172,13 +197,14 @@ public final class EvalQueryWorkloadProvider extends QueryWorkloadProvider {
                             Helpers.GREEN_BACKGROUND);
 
             bytecodeThreadLocal = ThreadLocal.withInitial(() -> {
+                final Bindings bindings = this.createBindings();
                 try {
                     final Bytecode result = ((DefaultGraphTraversal<?, ?>)
-                                                engine.eval(String.format(gremlinString, sampleIds),
+                                                engine.eval(this.idFmtArgsPos.gremlinString(),
                                                             bindings))
                                                 .getBytecode();
                     compiled.set(true);
-                    return result;
+                    return new Helpers.MutablePair<>(result, bindings);
                 /*} catch (ScriptException e) {
                     System.err.printf("ERROR: could not evaluate gremlin script \"%s\". Error: %s\n",
                             gremlinString,
@@ -200,7 +226,7 @@ public final class EvalQueryWorkloadProvider extends QueryWorkloadProvider {
                     getProvider().AddError(e);
                     getProvider().SignalAbortWorkLoad();
                 }
-                return null;
+                return new Helpers.MutablePair<>(null, bindings);
             });
 
             logger.PrintDebug("PrepareCompile",
@@ -231,10 +257,10 @@ public final class EvalQueryWorkloadProvider extends QueryWorkloadProvider {
     }
 
     public String BytecodeTranslator() {
-        final Bytecode bytecode = bytecodeThreadLocal.get();
-        if(bytecode != null) {
+        final Helpers.MutablePair<Bytecode,Bindings> bytecodePair = bytecodeThreadLocal.get();
+        if(bytecodePair.first != null) {
             JavaTranslator<GraphTraversalSource, Traversal.Admin<?, ?>> translator = JavaTranslator.of(G());
-            try (Traversal<?, ?> translatedTraversal = translator.translate(bytecode)) {
+            try (Traversal<?, ?> translatedTraversal = translator.translate(bytecodePair.first)) {
                 return translatedTraversal.toString();
             } catch (Exception e) {
                 logger.PrintDebug("EvalQueryWorkloadProvider", e);
@@ -259,17 +285,47 @@ public final class EvalQueryWorkloadProvider extends QueryWorkloadProvider {
     @Override
     public int getSampleSize() {
         return this.idFmtArgsPos.length() == 0 ? 0 : -1;
-    };
+    }
+
+    public void PrintResult(Traversal.Admin<?,?> resultTraversal) {
+        String gremlinQuery = GroovyTranslator
+                                .of(traversalSource)
+                                .translate(resultTraversal.getBytecode())
+                                .getScript();
+        Object result = resultTraversal.toList();
+
+        try {
+            System.out.print(Helpers.GREEN_BACKGROUND);
+            System.out.print(Helpers.BLACK);
+
+            System.out.println();
+            System.out.println(gremlinQuery);
+            System.out.print(Helpers.BLACK_BACKGROUND);
+            System.out.print(Helpers.YELLOW);
+            switch (result) {
+                case ArrayList<?> arrayLst -> System.out.println(Arrays.toString(arrayLst.toArray()));
+                case HashMap<?, ?> map ->
+                        map.forEach((key, value) -> System.out.println("Key: " + key + ", Value: " + value));
+                case HashSet<?> hashSet -> hashSet.forEach(System.out::println);
+                default -> System.out.println(result);
+            }
+        }
+        finally {
+            System.out.println(Helpers.RESET);
+        }
+    }
 
     @Override
     public Pair<Boolean,Object> call() throws Exception {
 
+        final Helpers.MutablePair<Bytecode,Bindings> bytecodePair = bytecodeThreadLocal.get();
+
         // If close not performed, there seems to be a leak according to the profiler
-        final Traversal.Admin<?,?> resultTraversal = engine.eval(bytecodeThreadLocal.get(),
-                                                                            bindings,
-                                                                            traversalSource);
+        final Traversal.Admin<?,?> resultTraversal = engine.eval(bytecodePair.first,
+                                                                    bytecodePair.second,
+                                                                    traversalSource);
         if (isPrintResult) {
-            resultTraversal.forEachRemaining(this::PrintResult);
+            this.PrintResult(resultTraversal);
         } else {
             switch (terminator) {
                 case next:
@@ -304,18 +360,13 @@ public final class EvalQueryWorkloadProvider extends QueryWorkloadProvider {
     public void preCall() {
 
         if(!getProvider().isAborted()) {
-            final Bytecode bytecode = bytecodeThreadLocal.get();
+            final Helpers.MutablePair<Bytecode,Bindings> bytecodePair = bytecodeThreadLocal.get();
+            Bindings bindings = createBindings();
 
-            if (this.idFmtArgsPos.length() > 0 && bytecode != null) {
+            if (bytecodePair.first != null) {
                 logger.PrintDebug("EvalQueryWorkloadProvider.preCall", "Pre Call");
-                final Object[] ids = this.idFmtArgsPos.getIds();
-                final Object[] data = bytecode.getStepInstructions().getFirst().getArguments();
-                data[0] = ids;
-                if (logger.isDebug()) {
-                    logger.PrintDebug("EvalQueryWorkloadProvider.preCall", "Pre Call with id %s", ids);
-                    logger.PrintDebug("EvalQueryWorkloadProvider.preCall", BytecodeTranslator());
-                }
-            } else if (bytecode == null) {
+                bytecodePair.second = bindings;
+            } else {
                 logger.PrintDebug("EvalQueryWorkloadProvider.preCall", "Bytecode was not produced (null). Gremlin syntax error?");
             }
         }
@@ -340,7 +391,8 @@ public final class EvalQueryWorkloadProvider extends QueryWorkloadProvider {
         }
     }
 
-    public String ToString() {
+    @Override
+    public String toString() {
         return String.format("{\"query\":\"%s\", \"Prepared\":%s, \"Compiled\":%s, \"IdsPlaceHolders\":%d \"Depth\":%d}",
                                 this.gremlinString,
                                 this.prepared,

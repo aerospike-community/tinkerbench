@@ -104,6 +104,9 @@ public class IdChainSampler implements IdManagerQuery {
         if(items.containsKey("startId")) {
             this.relationshipGraph.markAsTopLevelParent(items.get("startId"));
             progressBar.step();
+        } else if(items.containsKey("startid")) {
+            this.relationshipGraph.markAsTopLevelParent(items.get("startid"));
+            progressBar.step();
         }
         if(items.containsKey("paths")) {
             Object paths = items.get("paths");
@@ -119,6 +122,13 @@ public class IdChainSampler implements IdManagerQuery {
                         }
                     }
                 }
+            }
+        } else if(items.containsKey("path")) {
+            Object pathValue = items.get("path");
+            if(pathValue instanceof ReferencePath rp) {
+                progressBar.stepBy(this.addNode(rp));
+            } else {
+                throw  new IllegalArgumentException(String.format("Path %s is not a referencePath. Maybe use the 'paths' structure?", pathValue));
             }
         }
     }
