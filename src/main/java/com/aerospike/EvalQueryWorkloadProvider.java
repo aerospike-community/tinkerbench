@@ -44,7 +44,8 @@ public final class EvalQueryWorkloadProvider extends QueryWorkloadProvider {
         toList,
         iterate,
         toSet,
-        hasNext
+        hasNext,
+        nop
     }
 
     public static Pair<String,Terminator> DetermineScriptTerminator(final String gremlinScript) {
@@ -75,6 +76,8 @@ public final class EvalQueryWorkloadProvider extends QueryWorkloadProvider {
                 case "iterate" -> Terminator.iterate;
                 case "toset" -> Terminator.toSet;
                 case "hasnext" -> Terminator.hasNext;
+                case "nop" -> Terminator.nop;
+                case "eval" -> Terminator.nop;
                 default -> Terminator.none;
             };
         }
@@ -287,27 +290,51 @@ public final class EvalQueryWorkloadProvider extends QueryWorkloadProvider {
         return this.idFmtArgsPos.length() == 0 ? 0 : -1;
     }
 
-    public void PrintResult(Traversal.Admin<?,?> resultTraversal) {
+    public void PrintResult(final Throwable exception) {
+        try {
+            System.err.print(Helpers.RED_BACKGROUND);
+            System.err.print(Helpers.BLACK);
+            exception.printStackTrace(System.err);
+        } catch (Exception ignored) {}
+        finally {
+            System.err.println(Helpers.RESET);
+        }
+    }
+
+    public void PrintResult(Traversal.Admin<?,?> resultTraversal, final Throwable exception) {
         String gremlinQuery = GroovyTranslator
                                 .of(traversalSource)
                                 .translate(resultTraversal.getBytecode())
                                 .getScript();
-        Object result = resultTraversal.toList();
-
         try {
             System.out.print(Helpers.GREEN_BACKGROUND);
             System.out.print(Helpers.BLACK);
 
             System.out.println();
-            System.out.println(gremlinQuery);
-            System.out.print(Helpers.BLACK_BACKGROUND);
-            System.out.print(Helpers.YELLOW);
-            switch (result) {
-                case ArrayList<?> arrayLst -> System.out.println(Arrays.toString(arrayLst.toArray()));
-                case HashMap<?, ?> map ->
-                        map.forEach((key, value) -> System.out.println("Key: " + key + ", Value: " + value));
-                case HashSet<?> hashSet -> hashSet.forEach(System.out::println);
-                default -> System.out.println(result);
+            System.out.println("Query: " + gremlinQuery);
+            if(exception == null) {
+                System.out.print(Helpers.BLACK_BACKGROUND);
+                System.out.print(Helpers.YELLOW);
+                System.out.println("Results:");
+                try {
+                    Object result = resultTraversal.toList();
+                    switch (result) {
+                        case ArrayList<?> arrayLst -> System.out.println(Arrays.toString(arrayLst.toArray()));
+                        case HashMap<?, ?> map ->
+                                map.forEach((key, value) -> System.out.println("Key: " + key + ", Value: " + value));
+                        case HashSet<?> hashSet -> hashSet.forEach(System.out::println);
+                        default -> System.out.println(result);
+                    }
+                } catch (Exception e) {
+                    String errMsg = e.getMessage();
+                    if(errMsg == null || errMsg.isEmpty()) {
+                        errMsg = e.getClass().getName();
+                    }
+                    System.out.println("\t*** Exception: '" + errMsg + "' ***");
+                    PrintResult(e);
+                }
+            } else {
+                PrintResult(exception);
             }
         }
         finally {
@@ -324,9 +351,7 @@ public final class EvalQueryWorkloadProvider extends QueryWorkloadProvider {
         final Traversal.Admin<?,?> resultTraversal = engine.eval(bytecodePair.first,
                                                                     bytecodePair.second,
                                                                     traversalSource);
-        if (isPrintResult) {
-            this.PrintResult(resultTraversal);
-        } else {
+        if (!isPrintResult) {
             switch (terminator) {
                 case next:
                     resultTraversal.next();
@@ -342,6 +367,8 @@ public final class EvalQueryWorkloadProvider extends QueryWorkloadProvider {
                     break;
                 case toList:
                     resultTraversal.toList();
+                    break;
+                case nop:
                     break;
                 default:
                     logger.Print("EvalQueryWorkloadProvider", true, "Unknown terminator: '%s'", terminator);
@@ -377,7 +404,7 @@ public final class EvalQueryWorkloadProvider extends QueryWorkloadProvider {
     This is called within the scheduler and is NOT part of the workload measurement.
      */
     @Override
-    public void postCall(Object resultTraversal, Boolean ignored0, Throwable ignored1) {
+    public void postCall(Object resultTraversal, Boolean ignored0, Throwable exception) {
 
         if(resultTraversal == null){
             return;
@@ -385,9 +412,16 @@ public final class EvalQueryWorkloadProvider extends QueryWorkloadProvider {
 
         try {
             logger.PrintDebug("EvalQueryWorkloadProvider", "Post Call");
-            ((Traversal.Admin<?,?>)resultTraversal).close();
+
+            final Traversal.Admin<?,?> traversal = (Traversal.Admin<?,?>)resultTraversal;
+
+            if (isPrintResult) {
+                this.PrintResult(traversal, exception);
+            }
+
+            traversal.close();
         } catch (Exception e) {
-            logger.Print("EvalQueryWorkloadProvider error during close of the traversal", e);
+            logger.PrintDebug("EvalQueryWorkloadProvider.close", e);
         }
     }
 

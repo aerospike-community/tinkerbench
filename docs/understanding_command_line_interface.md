@@ -9,10 +9,14 @@ Below are the arguments and description:
 
 - QueryNameOrGremlinString (String, Required) – This is a required argument that can be located as the first or last argument in the command line. There are three value forms this argument can take. They are:
     - A Gremlin query string. This string will be compiled and executed for analysis. **Examples**:
-        - `g.V(3).out().limit(5).path().by(values('code','city').fold()).tolist()`
-        - `g.V(%s).out().limit(5).path().by(values('code','city').fold()).tolist()` Where ‘%s’ will be substituted with a random vertex id from the vertex manager. For more information see [vertex manager](./vertex_id_manager.md).
+        - `g.V(3).out().limit(5).path().by(values('code','city').fold())`
+        - `g.V(%s).out().limit(5).path().by(values('code','city').fold()).tolist()` Where `%s` will be substituted with a random vertex id from the vertex manager. For more information see [vertex manager](./vertex_id_manager.md).
         - `g.V(%1$s,%3$s).out().limit(5).path().by(values('code','city').fold()).tolist()`
-        Where ‘%1$s’ will be substituted with a random parent (root) id and %3$s will be substituted with a random great-grandchild (depth 4) of the selected parent id. Note that this id can be a vertix, edge, or property.For more information see [Id Chain Manager](./vertex_id_manager.md#Id-Chain-Sampler).
+        Where `%1$s` will be substituted with a random parent (root) id and `%3$s` will be substituted with a random great-grandchild (depth 4) of the selected parent id.
+
+        **Note** that ids can be a vertex, edge, or property.For more information see [Id Chain Manager](./vertex_id_manager.md#Id-Chain-Sampler).
+
+        Review [query termination steps](understanding_workload_and_runtime_stages.md#understanding-query-termination-step) section and [query print result](understanding_output.md#print-query-results-cli-switch) sections, for additional information.
     - A Predefined Query. A query defined using the TinkerBench framework. For more information see [Writing Predefined/Advance Queries](./writing_predefined_queries.md).
     - The keyword ‘List’. If provided all other arguments are ignored. This will list all the predefined queries found in the [Java class path](https://en.wikipedia.org/wiki/Classpath). For more information see [Writing Predefined/Advance Queries](./writing_predefined_queries.md).
 - `--host`, `-n`, `-a` (String, Default localhost) – One or more graph nodes’ IP address or host name. To provide multiple nodes, each node must be paired with this argument. **Examples**:
@@ -69,7 +73,7 @@ Below are the arguments and description:
 - `--shutdown`, `-sd` (Time, Default 15 seconds) -- Additional time to wait after workload completion (normal or aborted) to allow for proper cleanup. Typically, the default provides enough time for cleanup.
 - `--prometheusPort` (Integer, Default 19090) – The endpoint port used by [Prometheus](https://prometheus.io/docs/prometheus/latest/configuration/configuration/) to obtain the metrics used by the Granfa dashboard.
 - `--CloseWait` (Time, Default 5 seconds) – The wait interval used upon application exit to ensure Prometheus has obtained all the required information. This value should match or exceed the [scrape interval](https://prometheus.io/docs/prometheus/latest/configuration/configuration/) in the Prometheus ymal file. This argument is ignored, if Prometheus is disabled (`-no-prom`). **Note**: It is recommended that the scrape interval for the Prometheus TinkerBench job be set to 5 seconds.
-- `--result`, `-r` (Flag) -- Enables the results of **every** Gremlin query execution to be displayed and logged. Should only be used for debugging purposes.
+- `--result`, `-r` (Flag) -- Enables the results (including errors) of **every** Gremlin query execution to be streamed to the console. For more information, review this [section](./understanding_output.md#print-query-results-cli-switch). Should only be used for debugging purposes.
 - `-debug` (Flag) -- Enables application debugging tracing and “DEBUG” logging. Should only be used for debugging purposes.
 
 ## Using a CLI Property File

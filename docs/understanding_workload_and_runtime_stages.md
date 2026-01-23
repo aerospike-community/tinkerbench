@@ -42,3 +42,13 @@ The QPS Percent Threshold (`--QPSPctThreshold`) is the percent from the current 
 ### Warm Up Stage
 
 If a warmup is enabled, it is ran only once at the start of TinkerBench (as normal). After the warmup, each segment in the sweep runs as a normal workload. Each segment produces the standard workload report.
+
+# Understanding Query Termination Step
+
+If a Gremlin query termination step is not provided, `toList()` is assumed. Below is a list of supported termination steps (behavior is the same as defined by the Gremlin Java API client):
+
+- `toList()` -- Query is executed and retrieves all results into a standard Java List.
+- `toSet()` -- Query is executed and retrieve results as a Set (removing duplicates).
+- `iterate()` -- This terminal step executes the traversal but discards all results.
+- `next()`: This method retrieves the next single result from the traversal.
+- `eval()` or `nop()` -- No termination function is executed (only evulates the query).
