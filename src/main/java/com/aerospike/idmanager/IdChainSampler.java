@@ -394,6 +394,14 @@ public class IdChainSampler implements IdManagerQuery {
         return currentIds.toArray();
     }
 
+    @Override
+    final public Object[] getNewIds() {
+        synchronized (this) {
+            Reset();
+            return getIds();
+        }
+    }
+
     /**
      * The CSV file may contain a header line (starts with '-') or comment lines (starts with #). These lines are ignored.
      *      Each line contains an id with its associated children separated by comma.

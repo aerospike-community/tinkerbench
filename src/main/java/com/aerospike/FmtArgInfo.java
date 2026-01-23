@@ -238,8 +238,7 @@ final class FmtArgInfo {
     *   String.format(fmtObj.determineGremlinString(), fmtObj.getIds());
     */
     public Object[] getIds() {
-        idManager.Reset();
-        return idManager.getIds();
+        return idManager.getNewIds();
     }
 
     /*
