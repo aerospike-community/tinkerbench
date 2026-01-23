@@ -34,6 +34,7 @@ public abstract class FmtArgInfoIdChainTest<T> {
     @MethodSource("provideGremlinStringsTesting")
     public void testGremlinStrFmts(String gString,
                                     String expectedGString,
+                                    String expectedFmtString,
                                     String expectedQuery,
                                     int nbrArgs,
                                     int maxPos,
@@ -43,7 +44,8 @@ public abstract class FmtArgInfoIdChainTest<T> {
         String fmtStmt = fmtInfo.init();
 
         assertEquals(hasDepthUpArgs, fmtInfo.hasDepthUpArgs(), "Depth Up Check");
-        assertEquals(expectedGString, fmtInfo.gremlinString, String.format("Check Format Strings: '%s'", gString));
+        assertEquals(expectedFmtString, fmtInfo.fmtArgString, String.format("Check Format Strings: '%s'", gString));
+        assertEquals(expectedGString, fmtInfo.gremlinString, String.format("Check Gremlin Strings: '%s'", gString));
         assertEquals(fmtInfo.args.length, nbrArgs, String.format("Number of Args Check: '%s'", gString));
         assertEquals(fmtInfo.length(), nbrArgs, String.format("Check Length Check: '%s'", gString));
         assertEquals(fmtInfo.maxArgsPosition, maxPos,  String.format("Check Max Position Check: '%s'", gString));

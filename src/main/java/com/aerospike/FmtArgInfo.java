@@ -179,10 +179,22 @@ final class FmtArgInfo {
         final Object sampleId = idManager.getId();
         final boolean isString = sampleId instanceof String;
 
-        if(!isString) { return; }
+        String newGremlinString = gremlinString;
+
+        if(!isString) {
+            for (FmtArg fmtArg : this.args) {
+                fmtArg.phVarName = "phTBVar" + fmtArg.position;
+                newGremlinString = Helpers.ReplaceNthOccurrence(newGremlinString,
+                                                                fmtArg.fmtArgValue,
+                                                                fmtArg.phVarName,
+                                                                1);
+            }
+            this.gremlinString = newGremlinString;
+            return;
+        }
 
         int pos = 1;
-        String newGremlinString = fmtArgString;
+        String newFmtString = fmtArgString;
 
         final Map<String,Integer> argPos = new HashMap<>();
 
@@ -202,18 +214,21 @@ final class FmtArgInfo {
                 if(fmtArg.endQuote == '\0') {
                     replaceArg += "\"";
                 }
-                newGremlinString = Helpers.ReplaceNthOccurrence(newGremlinString,
+                newFmtString = Helpers.ReplaceNthOccurrence(newFmtString,
                                                                 fmtArgValue,
                                                                 replaceArg,
                                                                 pos);
             }
 
             fmtArg.phVarName = "phTBVar" + fmtArg.position;
-            this.gremlinString = this.gremlinString.replace(fmtArg.fmtArgValue,
-                                                            fmtArg.phVarName);
+            newGremlinString = Helpers.ReplaceNthOccurrence(newGremlinString,
+                                                            fmtArg.fmtArgValue,
+                                                            fmtArg.phVarName,
+                                                            1);
         }
 
-        this.fmtArgString = newGremlinString;
+        this.fmtArgString = newFmtString;
+        this.gremlinString = newGremlinString;
     }
 
     /*
