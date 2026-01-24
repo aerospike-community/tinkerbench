@@ -236,9 +236,9 @@ Yo can populate the Manager by means of a CSV file or a Gremlin query.
 
 You can write a custom Gremlin query to obtain the ids/values and any depth required for your testing query. Once the query is written and tested you can use the “—IdGremlinQuery” argument to define the query to this Manager.
 
-The Gremlin query must return two possible result formats.
+The Gremlin query must return one of three possible result formats.
 
-##### List Format
+##### One - List Format
 
 ```json
 [ [
@@ -278,7 +278,7 @@ g.V(1,2).
   ).toList()
 ```
 
-##### Property Format
+##### Two - Paths Property Format
 
 This format should be used if there are circular references in the dataset back to the top-level parent (e.g., 1->1364->18->182->1)
 
@@ -310,7 +310,7 @@ This result set should contain the parent value (e.g., 1,2) and its associated c
 
 Below is an example based on the “Air Routes” dataset.
 
-###### Corresponding Property Gremlin Query
+###### Corresponding Paths Property Gremlin Query
 
 ```groovy
 g.V(1,2).
@@ -336,6 +336,88 @@ g.V(1,2).
     by(keys).
     by(values).
   toList()
+```
+
+##### Three - Path Property Format
+
+This format should be used if there are circular references in the dataset back to the top-level parent (e.g., 1->1364->18->182->1)
+
+```json
+[
+  ["startid": 1,
+    "path": [1, 1364, 18]],
+  ["startid": 1,
+    "path": [1, 1364, 11]]
+  ["startid": 1,
+    "path": [1, 1364, 18, 182]],
+  ["startid": 1,
+      "path": [1, 1364, 18, 144]],
+  ["startid": 1,
+      "path": [1, 147, 1103]],
+  ["startid": 1,
+      "path": [1, 147, 1237]],
+    ["startid": 2,
+    "path": [2, 2364, 28]],
+  ["startid": 2,
+      "path": [2, 2364, 21]],
+  ["startid": 2,
+      "path": [2, 2364, 28, 282]],
+  ["startid": 2,
+      "path": [2, 2364, 28, 244]],
+  ["startid": 2,
+      "path": [2, 247, 203]],
+  ["startid": 2,
+      "path": [2, 247, 237]]
+]
+```
+
+This result set should contain the parent value (e.g., 1,2) and its associated children.
+
+Below is an example based on the “Air Routes” dataset.
+
+###### Corresponding Path Property Gremlin Query
+
+Note: This Example returns property values as possible values.
+
+```groovy
+g.V()
+  .has('code', 'ORD')
+  .as('s')
+  .out('route')
+  .out('route')
+  .out('route')
+  .has('code', 'SFO')
+  .project('startid', 'path')
+  .by(select('s')
+      .values('code'))
+      .by(path()
+      .by('code'))
+  .toList()
+```
+
+Result of the above query:
+
+```json
+[
+  ["startid":"ORD",
+    "path":["ORD","GSO","MIA","SFO"]]
+  ["startid":"ORD",
+    "path":["ORD","GSO","PHL","SFO"]]
+  ["startid":"ORD",
+    "path":["ORD","GSO","ORD","SFO"]]
+  ["startid":"ORD",
+    "path":["ORD","GSO","DTW","SFO"]]
+  ["startid":"ORD",
+    "path":["ORD","GSO","CLT","SFO"]]
+  ["startid":"ORD",
+    "path":["ORD","GSO","ATL","SFO"]]
+  ["startid":"ORD",
+    "path":["ORD","GSO","TPA","SFO"]]
+  ["startid":"ORD",
+    "path":["ORD","GSO","DCA","SFO"]]
+  ["startid":"ORD",
+    "path":["ORD","GSO","DEN","SFO"]]
+]
 ```
 
 ##### Command Line Example (Gremlin)

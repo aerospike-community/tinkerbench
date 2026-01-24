@@ -182,3 +182,18 @@ They can also be copied and pased into any Grafana dashboard. For more informati
 Below ia an example:
 
 ![workload tmestamp](./media/WorkloadGranfanaTS.png)
+
+## Print Query Results CLI Switch
+
+To print the results' of a Gremlin query enable the CLI switch, `--result`.
+
+This will display the actual Gremlin query being executed and its result.
+
+**Note**: This will display every query executed during the run duration.
+
+Below is an example of the console output:
+
+![Print Query Results](./media/ConsolePrintResults.png)
+
+| ![A yellow post-it note with a red pin AI-generated content may be incorrect.](media/NotePencil.png) | Warning: This switch can cause excess output and will effect QPS and certain behaiors are ignored (e.g., Error Thresholds). This shouldn't be used unless necessary. Query testing should be conducted with tools like Gremlin Console.|
+|------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------|

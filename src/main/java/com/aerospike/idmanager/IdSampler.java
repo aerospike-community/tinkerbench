@@ -252,6 +252,9 @@ public class IdSampler implements IdManager {
         return res;
     }
     @Override
+    final public Object[] getNewIds() { return getIds(); }
+
+    @Override
     final public void Reset() { }
 
     /*

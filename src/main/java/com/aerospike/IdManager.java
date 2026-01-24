@@ -85,9 +85,21 @@ public interface IdManager {
     *                       Index 1 (72) -> Child of 23
     *                       Index 2 (101) -> Grandchild of 23
     *
-    * Note: The tree can produce a new range set of id by calling Reset method.
+    * Note: The tree can produce a new range set of id by calling Reset or getNewIds methods.
      */
     Object[]  getIds();
+
+    /*
+     *   @return This will return a New collection of Ids based on the current tree where each array position represents the id at that depth.
+     *               Example: [23, 72, 101, 45]
+     *                       This tree has a maximum depth of 4 where index 0 (23) is the top-level parent,
+     *                       Index 1 (72) -> Child of 23
+     *                       Index 2 (101) -> Grandchild of 23
+     *
+     * Note: The tree can produce a new range set of id by calling Reset method.
+     * This method is also thread safe
+     */
+    Object[]  getNewIds();
 
     /*
     *   @param filePath A CSV file to be used to import Ids. This Path can contain wildcard chars or be a folder where al CSV files will be imported.

@@ -96,6 +96,9 @@ public class dummyManager implements IdManagerQuery {
     }
 
     @Override
+    public Object[] getNewIds() { return new Object[0]; }
+
+    @Override
     public long importFile(String filePath, OpenTelemetry openTelemetry, LogSource logger, int sampleSize, String[] labels) {
         return 0;
     }
